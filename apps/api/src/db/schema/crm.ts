@@ -46,6 +46,7 @@ export const clients = pgTable('clients', {
   leadId: uuid('lead_id'),
   assignedAgentId: uuid('assigned_agent_id').references(() => users.id, { onDelete: 'set null' }),
   lastContactedAt: timestamp('last_contacted_at', { withTimezone: true }),
+  nextFollowUpAt: timestamp('next_follow_up_at', { withTimezone: true }),
   ...auditColumns(),
   ...timestamps(),
 });

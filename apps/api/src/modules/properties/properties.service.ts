@@ -227,8 +227,8 @@ export async function addImage(a: Auth, id: string, body: unknown): Promise<Prop
     if (input.isCover) {
       await tx.update(propertyImages).set({ isCover: false }).where(eq(propertyImages.propertyId, id));
     }
-    const [{ count }] = await tx.select({ count: dsql<number>`count(*)::int` }).from(propertyImages).where(eq(propertyImages.propertyId, id));
-    await tx.insert(propertyImages).values({ propertyId: id, url: input.url, alt: input.alt ?? null, isCover: input.isCover, position: count });
+    const [row] = await tx.select({ count: dsql<number>`count(*)::int` }).from(propertyImages).where(eq(propertyImages.propertyId, id));
+    await tx.insert(propertyImages).values({ propertyId: id, url: input.url, alt: input.alt ?? null, isCover: input.isCover, position: row?.count ?? 0 });
     return hydrate(tx, a.organizationId, id);
   });
 }

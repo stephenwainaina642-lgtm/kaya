@@ -9,8 +9,8 @@ export function pk() {
   return uuid('id').primaryKey().defaultRandom();
 }
 
-export function money(name?: string) {
-  return name ? doublePrecision(name) : doublePrecision();
+export function money(name: string) {
+  return doublePrecision(name);
 }
 
 export function tenantColumns() {
