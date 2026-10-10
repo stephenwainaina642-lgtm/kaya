@@ -13,6 +13,9 @@ import { teamRouter } from './modules/team/team.routes';
 import { dashboardRouter } from './modules/dashboard/dashboard.routes';
 import { ownersRouter } from './modules/owners/owners.routes';
 import { propertiesRouter } from './modules/properties/properties.routes';
+import { matchingRouter } from './modules/matching/matching.routes';
+import { shortlistsRouter } from './modules/shortlists/shortlists.routes';
+import { platformRouter } from './modules/platform/platform.routes';
 
 export function createApp(): Express {
   const app = express();
@@ -38,6 +41,9 @@ export function createApp(): Express {
   app.use('/api/dashboard', dashboardRouter);
   app.use('/api/owners', ownersRouter);
   app.use('/api/properties', propertiesRouter);
+  app.use('/api/matching', matchingRouter);
+  app.use('/api/shortlists', shortlistsRouter);
+  app.use('/api/public', platformRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
