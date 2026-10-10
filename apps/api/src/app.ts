@@ -18,6 +18,9 @@ import { shortlistsRouter } from './modules/shortlists/shortlists.routes';
 import { platformRouter } from './modules/platform/platform.routes';
 import { viewingsRouter } from './modules/viewings/viewings.routes';
 import { dealsRouter } from './modules/deals/deals.routes';
+import { calendarRouter } from './modules/calendar/calendar.routes';
+import { communicationsRouter } from './modules/communications/communications.routes';
+import { documentsRouter } from './modules/documents/documents.routes';
 
 export function createApp(): Express {
   const app = express();
@@ -48,6 +51,9 @@ export function createApp(): Express {
   app.use('/api/public', platformRouter);
   app.use('/api/viewings', viewingsRouter);
   app.use('/api/deals', dealsRouter);
+  app.use('/api/calendar', calendarRouter);
+  app.use('/api/communications', communicationsRouter);
+  app.use('/api/documents', documentsRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
