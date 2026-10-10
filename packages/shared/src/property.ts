@@ -1,15 +1,19 @@
+import type { AgentRef, Page } from './crm';
 import type {
-  ListingType, PropertyType, Segment, Furnishing, PropertyStatus, FeatureKind,
-  CommissionArrangement, DealStatus, DealType,
-  OfferParty, OfferStatus,
-  CommissionStatus, PaymentStatus,
-  ViewingStatus, InterestLevel,
+  CommissionArrangement, DealStatus, DealTypeEnum, FeatureKind, Furnishing, ListingType,
+  OfferPartyEnum, OfferStatusEnum, PaymentStatusEnum, PropertyStatus, PropertyType, Segment,
+  CommissionStatusEnum, InterestLevelEnum, ViewingStatus,
 } from './enums';
-import type { AgentRef } from './crm';
 import type { ScheduleItem } from './dashboard';
 
+export type DealType = DealTypeEnum;
+export type OfferStatus = OfferStatusEnum;
+export type OfferParty = OfferPartyEnum;
+export type CommissionStatus = CommissionStatusEnum;
+export type PaymentStatus = PaymentStatusEnum;
+export type InterestLevel = InterestLevelEnum;
+
 export interface PropertyFeatureItem {
-  id: string;
   key: string;
   label: string;
   kind: FeatureKind;
@@ -37,6 +41,7 @@ export interface PropertyListItem {
   city: string;
   bedrooms: number | null;
   bathrooms: number | null;
+  sizeSqm: number | null;
   status: PropertyStatus;
   coverImageUrl: string | null;
   assignedAgent: AgentRef | null;
@@ -46,7 +51,6 @@ export interface PropertyDetail extends PropertyListItem {
   address: string | null;
   lat: number | null;
   lng: number | null;
-  sizeSqm: number | null;
   parkingSpaces: number | null;
   furnishing: Furnishing | null;
   availableFrom: string | null;
@@ -55,19 +59,21 @@ export interface PropertyDetail extends PropertyListItem {
   virtualTourUrl: string | null;
   internalNotes: string | null;
   ownerId: string;
+  owner: OwnerRef | null;
   images: PropertyImage[];
   features: PropertyFeatureItem[];
-  listedAt: string | null;
+  listedAt: string;
+  updatedAt: string;
 }
 
 export interface OwnerRef {
   id: string;
-  name: string;
+  fullName: string;
 }
 
 export interface OwnerListItem {
   id: string;
-  fullName: string | null;
+  fullName: string;
   companyName: string | null;
   phone: string;
   email: string | null;
@@ -87,39 +93,39 @@ export interface OwnerDetail extends OwnerListItem {
 }
 
 export interface MatchScore {
-  total: number;
+  overall: number;
   budget: number;
   location: number;
-  bedrooms: number;
-  propertyType: number;
-  amenities: number;
+  type: number;
+  features: number;
 }
 
 export interface PropertyMatch {
   property: PropertyListItem;
   score: MatchScore;
-  verdict: 'EXCELLENT' | 'GOOD' | 'FAIR' | 'POOR';
+  verdict: 'STRONG' | 'GOOD' | 'PARTIAL' | 'WEAK';
+  breakdown: string[];
   dismissed: boolean;
 }
 
 export interface PropertyMatchPage {
   items: PropertyMatch[];
-  total: number;
 }
 
 export interface PersonMatch {
-  contact: { kind: 'lead' | 'client'; id: string; name: string };
+  kind: 'lead' | 'client';
+  id: string;
+  fullName: string;
   score: MatchScore;
-  verdict: 'EXCELLENT' | 'GOOD' | 'FAIR' | 'POOR';
+  verdict: 'STRONG' | 'GOOD' | 'PARTIAL' | 'WEAK';
 }
 
 export interface PersonMatchPage {
   items: PersonMatch[];
-  total: number;
 }
 
 export interface ShortlistItem {
-  id: string;
+  propertyId: string;
   property: PropertyListItem;
   note: string | null;
   position: number;
@@ -127,9 +133,8 @@ export interface ShortlistItem {
 
 export interface ShortlistSummary {
   id: string;
-  title: string;
   clientId: string;
-  clientName: string;
+  title: string;
   itemCount: number;
   shareToken: string;
   shareExpiresAt: string | null;
@@ -141,6 +146,7 @@ export interface ShortlistDetail extends ShortlistSummary {
 }
 
 export interface PublicProperty {
+  id: string;
   title: string;
   listingType: ListingType;
   propertyType: PropertyType;
@@ -149,12 +155,16 @@ export interface PublicProperty {
   location: string;
   bedrooms: number | null;
   bathrooms: number | null;
-  images: PropertyImage[];
+  sizeSqm: number | null;
+  images: string[];
+  description: string | null;
 }
 
 export interface PublicShortlist {
   title: string;
-  agencyName: string;
+  organizationName: string;
+  agentName: string;
+  agentPhone: string | null;
   items: { property: PublicProperty; note: string | null }[];
 }
 
@@ -166,8 +176,9 @@ export interface ViewingPropertyRef {
 }
 
 export interface ViewingPerson {
+  kind: 'lead' | 'client';
   id: string;
-  name: string;
+  fullName: string;
   phone: string;
 }
 
@@ -183,8 +194,7 @@ export interface ViewingFeedbackItem {
 export interface ViewingItem {
   id: string;
   property: ViewingPropertyRef;
-  client: ViewingPerson | null;
-  lead: ViewingPerson | null;
+  person: ViewingPerson;
   agent: AgentRef;
   scheduledAt: string;
   durationMinutes: number;
@@ -192,18 +202,18 @@ export interface ViewingItem {
   meetingLocation: string | null;
   notes: string | null;
   feedback: ViewingFeedbackItem | null;
+  completedAt: string | null;
 }
 
 export interface ViewingCounts {
-  scheduled: number;
+  upcoming: number;
+  today: number;
   completed: number;
   cancelled: number;
-  noShow: number;
 }
 
 export interface ViewingPage {
   items: ViewingItem[];
-  total: number;
   counts: ViewingCounts;
 }
 
@@ -241,12 +251,13 @@ export interface DealCard {
   propertyTitle: string | null;
   agent: AgentRef;
   value: number;
-  commissionAmount: number | null;
-  stageEnteredAt: string;
+  commissionAmount: number;
   isStalled: boolean;
+  lastActivityAt: string;
 }
 
-export interface BoardStage extends DealStageInfo {
+export interface BoardStage {
+  stage: DealStageInfo;
   deals: DealCard[];
   totalValue: number;
 }
@@ -283,13 +294,16 @@ export interface DealDetail {
   dealType: DealType;
   status: DealStatus;
   stage: DealStageInfo;
-  client: { id: string; name: string };
-  property: { id: string; title: string } | null;
-  owner: { id: string; name: string } | null;
+  clientId: string;
+  clientName: string;
+  propertyId: string | null;
+  propertyTitle: string | null;
+  leadId: string | null;
+  ownerId: string | null;
   agent: AgentRef;
   dealValue: number;
-  commissionRate: number | null;
-  commissionAmount: number | null;
+  commissionRate: number;
+  commissionAmount: number;
   probability: number;
   offerPrice: number | null;
   finalPrice: number | null;
@@ -302,13 +316,16 @@ export interface DealDetail {
   commissions: DealCommissionItem[];
   stageEnteredAt: string;
   lastActivityAt: string;
+  isStalled: boolean;
+  createdAt: string;
 }
 
 export interface CommissionListItem {
   id: string;
-  dealNumber: string;
+  dealId: string;
   dealName: string;
   agent: AgentRef;
+  sharePercent: number;
   amount: number;
   paidAmount: number;
   status: CommissionStatus;
@@ -316,11 +333,10 @@ export interface CommissionListItem {
   paidAt: string | null;
 }
 
-export interface CommissionPage {
-  items: CommissionListItem[];
-  total: number;
-  totalOutstanding: number;
+export interface CommissionPage extends Page<CommissionListItem> {
+  totalAmount: number;
   totalPaid: number;
+  totalOutstanding: number;
 }
 
 export function effectiveDealValue(d: { finalPrice?: number | null; offerPrice?: number | null; dealValue: number }): number {

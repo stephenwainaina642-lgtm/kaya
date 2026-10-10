@@ -1,8 +1,6 @@
 import type {
-  LeadStatus, LeadSource, Temperature, LeadType, ClientStatus,
-  Intent, Segment, Furnishing, PropertyType,
-  FollowUpStatus, FollowUpPriority, ContactMethod,
-  TaskStatus, TaskPriority, Role,
+  ClientStatus, Furnishing, Intent, LeadSource, LeadStatus, LeadType, PropertyType, Role, Segment, Temperature,
+  FollowUpStatus, FollowUpPriority, CommChannel, TaskStatus, TaskPriority,
 } from './enums';
 
 export interface Page<T> {
@@ -52,8 +50,8 @@ export interface LeadListItem {
   temperature: Temperature;
   leadType: LeadType;
   assignedAgent: AgentRef | null;
-  nextFollowUpAt: string | null;
   lastContactedAt: string | null;
+  nextFollowUpAt: string | null;
   createdAt: string;
 }
 
@@ -67,6 +65,7 @@ export interface LeadDetail extends LeadListItem {
   wonAt: string | null;
   lostAt: string | null;
   requirements: Requirements | null;
+  updatedAt: string;
 }
 
 export interface ClientListItem {
@@ -87,6 +86,7 @@ export interface ClientDetail extends ClientListItem {
   notes: string | null;
   leadId: string | null;
   requirements: Requirements | null;
+  updatedAt: string;
 }
 
 export interface TimelineEntry {
@@ -94,8 +94,8 @@ export interface TimelineEntry {
   type: string;
   title: string;
   body: string | null;
-  actor: AgentRef | null;
   metadata: Record<string, unknown> | null;
+  actor: AgentRef | null;
   occurredAt: string;
 }
 
@@ -111,7 +111,7 @@ export interface FollowUpItem {
   dueAt: string;
   status: FollowUpStatus;
   priority: FollowUpPriority;
-  channel: ContactMethod | null;
+  channel: CommChannel | null;
   leadId: string | null;
   clientId: string | null;
   contactName: string;
@@ -121,7 +121,6 @@ export interface FollowUpItem {
 
 export interface FollowUpPage {
   items: FollowUpItem[];
-  total: number;
   counts: { overdue: number; today: number; upcoming: number; completed: number };
 }
 
@@ -140,7 +139,6 @@ export interface TaskItem {
 
 export interface TaskPage {
   items: TaskItem[];
-  total: number;
   counts: { open: number; overdue: number; completed: number };
 }
 
