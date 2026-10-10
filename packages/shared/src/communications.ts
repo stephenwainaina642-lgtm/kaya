@@ -1,10 +1,10 @@
+import type { CommChannel, CommDirection, CommDelivery } from './enums';
 import type { AgentRef } from './crm';
-import type { CommChannel, CommDelivery, CommDirection } from './enums';
 
 export interface CommunicationContact {
   kind: 'lead' | 'client' | 'owner';
   id: string;
-  fullName: string;
+  name: string;
 }
 
 export interface CommunicationItem {
@@ -13,13 +13,11 @@ export interface CommunicationItem {
   direction: CommDirection;
   subject: string | null;
   body: string | null;
-  occurredAt: string;
+  deliveryStatus: CommDelivery | null;
   durationSeconds: number | null;
-  deliveryStatus: CommDelivery;
-  contact: CommunicationContact;
-  propertyTitle: string | null;
-  dealName: string | null;
-  user: AgentRef;
+  contact: CommunicationContact | null;
+  user: AgentRef | null;
+  occurredAt: string;
 }
 
 export interface CommunicationPage {

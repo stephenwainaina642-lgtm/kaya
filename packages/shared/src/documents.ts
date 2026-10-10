@@ -1,5 +1,5 @@
-import type { AgentRef } from './crm';
 import type { DocumentType } from './enums';
+import type { AgentRef } from './crm';
 
 export interface DocumentLinks {
   clientId: string | null;
@@ -15,7 +15,7 @@ export interface DocumentItem {
   mimeType: string;
   sizeBytes: number;
   links: DocumentLinks;
-  uploadedBy: AgentRef;
+  uploadedBy: AgentRef | null;
   createdAt: string;
 }
 

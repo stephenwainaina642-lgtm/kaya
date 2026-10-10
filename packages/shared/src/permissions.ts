@@ -8,41 +8,34 @@ export const RESOURCES = [
 export type Resource = (typeof RESOURCES)[number];
 
 export const WORK_RESOURCES: Resource[] = [
-  'leads', 'clients', 'properties', 'owners', 'viewings', 'followups', 'tasks', 'deals', 'communications', 'documents',
+  'leads', 'clients', 'properties', 'owners', 'viewings', 'followups', 'tasks', 'deals', 'commissions',
 ];
 
-export type DataScope = 'own' | 'organization';
-
-const SCOPE_RULES: Record<Role, DataScope> = {
-  ORG_ADMIN: 'organization',
-  MANAGER: 'organization',
-  AGENT: 'own',
-  VIEWER: 'organization',
-};
-
-export function dataScope(role: Role, _resource: Resource): DataScope {
-  return SCOPE_RULES[role];
-}
-
-export type Permission =
-  | `${Resource}:view`
-  | `${Resource}:create`
-  | `${Resource}:edit`
-  | `${Resource}:delete`
-  | `${Resource}:manage`;
+export type Permission = `${Resource}:${'view' | 'create' | 'edit' | 'delete'}`;
 
 const ROLE_RANK: Record<Role, number> = { VIEWER: 0, AGENT: 1, MANAGER: 2, ORG_ADMIN: 3 };
 
-const MIN_ROLE_FOR_ACTION: Record<string, Role> = {
-  view: 'VIEWER',
-  create: 'AGENT',
-  edit: 'AGENT',
-  delete: 'MANAGER',
-  manage: 'ORG_ADMIN',
+const RESOURCE_MIN_ROLE: Partial<Record<Resource, Record<'view' | 'create' | 'edit' | 'delete', Role>>> = {
+  billing: { view: 'ORG_ADMIN', create: 'ORG_ADMIN', edit: 'ORG_ADMIN', delete: 'ORG_ADMIN' },
+  settings: { view: 'MANAGER', create: 'ORG_ADMIN', edit: 'ORG_ADMIN', delete: 'ORG_ADMIN' },
+  team: { view: 'MANAGER', create: 'ORG_ADMIN', edit: 'ORG_ADMIN', delete: 'ORG_ADMIN' },
+  audit: { view: 'MANAGER', create: 'ORG_ADMIN', edit: 'ORG_ADMIN', delete: 'ORG_ADMIN' },
+  reports: { view: 'AGENT', create: 'MANAGER', edit: 'MANAGER', delete: 'MANAGER' },
 };
 
 export function can(role: Role, permission: Permission): boolean {
-  const action = permission.split(':')[1] ?? 'view';
-  const minRole = MIN_ROLE_FOR_ACTION[action] ?? 'ORG_ADMIN';
+  const [resource, action] = permission.split(':') as [Resource, 'view' | 'create' | 'edit' | 'delete'];
+  if (role === 'VIEWER' && action !== 'view') return false;
+  const override = RESOURCE_MIN_ROLE[resource]?.[action];
+  const minRole = override ?? 'AGENT';
   return ROLE_RANK[role] >= ROLE_RANK[minRole];
+}
+
+/** 'own' = user may only act on records assigned to them; 'organization' = scoped to the whole org. */
+export function dataScope(role: Role, resource: Resource): 'own' | 'organization' {
+  if (role === 'ORG_ADMIN' || role === 'MANAGER') return 'organization';
+  if (resource === 'team' || resource === 'settings' || resource === 'billing' || resource === 'reports') {
+    return 'organization';
+  }
+  return 'own';
 }

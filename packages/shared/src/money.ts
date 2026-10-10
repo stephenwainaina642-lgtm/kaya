@@ -1,19 +1,12 @@
-export interface FormatKesOptions {
-  compact?: boolean;
-  decimals?: boolean;
-}
-
-export function formatKes(amount: number, opts: FormatKesOptions = {}): string {
-  const { compact = false, decimals = false } = opts;
-  if (compact && Math.abs(amount) >= 1_000_000) {
-    return `KES ${(amount / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+export function formatKes(amount: number, opts?: { compact?: boolean }): string {
+  if (opts?.compact) {
+    const abs = Math.abs(amount);
+    if (abs >= 1_000_000) return `KES ${(amount / 1_000_000).toFixed(abs % 1_000_000 === 0 ? 0 : 1)}M`;
+    if (abs >= 1_000) return `KES ${(amount / 1_000).toFixed(abs % 1_000 === 0 ? 0 : 1)}K`;
   }
-  if (compact && Math.abs(amount) >= 1_000) {
-    return `KES ${(amount / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
-  }
-  const formatted = amount.toLocaleString('en-KE', {
-    minimumFractionDigits: decimals ? 2 : 0,
-    maximumFractionDigits: decimals ? 2 : 0,
-  });
-  return `KES ${formatted}`;
+  const formatted = new Intl.NumberFormat('en-KE', {
+    maximumFractionDigits: 0,
+  }).format(Math.abs(amount));
+  const sign = amount < 0 ? '-' : '';
+  return `${sign}KES ${formatted}`;
 }

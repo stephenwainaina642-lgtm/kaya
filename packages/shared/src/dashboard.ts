@@ -1,5 +1,5 @@
 import type { AgentRef } from './crm';
-import type { LeadSource, LeadStatus } from './enums';
+import type { LeadSource } from './enums';
 
 export type ScheduleItemType = 'VIEWING' | 'FOLLOW_UP' | 'TASK' | 'DEAL_DEADLINE';
 
@@ -9,16 +9,18 @@ export interface ScheduleItem {
   title: string;
   subtitle: string | null;
   at: string;
-  link: string | null;
+  status: string;
+  link: string;
 }
 
 export interface DashboardKpis {
-  newLeads: number;
+  activeLeads: number;
   activeClients: number;
   viewingsThisWeek: number;
-  openDealsValue: number;
+  dealsInProgress: number;
+  pipelineValue: number;
+  commissionsEarnedThisMonth: number;
   wonDealsThisMonth: number;
-  commissionThisMonth: number;
 }
 
 export const ATTENTION_BASE_SCORE = 10;
@@ -29,7 +31,7 @@ export interface AttentionItem {
   title: string;
   subtitle: string | null;
   score: number;
-  link: string | null;
+  link: string;
 }
 
 export interface LeadSourceBreakdown {
@@ -38,21 +40,21 @@ export interface LeadSourceBreakdown {
 }
 
 export interface LeadPipelineStage {
-  status: LeadStatus;
+  status: string;
   count: number;
 }
 
 export interface RevenueTrendPoint {
-  monthKey: string;
-  label: string;
-  commission: number;
+  month: string;
+  commissionEarned: number;
+  dealsWon: number;
 }
 
 export interface AgentPerformance {
   agent: AgentRef;
-  dealsWon: number;
-  commission: number;
   activeLeads: number;
+  dealsWon: number;
+  commissionEarned: number;
 }
 
 export interface DashboardData {
