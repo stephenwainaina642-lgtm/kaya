@@ -1,8 +1,6 @@
 node_modules/
 dist/
-build/
 .env
-.storage/
 *.log
-.DS_Store
+.storage/
 
