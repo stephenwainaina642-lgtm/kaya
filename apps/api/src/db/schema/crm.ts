@@ -4,7 +4,9 @@ import {
   leadStatusEnum, leadSourceEnum, temperatureEnum, leadTypeEnum, clientStatusEnum,
   intentEnum, segmentEnum, furnishingEnum, propertyTypeEnum,
 } from './enums';
-import { tenantColumns, auditColumns, timestamps } from './base';
+import { timestamps } from './base';
+import { tenantColumns } from './tenant-ref';
+import { auditColumns } from './audit-ref';
 import { users } from './identity';
 
 export const leads = pgTable('leads', {

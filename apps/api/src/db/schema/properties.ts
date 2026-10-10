@@ -4,7 +4,9 @@ import {
   listingTypeEnum, propertyTypeEnum, segmentEnum, furnishingEnum, propertyStatusEnum,
   featureKindEnum, commissionArrangementEnum,
 } from './enums';
-import { tenantColumns, auditColumns, timestamps } from './base';
+import { timestamps } from './base';
+import { tenantColumns } from './tenant-ref';
+import { auditColumns } from './audit-ref';
 import { users } from './identity';
 import { clients } from './crm';
 

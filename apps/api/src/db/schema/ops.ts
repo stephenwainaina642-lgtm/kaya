@@ -5,7 +5,8 @@ import {
   documentTypeEnum, followUpStatusEnum, followUpPriorityEnum, contactMethodEnum,
   taskStatusEnum, taskPriorityEnum,
 } from './enums';
-import { tenantColumns, timestamps } from './base';
+import { timestamps } from './base';
+import { tenantColumns } from './tenant-ref';
 import { users } from './identity';
 import { leads, clients } from './crm';
 import { owners, properties } from './properties';

@@ -1,6 +1,7 @@
 import { pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { roleEnum } from './enums';
-import { tenantColumns, timestamps } from './base';
+import { timestamps } from './base';
+import { tenantColumns } from './tenant-ref';
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),

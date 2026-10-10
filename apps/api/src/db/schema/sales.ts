@@ -3,7 +3,9 @@ import {
   viewingStatusEnum, interestLevelEnum, dealTypeEnum, dealStatusEnum,
   offerPartyEnum, offerStatusEnum, commissionStatusEnum, paymentStatusEnum,
 } from './enums';
-import { tenantColumns, auditColumns, timestamps } from './base';
+import { timestamps } from './base';
+import { tenantColumns } from './tenant-ref';
+import { auditColumns } from './audit-ref';
 import { users } from './identity';
 import { leads, clients } from './crm';
 import { owners, properties } from './properties';

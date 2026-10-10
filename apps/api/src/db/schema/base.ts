@@ -1,7 +1,14 @@
 import { sql } from 'drizzle-orm';
 import { doublePrecision, timestamp, uuid } from 'drizzle-orm/pg-core';
-import { organizations } from './tenant';
-import { users } from './identity';
+
+// NOTE: this file deliberately has no imports from any other schema file.
+// tenantColumns()/auditColumns() used to live here and import `organizations`
+// / `users` to build their FK references, which created a real ESM import
+// cycle (base -> tenant -> base, base -> identity -> base). That cycle
+// happened to resolve under tsx/tsc's module order but broke under
+// vitest's vite-node transform ("timestamps is not a function"). They now
+// live in ./tenant-ref and ./audit-ref, each a one-directional import onto
+// the table they reference, so nothing imports back into this file.
 
 export const nowUtc = sql`now()`;
 
@@ -11,21 +18,6 @@ export function pk() {
 
 export function money(name: string) {
   return doublePrecision(name);
-}
-
-export function tenantColumns() {
-  return {
-    organizationId: uuid('organization_id')
-      .notNull()
-      .references(() => organizations.id, { onDelete: 'cascade' }),
-  };
-}
-
-export function auditColumns() {
-  return {
-    createdById: uuid('created_by_id').references(() => users.id, { onDelete: 'set null' }),
-    updatedById: uuid('updated_by_id').references(() => users.id, { onDelete: 'set null' }),
-  };
 }
 
 export function timestamps() {
