@@ -16,6 +16,7 @@ import { propertiesRouter } from './modules/properties/properties.routes';
 import { matchingRouter } from './modules/matching/matching.routes';
 import { shortlistsRouter } from './modules/shortlists/shortlists.routes';
 import { platformRouter } from './modules/platform/platform.routes';
+import { viewingsRouter } from './modules/viewings/viewings.routes';
 
 export function createApp(): Express {
   const app = express();
@@ -44,6 +45,7 @@ export function createApp(): Express {
   app.use('/api/matching', matchingRouter);
   app.use('/api/shortlists', shortlistsRouter);
   app.use('/api/public', platformRouter);
+  app.use('/api/viewings', viewingsRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
