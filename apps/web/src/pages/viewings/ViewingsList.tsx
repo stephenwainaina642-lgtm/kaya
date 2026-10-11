@@ -1,18 +1,23 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { CalendarClock } from 'lucide-react';
+import { CalendarClock, Plus } from 'lucide-react';
 import type { ViewingPage } from '@kaya/shared';
 import { api } from '../../lib/api';
 import { PageHeader } from '../../components/PageHeader';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
+import { Button } from '../../components/ui/Button';
 import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { Modal } from '../../components/ui/Modal';
+import { NewViewingForm } from '../../forms/NewViewingForm';
 
 const STATUS_TONE: Record<string, 'ok' | 'warn' | 'danger' | 'neutral' | 'accent'> = {
   SCHEDULED: 'warn', CONFIRMED: 'accent', COMPLETED: 'ok', CANCELLED: 'danger', NO_SHOW: 'danger',
 };
 
 export function ViewingsList() {
+  const [showNew, setShowNew] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ['viewings'],
     queryFn: () => api.get<ViewingPage>('/viewings', { pageSize: 50 }),
@@ -20,7 +25,14 @@ export function ViewingsList() {
 
   return (
     <>
-      <PageHeader title="Viewings" subtitle={data ? `${data.total} scheduled` : undefined} />
+      <PageHeader
+        title="Viewings"
+        subtitle={data ? `${data.total} scheduled` : undefined}
+        actions={<Button onClick={() => setShowNew(true)}><Plus size={16} /> New viewing</Button>}
+      />
+      <Modal open={showNew} onClose={() => setShowNew(false)} title="New viewing">
+        <NewViewingForm onDone={() => setShowNew(false)} />
+      </Modal>
       <div className="p-8">
         {isLoading ? (
           <Spinner />

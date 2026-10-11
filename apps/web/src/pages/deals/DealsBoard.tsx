@@ -1,13 +1,19 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { Plus } from 'lucide-react';
 import type { DealBoard } from '@kaya/shared';
 import { formatKes } from '@kaya/shared';
 import { api } from '../../lib/api';
 import { PageHeader } from '../../components/PageHeader';
 import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
 import { Spinner } from '../../components/ui/Spinner';
+import { Modal } from '../../components/ui/Modal';
+import { NewDealForm } from '../../forms/NewDealForm';
 
 export function DealsBoard() {
+  const [showNew, setShowNew] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ['deals-board'],
     queryFn: () => api.get<DealBoard>('/deals/board'),
@@ -15,7 +21,14 @@ export function DealsBoard() {
 
   return (
     <>
-      <PageHeader title="Deals" subtitle="Pipeline board" />
+      <PageHeader
+        title="Deals"
+        subtitle="Pipeline board"
+        actions={<Button onClick={() => setShowNew(true)}><Plus size={16} /> New deal</Button>}
+      />
+      <Modal open={showNew} onClose={() => setShowNew(false)} title="New deal" width="max-w-xl">
+        <NewDealForm onDone={() => setShowNew(false)} />
+      </Modal>
       <div className="p-8">
         {isLoading || !data ? (
           <Spinner />
