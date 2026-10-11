@@ -1,0 +1,80 @@
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { useAuth } from './auth/AuthContext';
+import { AppLayout } from './components/AppLayout';
+import { Spinner } from './components/ui/Spinner';
+import { Login } from './pages/Login';
+import { Dashboard } from './pages/Dashboard';
+import { LeadsList } from './pages/leads/LeadsList';
+import { LeadDetail } from './pages/leads/LeadDetail';
+import { ClientsList } from './pages/clients/ClientsList';
+import { ClientDetail } from './pages/clients/ClientDetail';
+import { PropertiesList } from './pages/properties/PropertiesList';
+import { PropertyDetail } from './pages/properties/PropertyDetail';
+import { OwnersList } from './pages/owners/OwnersList';
+import { OwnerDetail } from './pages/owners/OwnerDetail';
+import { ViewingsList } from './pages/viewings/ViewingsList';
+import { FollowUpsList } from './pages/followups/FollowUpsList';
+import { TasksList } from './pages/tasks/TasksList';
+import { DealsBoard } from './pages/deals/DealsBoard';
+import { DealDetail } from './pages/deals/DealDetail';
+import { CommissionsList } from './pages/commissions/CommissionsList';
+import { CalendarPage } from './pages/calendar/CalendarPage';
+import { CommunicationsList } from './pages/communications/CommunicationsList';
+import { DocumentsList } from './pages/documents/DocumentsList';
+import { ReportsPage } from './pages/reports/ReportsPage';
+import { TeamPage } from './pages/team/TeamPage';
+import { SettingsPage } from './pages/settings/SettingsPage';
+import { NotFound } from './pages/NotFound';
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-ground">
+        <Spinner />
+      </div>
+    );
+  }
+  if (!user) return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+  return <>{children}</>;
+}
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Dashboard />} />
+        <Route path="leads" element={<LeadsList />} />
+        <Route path="leads/:id" element={<LeadDetail />} />
+        <Route path="clients" element={<ClientsList />} />
+        <Route path="clients/:id" element={<ClientDetail />} />
+        <Route path="properties" element={<PropertiesList />} />
+        <Route path="properties/:id" element={<PropertyDetail />} />
+        <Route path="owners" element={<OwnersList />} />
+        <Route path="owners/:id" element={<OwnerDetail />} />
+        <Route path="viewings" element={<ViewingsList />} />
+        <Route path="follow-ups" element={<FollowUpsList />} />
+        <Route path="tasks" element={<TasksList />} />
+        <Route path="deals" element={<DealsBoard />} />
+        <Route path="deals/:id" element={<DealDetail />} />
+        <Route path="commissions" element={<CommissionsList />} />
+        <Route path="calendar" element={<CalendarPage />} />
+        <Route path="communications" element={<CommunicationsList />} />
+        <Route path="documents" element={<DocumentsList />} />
+        <Route path="reports" element={<ReportsPage />} />
+        <Route path="team" element={<TeamPage />} />
+        <Route path="settings" element={<SettingsPage />} />
+        <Route path="*" element={<NotFound />} />
+      </Route>
+    </Routes>
+  );
+}

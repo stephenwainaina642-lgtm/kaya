@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  @apply bg-ground text-ink font-sans antialiased;
+}
+
+h1, h2, h3, .font-display {
+  @apply font-display;
+}
+
+::selection {
+  background: rgba(47, 107, 69, 0.18);
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #c7d2cb;
+  border-radius: 8px;
+}

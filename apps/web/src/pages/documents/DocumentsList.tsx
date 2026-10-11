@@ -1,0 +1,64 @@
+import { useQuery } from '@tanstack/react-query';
+import { FileText, Download } from 'lucide-react';
+import type { DocumentPage } from '@kaya/shared';
+import { api } from '../../lib/api';
+import { PageHeader } from '../../components/PageHeader';
+import { Card } from '../../components/ui/Card';
+import { Badge } from '../../components/ui/Badge';
+import { Spinner } from '../../components/ui/Spinner';
+import { EmptyState } from '../../components/ui/EmptyState';
+
+function formatBytes(n: number) {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
+
+export function DocumentsList() {
+  const { data, isLoading } = useQuery({
+    queryKey: ['documents'],
+    queryFn: () => api.get<DocumentPage>('/documents', { pageSize: 50 }),
+  });
+
+  return (
+    <>
+      <PageHeader title="Documents" subtitle={data ? `${data.total} files` : undefined} />
+      <div className="p-8">
+        {isLoading ? (
+          <Spinner />
+        ) : !data || data.items.length === 0 ? (
+          <Card><EmptyState icon={<FileText size={28} />} title="No documents uploaded" /></Card>
+        ) : (
+          <Card>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-faint">
+                  <th className="px-5 py-3 font-medium">Name</th>
+                  <th className="px-5 py-3 font-medium">Type</th>
+                  <th className="px-5 py-3 font-medium">Size</th>
+                  <th className="px-5 py-3 font-medium">Uploaded by</th>
+                  <th className="px-5 py-3" />
+                </tr>
+              </thead>
+              <tbody>
+                {data.items.map((d) => (
+                  <tr key={d.id} className="border-b border-line last:border-0 hover:bg-sunk">
+                    <td className="px-5 py-3 font-medium text-ink">{d.name}</td>
+                    <td className="px-5 py-3"><Badge>{d.type.replace(/_/g, ' ')}</Badge></td>
+                    <td className="px-5 py-3 text-muted">{formatBytes(d.sizeBytes)}</td>
+                    <td className="px-5 py-3 text-muted">{d.uploadedBy?.name ?? '—'}</td>
+                    <td className="px-5 py-3 text-right">
+                      <a href={`/api/documents/${d.id}/download`} className="inline-flex items-center gap-1 text-cypress-700 hover:underline">
+                        <Download size={14} /> Download
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        )}
+      </div>
+    </>
+  );
+}
