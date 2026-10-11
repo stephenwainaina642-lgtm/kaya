@@ -31,7 +31,7 @@ export function OwnersList() {
           ) : !data || data.items.length === 0 ? (
             <EmptyState title="No owners yet" />
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-faint">
                   <th className="px-5 py-3 font-medium">Name</th>
@@ -50,7 +50,7 @@ export function OwnersList() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           )}
         </Card>
       </div>

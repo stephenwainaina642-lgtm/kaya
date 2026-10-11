@@ -40,7 +40,7 @@ export function ClientsList() {
           ) : !data || data.items.length === 0 ? (
             <EmptyState title="No clients yet" body="Qualify a lead to create your first client." />
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-faint">
                   <th className="px-5 py-3 font-medium">Name</th>
@@ -64,7 +64,7 @@ export function ClientsList() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           )}
         </Card>
       </div>

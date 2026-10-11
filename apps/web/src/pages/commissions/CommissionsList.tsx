@@ -34,7 +34,7 @@ export function CommissionsList() {
           <Card><EmptyState title="No commissions yet" /></Card>
         ) : (
           <Card>
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-faint">
                   <th className="px-5 py-3 font-medium">Deal</th>
@@ -56,7 +56,7 @@ export function CommissionsList() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </Card>
         )}
       </div>

@@ -28,7 +28,7 @@ export function ViewingsList() {
           <Card><EmptyState icon={<CalendarClock size={28} />} title="No viewings scheduled" /></Card>
         ) : (
           <Card>
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-faint">
                   <th className="px-5 py-3 font-medium">Property</th>
@@ -49,7 +49,7 @@ export function ViewingsList() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </Card>
         )}
       </div>

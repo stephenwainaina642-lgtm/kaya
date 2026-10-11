@@ -14,8 +14,8 @@ body {
   @apply bg-ground text-ink font-sans antialiased;
 }
 
-h1, h2, h3, .font-display {
-  @apply font-display;
+h1, h2, h3 {
+  font-family: theme('fontFamily.display');
 }
 
 ::selection {
