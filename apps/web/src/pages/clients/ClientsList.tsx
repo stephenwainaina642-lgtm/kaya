@@ -10,6 +10,8 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { Modal } from '../../components/ui/Modal';
+import { NewClientForm } from '../../forms/NewClientForm';
 
 const STATUS_TONE: Record<string, 'ok' | 'warn' | 'danger' | 'neutral'> = {
   ACTIVE: 'ok', NURTURING: 'warn', WON: 'ok', LOST: 'danger', INACTIVE: 'neutral',
@@ -17,6 +19,7 @@ const STATUS_TONE: Record<string, 'ok' | 'warn' | 'danger' | 'neutral'> = {
 
 export function ClientsList() {
   const [q, setQ] = useState('');
+  const [showNew, setShowNew] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ['clients', q],
     queryFn: () => api.get<Page<ClientListItem>>('/clients', { search: q, pageSize: 50 }),
@@ -27,8 +30,11 @@ export function ClientsList() {
       <PageHeader
         title="Clients"
         subtitle={data ? `${data.total} total` : undefined}
-        actions={<Button><Plus size={16} /> New client</Button>}
+        actions={<Button onClick={() => setShowNew(true)}><Plus size={16} /> New client</Button>}
       />
+      <Modal open={showNew} onClose={() => setShowNew(false)} title="New client">
+        <NewClientForm onDone={() => setShowNew(false)} />
+      </Modal>
       <div className="p-8">
         <div className="mb-4 flex max-w-sm items-center gap-2 rounded-control border border-line bg-white px-3">
           <Search size={16} className="text-faint" />

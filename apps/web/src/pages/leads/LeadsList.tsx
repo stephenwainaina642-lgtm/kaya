@@ -11,6 +11,8 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { Modal } from '../../components/ui/Modal';
+import { NewLeadForm } from '../../forms/NewLeadForm';
 
 const TEMP_TONE: Record<string, 'danger' | 'warn' | 'neutral'> = { HOT: 'danger', WARM: 'warn', COLD: 'neutral' };
 const STATUS_TONE: Record<string, 'ok' | 'warn' | 'danger' | 'neutral' | 'accent'> = {
@@ -19,6 +21,7 @@ const STATUS_TONE: Record<string, 'ok' | 'warn' | 'danger' | 'neutral' | 'accent
 
 export function LeadsList() {
   const [q, setQ] = useState('');
+  const [showNew, setShowNew] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ['leads', q],
     queryFn: () => api.get<Page<LeadListItem>>('/leads', { search: q, pageSize: 50 }),
@@ -30,11 +33,14 @@ export function LeadsList() {
         title="Leads"
         subtitle={data ? `${data.total} total` : undefined}
         actions={
-          <Button>
+          <Button onClick={() => setShowNew(true)}>
             <Plus size={16} /> New lead
           </Button>
         }
       />
+      <Modal open={showNew} onClose={() => setShowNew(false)} title="New lead">
+        <NewLeadForm onDone={() => setShowNew(false)} />
+      </Modal>
       <div className="p-8">
         <div className="mb-4 flex max-w-sm items-center gap-2 rounded-control border border-line bg-white px-3">
           <Search size={16} className="text-faint" />

@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, ListChecks } from 'lucide-react';
+import { CheckCircle2, ListChecks, Plus } from 'lucide-react';
 import type { FollowUpPage } from '@kaya/shared';
 import { api } from '../../lib/api';
 import { PageHeader } from '../../components/PageHeader';
@@ -8,11 +9,14 @@ import { Badge } from '../../components/ui/Badge';
 import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Button } from '../../components/ui/Button';
+import { Modal } from '../../components/ui/Modal';
+import { NewFollowUpForm } from '../../forms/NewFollowUpForm';
 
 const PRIORITY_TONE: Record<string, 'danger' | 'warn' | 'neutral'> = { HIGH: 'danger', MEDIUM: 'warn', LOW: 'neutral' };
 
 export function FollowUpsList() {
   const qc = useQueryClient();
+  const [showNew, setShowNew] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ['followups'],
     queryFn: () => api.get<FollowUpPage>('/follow-ups', { pageSize: 50 }),
@@ -24,7 +28,14 @@ export function FollowUpsList() {
 
   return (
     <>
-      <PageHeader title="Follow-ups" subtitle={data ? `${data.counts.overdue} overdue · ${data.counts.today} today` : undefined} />
+      <PageHeader
+        title="Follow-ups"
+        subtitle={data ? `${data.counts.overdue} overdue · ${data.counts.today} today` : undefined}
+        actions={<Button onClick={() => setShowNew(true)}><Plus size={16} /> New follow-up</Button>}
+      />
+      <Modal open={showNew} onClose={() => setShowNew(false)} title="New follow-up">
+        <NewFollowUpForm onDone={() => setShowNew(false)} />
+      </Modal>
       <div className="p-8">
         {isLoading ? (
           <Spinner />

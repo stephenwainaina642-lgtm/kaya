@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Role } from '@kaya/shared';
 import { api, setAccessToken, setUnauthorizedHandler } from '../lib/api';
 
@@ -32,7 +32,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUnauthorizedHandler(clear);
   }, [clear]);
 
+  const didBootstrap = useRef(false);
+
   useEffect(() => {
+    // Guard against React StrictMode's double-invoke in dev: the refresh
+    // endpoint rotates the refresh token on each use, so firing this twice
+    // concurrently makes the second call 401 on an already-consumed token
+    // and log the user straight back out.
+    if (didBootstrap.current) return;
+    didBootstrap.current = true;
     (async () => {
       try {
         const res = await api.post<{ accessToken: string; user: AuthUser }>('/auth/refresh');

@@ -11,6 +11,8 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { Modal } from '../../components/ui/Modal';
+import { NewPropertyForm } from '../../forms/NewPropertyForm';
 
 const STATUS_TONE: Record<string, 'ok' | 'warn' | 'danger' | 'neutral'> = {
   AVAILABLE: 'ok', UNDER_OFFER: 'warn', RESERVED: 'warn', LET: 'neutral', SOLD: 'neutral', WITHDRAWN: 'danger',
@@ -18,6 +20,7 @@ const STATUS_TONE: Record<string, 'ok' | 'warn' | 'danger' | 'neutral'> = {
 
 export function PropertiesList() {
   const [q, setQ] = useState('');
+  const [showNew, setShowNew] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ['properties', q],
     queryFn: () => api.get<Page<PropertyListItem>>('/properties', { search: q, pageSize: 50 }),
@@ -25,7 +28,10 @@ export function PropertiesList() {
 
   return (
     <>
-      <PageHeader title="Properties" subtitle={data ? `${data.total} listings` : undefined} actions={<Button><Plus size={16} /> New property</Button>} />
+      <PageHeader title="Properties" subtitle={data ? `${data.total} listings` : undefined} actions={<Button onClick={() => setShowNew(true)}><Plus size={16} /> New property</Button>} />
+      <Modal open={showNew} onClose={() => setShowNew(false)} title="New property" width="max-w-xl">
+        <NewPropertyForm onDone={() => setShowNew(false)} />
+      </Modal>
       <div className="p-8">
         <div className="mb-4 flex max-w-sm items-center gap-2 rounded-control border border-line bg-white px-3">
           <Search size={16} className="text-faint" />

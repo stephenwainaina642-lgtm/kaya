@@ -9,9 +9,12 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { Modal } from '../../components/ui/Modal';
+import { NewOwnerForm } from '../../forms/NewOwnerForm';
 
 export function OwnersList() {
   const [q, setQ] = useState('');
+  const [showNew, setShowNew] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ['owners', q],
     queryFn: () => api.get<Page<OwnerListItem>>('/owners', { search: q, pageSize: 50 }),
@@ -19,7 +22,10 @@ export function OwnersList() {
 
   return (
     <>
-      <PageHeader title="Owners" subtitle={data ? `${data.total} total` : undefined} actions={<Button><Plus size={16} /> New owner</Button>} />
+      <PageHeader title="Owners" subtitle={data ? `${data.total} total` : undefined} actions={<Button onClick={() => setShowNew(true)}><Plus size={16} /> New owner</Button>} />
+      <Modal open={showNew} onClose={() => setShowNew(false)} title="New owner">
+        <NewOwnerForm onDone={() => setShowNew(false)} />
+      </Modal>
       <div className="p-8">
         <div className="mb-4 flex max-w-sm items-center gap-2 rounded-control border border-line bg-white px-3">
           <Search size={16} className="text-faint" />
