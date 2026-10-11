@@ -14,7 +14,7 @@ export function OwnersList() {
   const [q, setQ] = useState('');
   const { data, isLoading } = useQuery({
     queryKey: ['owners', q],
-    queryFn: () => api.get<Page<OwnerListItem>>('/owners', { q, pageSize: 50 }),
+    queryFn: () => api.get<Page<OwnerListItem>>('/owners', { search: q, pageSize: 50 }),
   });
 
   return (

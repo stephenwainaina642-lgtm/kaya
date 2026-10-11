@@ -21,7 +21,7 @@ export function LeadsList() {
   const [q, setQ] = useState('');
   const { data, isLoading } = useQuery({
     queryKey: ['leads', q],
-    queryFn: () => api.get<Page<LeadListItem>>('/leads', { q, pageSize: 50 }),
+    queryFn: () => api.get<Page<LeadListItem>>('/leads', { search: q, pageSize: 50 }),
   });
 
   return (

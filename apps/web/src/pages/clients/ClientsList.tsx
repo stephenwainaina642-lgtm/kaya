@@ -19,7 +19,7 @@ export function ClientsList() {
   const [q, setQ] = useState('');
   const { data, isLoading } = useQuery({
     queryKey: ['clients', q],
-    queryFn: () => api.get<Page<ClientListItem>>('/clients', { q, pageSize: 50 }),
+    queryFn: () => api.get<Page<ClientListItem>>('/clients', { search: q, pageSize: 50 }),
   });
 
   return (

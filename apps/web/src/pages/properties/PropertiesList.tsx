@@ -20,7 +20,7 @@ export function PropertiesList() {
   const [q, setQ] = useState('');
   const { data, isLoading } = useQuery({
     queryKey: ['properties', q],
-    queryFn: () => api.get<Page<PropertyListItem>>('/properties', { q, pageSize: 50 }),
+    queryFn: () => api.get<Page<PropertyListItem>>('/properties', { search: q, pageSize: 50 }),
   });
 
   return (
