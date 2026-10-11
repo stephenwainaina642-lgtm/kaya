@@ -8,6 +8,7 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Spinner } from '../../components/ui/Spinner';
 import { PageHeader } from '../../components/PageHeader';
+import { PropertyMatchesPanel } from '../../components/PropertyMatchesPanel';
 
 export function LeadDetail() {
   const { id } = useParams<{ id: string }>();
@@ -80,6 +81,7 @@ export function LeadDetail() {
               </dl>
             </Card>
           )}
+          <PropertyMatchesPanel contactType="lead" contactId={lead.id} />
         </div>
 
         <div className="space-y-6">

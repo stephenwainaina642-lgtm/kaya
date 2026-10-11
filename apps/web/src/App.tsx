@@ -24,6 +24,7 @@ import { DocumentsList } from './pages/documents/DocumentsList';
 import { ReportsPage } from './pages/reports/ReportsPage';
 import { TeamPage } from './pages/team/TeamPage';
 import { SettingsPage } from './pages/settings/SettingsPage';
+import { PublicShortlist } from './pages/public/PublicShortlist';
 import { NotFound } from './pages/NotFound';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -44,6 +45,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/share/:token" element={<PublicShortlist />} />
       <Route
         path="/"
         element={

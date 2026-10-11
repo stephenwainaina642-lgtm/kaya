@@ -8,6 +8,8 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Spinner } from '../../components/ui/Spinner';
 import { PageHeader } from '../../components/PageHeader';
+import { PropertyMatchesPanel } from '../../components/PropertyMatchesPanel';
+import { ShortlistsPanel } from '../../components/ShortlistsPanel';
 
 export function ClientDetail() {
   const { id } = useParams<{ id: string }>();
@@ -50,6 +52,7 @@ export function ClientDetail() {
               </ul>
             )}
           </Card>
+          <PropertyMatchesPanel contactType="client" contactId={client.id} />
         </div>
         <div className="space-y-6">
           <Card className="p-5">
@@ -67,6 +70,7 @@ export function ClientDetail() {
               <MessageCircle size={16} /> Message on WhatsApp
             </a>
           </Card>
+          <ShortlistsPanel clientId={client.id} />
         </div>
       </div>
     </>
