@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { login, refresh, logout, me } from './auth.service';
+import { login, refresh, logout, me, updateProfile, changePassword } from './auth.service';
 import { authenticate, ctx } from '../../middleware/auth';
 
 export const authRouter = Router();
@@ -52,6 +52,25 @@ authRouter.get('/me', authenticate, async (req, res, next) => {
   try {
     const a = ctx(req);
     res.json(await me(a.organizationId, a.userId));
+  } catch (err) {
+    next(err);
+  }
+});
+
+authRouter.patch('/me', authenticate, async (req, res, next) => {
+  try {
+    const a = ctx(req);
+    res.json(await updateProfile(a.organizationId, a.userId, req.body));
+  } catch (err) {
+    next(err);
+  }
+});
+
+authRouter.post('/change-password', authenticate, async (req, res, next) => {
+  try {
+    const a = ctx(req);
+    await changePassword(a.organizationId, a.userId, req.body);
+    res.status(204).end();
   } catch (err) {
     next(err);
   }

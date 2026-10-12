@@ -3,9 +3,9 @@ import { z } from 'zod';
 import { systemDb } from '../../db/system';
 import { withTenant } from '../../db/client';
 import { users, refreshTokens } from '../../db/schema';
-import { verifyPassword } from '../../lib/password';
+import { verifyPassword, hashPassword } from '../../lib/password';
 import { signAccessToken, newRefreshToken, hashRefreshToken } from '../../lib/tokens';
-import { unauthorized } from '../../lib/errors';
+import { unauthorized, invalid } from '../../lib/errors';
 import { parse } from '../../lib/validate';
 
 export const loginInput = z.object({
@@ -97,5 +97,39 @@ export async function me(organizationId: string, userId: string) {
     const [user] = await tx.select().from(users).where(eq(users.id, userId));
     if (!user) throw unauthorized();
     return { id: user.id, name: user.name, email: user.email, role: user.role, organizationId: user.organizationId, jobTitle: user.jobTitle, avatarUrl: user.avatarUrl };
+  });
+}
+
+export const updateProfileInput = z.object({
+  name: z.string().trim().min(1).max(120).optional(),
+  jobTitle: z.string().trim().max(120).nullable().optional(),
+  phone: z.string().trim().max(30).nullable().optional(),
+});
+
+export async function updateProfile(organizationId: string, userId: string, body: unknown) {
+  const input = parse(updateProfileInput, body);
+  return withTenant(organizationId, async (tx) => {
+    await tx.update(users).set(input).where(eq(users.id, userId));
+    const [user] = await tx.select().from(users).where(eq(users.id, userId));
+    if (!user) throw unauthorized();
+    return { id: user.id, name: user.name, email: user.email, role: user.role, organizationId: user.organizationId, jobTitle: user.jobTitle, avatarUrl: user.avatarUrl };
+  });
+}
+
+export const changePasswordInput = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8).max(100),
+});
+
+export async function changePassword(organizationId: string, userId: string, body: unknown): Promise<void> {
+  const input = parse(changePasswordInput, body);
+  await withTenant(organizationId, async (tx) => {
+    const [user] = await tx.select().from(users).where(eq(users.id, userId));
+    if (!user) throw unauthorized();
+    const ok = await verifyPassword(user.passwordHash, input.currentPassword);
+    if (!ok) throw invalid({ currentPassword: 'Current password is incorrect' });
+    const passwordHash = await hashPassword(input.newPassword);
+    await tx.update(users).set({ passwordHash }).where(eq(users.id, userId));
+    await tx.delete(refreshTokens).where(eq(refreshTokens.userId, userId));
   });
 }
