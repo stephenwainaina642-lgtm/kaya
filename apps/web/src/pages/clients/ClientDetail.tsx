@@ -1,18 +1,23 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Phone, Mail, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Phone, Mail, MessageCircle, Pencil } from 'lucide-react';
 import type { ClientDetail as ClientDetailT, TimelinePage } from '@kaya/shared';
 import { whatsappLink } from '@kaya/shared';
 import { api } from '../../lib/api';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
+import { Button } from '../../components/ui/Button';
 import { Spinner } from '../../components/ui/Spinner';
+import { Modal } from '../../components/ui/Modal';
 import { PageHeader } from '../../components/PageHeader';
 import { PropertyMatchesPanel } from '../../components/PropertyMatchesPanel';
 import { ShortlistsPanel } from '../../components/ShortlistsPanel';
+import { EditClientForm } from '../../forms/EditClientForm';
 
 export function ClientDetail() {
   const { id } = useParams<{ id: string }>();
+  const [showEdit, setShowEdit] = useState(false);
   const { data: client, isLoading } = useQuery({
     queryKey: ['client', id],
     queryFn: () => api.get<ClientDetailT>(`/clients/${id}`),
@@ -32,8 +37,16 @@ export function ClientDetail() {
       <PageHeader
         title={client.fullName}
         subtitle={client.leadType}
-        actions={<Link to="/clients" className="flex items-center gap-1 text-sm text-muted hover:text-ink"><ArrowLeft size={16} /> Back</Link>}
+        actions={
+          <div className="flex items-center gap-3">
+            <Button onClick={() => setShowEdit(true)}><Pencil size={14} /> Edit</Button>
+            <Link to="/clients" className="flex items-center gap-1 text-sm text-muted hover:text-ink"><ArrowLeft size={16} /> Back</Link>
+          </div>
+        }
       />
+      <Modal open={showEdit} onClose={() => setShowEdit(false)} title="Edit client">
+        <EditClientForm client={client} onDone={() => setShowEdit(false)} />
+      </Modal>
       <div className="grid grid-cols-1 gap-6 p-8 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <Card className="p-5">

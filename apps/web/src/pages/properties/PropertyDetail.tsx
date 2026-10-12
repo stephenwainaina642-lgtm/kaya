@@ -1,17 +1,22 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, BedDouble, Bath, Ruler, MapPin } from 'lucide-react';
+import { ArrowLeft, BedDouble, Bath, Ruler, MapPin, Pencil } from 'lucide-react';
 import type { PropertyDetail as PropertyDetailT } from '@kaya/shared';
 import { formatKes } from '@kaya/shared';
 import { api } from '../../lib/api';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
+import { Button } from '../../components/ui/Button';
 import { Spinner } from '../../components/ui/Spinner';
+import { Modal } from '../../components/ui/Modal';
 import { PageHeader } from '../../components/PageHeader';
 import { ContactMatchesPanel } from '../../components/ContactMatchesPanel';
+import { EditPropertyForm } from '../../forms/EditPropertyForm';
 
 export function PropertyDetail() {
   const { id } = useParams<{ id: string }>();
+  const [showEdit, setShowEdit] = useState(false);
   const { data: p, isLoading } = useQuery({
     queryKey: ['property', id],
     queryFn: () => api.get<PropertyDetailT>(`/properties/${id}`),
@@ -26,8 +31,16 @@ export function PropertyDetail() {
       <PageHeader
         title={p.title}
         subtitle={p.reference}
-        actions={<Link to="/properties" className="flex items-center gap-1 text-sm text-muted hover:text-ink"><ArrowLeft size={16} /> Back</Link>}
+        actions={
+          <div className="flex items-center gap-3">
+            <Button onClick={() => setShowEdit(true)}><Pencil size={14} /> Edit</Button>
+            <Link to="/properties" className="flex items-center gap-1 text-sm text-muted hover:text-ink"><ArrowLeft size={16} /> Back</Link>
+          </div>
+        }
       />
+      <Modal open={showEdit} onClose={() => setShowEdit(false)} title="Edit property" width="max-w-xl">
+        <EditPropertyForm property={p} onDone={() => setShowEdit(false)} />
+      </Modal>
       <div className="grid grid-cols-1 gap-6 p-8 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <Card className="overflow-hidden">

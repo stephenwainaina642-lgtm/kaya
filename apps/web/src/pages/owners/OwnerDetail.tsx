@@ -1,15 +1,20 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Phone, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Phone, MessageCircle, Pencil } from 'lucide-react';
 import type { OwnerDetail as OwnerDetailT, Page, PropertyListItem } from '@kaya/shared';
 import { whatsappLink } from '@kaya/shared';
 import { api } from '../../lib/api';
 import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
 import { Spinner } from '../../components/ui/Spinner';
+import { Modal } from '../../components/ui/Modal';
 import { PageHeader } from '../../components/PageHeader';
+import { EditOwnerForm } from '../../forms/EditOwnerForm';
 
 export function OwnerDetail() {
   const { id } = useParams<{ id: string }>();
+  const [showEdit, setShowEdit] = useState(false);
   const { data: owner, isLoading } = useQuery({
     queryKey: ['owner', id],
     queryFn: () => api.get<OwnerDetailT>(`/owners/${id}`),
@@ -26,8 +31,16 @@ export function OwnerDetail() {
     <>
       <PageHeader
         title={owner.fullName ?? owner.companyName ?? 'Owner'}
-        actions={<Link to="/owners" className="flex items-center gap-1 text-sm text-muted hover:text-ink"><ArrowLeft size={16} /> Back</Link>}
+        actions={
+          <div className="flex items-center gap-3">
+            <Button onClick={() => setShowEdit(true)}><Pencil size={14} /> Edit</Button>
+            <Link to="/owners" className="flex items-center gap-1 text-sm text-muted hover:text-ink"><ArrowLeft size={16} /> Back</Link>
+          </div>
+        }
       />
+      <Modal open={showEdit} onClose={() => setShowEdit(false)} title="Edit owner">
+        <EditOwnerForm owner={owner} onDone={() => setShowEdit(false)} />
+      </Modal>
       <div className="grid grid-cols-1 gap-6 p-8 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <Card className="p-5">
