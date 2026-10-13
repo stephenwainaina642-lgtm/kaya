@@ -25,6 +25,7 @@ import { ReportsPage } from './pages/reports/ReportsPage';
 import { TeamPage } from './pages/team/TeamPage';
 import { SettingsPage } from './pages/settings/SettingsPage';
 import { PublicShortlist } from './pages/public/PublicShortlist';
+import { Landing } from './pages/marketing/Landing';
 import { NotFound } from './pages/NotFound';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -37,7 +38,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-  if (!user) return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+  if (!user) {
+    // Root is the public marketing page for signed-out visitors; any other
+    // protected path sends them to sign in first.
+    if (location.pathname === '/') return <Landing />;
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+  }
   return <>{children}</>;
 }
 
