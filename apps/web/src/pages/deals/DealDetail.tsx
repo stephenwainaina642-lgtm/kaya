@@ -1,19 +1,37 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, Plus } from 'lucide-react';
+import { OFFER_STATUSES, can } from '@kaya/shared';
 import type { DealDetail as DealDetailT } from '@kaya/shared';
 import { formatKes } from '@kaya/shared';
+import { useAuth } from '../../auth/AuthContext';
 import { api } from '../../lib/api';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Spinner } from '../../components/ui/Spinner';
+import { Button } from '../../components/ui/Button';
+import { Modal } from '../../components/ui/Modal';
 import { PageHeader } from '../../components/PageHeader';
+import { NewOfferForm } from '../../forms/NewOfferForm';
 
 export function DealDetail() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const [showOffer, setShowOffer] = useState(false);
   const { data: deal, isLoading } = useQuery({
     queryKey: ['deal', id],
     queryFn: () => api.get<DealDetailT>(`/deals/${id}`),
+  });
+
+  const updateStatus = useMutation({
+    mutationFn: (vars: { offerId: string; status: string }) =>
+      api.post(`/deals/${id}/offers/${vars.offerId}/status`, { status: vars.status }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['deal', id] });
+      qc.invalidateQueries({ queryKey: ['deals-board'] });
+    },
   });
 
   if (isLoading || !deal) return (<><PageHeader title="Deal" /><Spinner /></>);
@@ -28,7 +46,12 @@ export function DealDetail() {
       <div className="grid grid-cols-1 gap-6 p-8 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <Card className="p-5">
-            <h2 className="mb-3 font-display text-lg font-semibold text-ink">Offers</h2>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-display text-lg font-semibold text-ink">Offers</h2>
+              {user && can(user.role, 'deals:edit') && (
+                <Button variant="secondary" onClick={() => setShowOffer(true)}><Plus size={14} /> Record offer</Button>
+              )}
+            </div>
             {deal.offers.length === 0 ? (
               <p className="text-sm text-muted">No offers recorded yet.</p>
             ) : (
@@ -39,7 +62,17 @@ export function DealDetail() {
                       <p className="font-medium text-ink">{formatKes(o.amount, { compact: true })} · {o.madeBy}</p>
                       <p className="text-xs text-muted">{new Date(o.offeredAt).toLocaleDateString('en-KE')}</p>
                     </div>
-                    <Badge>{o.status}</Badge>
+                    {user && can(user.role, 'deals:edit') ? (
+                      <select
+                        value={o.status}
+                        onChange={(e) => updateStatus.mutate({ offerId: o.id, status: e.target.value })}
+                        className="rounded-control border border-line bg-surface px-2 py-1 text-xs text-ink"
+                      >
+                        {OFFER_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    ) : (
+                      <Badge>{o.status}</Badge>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -79,6 +112,9 @@ export function DealDetail() {
           </Card>
         </div>
       </div>
+      <Modal open={showOffer} onClose={() => setShowOffer(false)} title="Record offer">
+        <NewOfferForm dealId={deal.id} onDone={() => setShowOffer(false)} />
+      </Modal>
     </>
   );
 }

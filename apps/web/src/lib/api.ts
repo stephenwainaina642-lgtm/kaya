@@ -69,9 +69,40 @@ async function request<T>(path: string, opts: RequestOpts = {}): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+async function postForm<T>(path: string, form: FormData): Promise<T> {
+  const headers: Record<string, string> = {};
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  // No Content-Type here — the browser sets multipart/form-data with the right boundary.
+
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'POST',
+    headers,
+    credentials: 'include',
+    body: form,
+  });
+
+  if (res.status === 401 && onUnauthorized) {
+    onUnauthorized();
+  }
+
+  if (!res.ok) {
+    let payload: any = null;
+    try {
+      payload = await res.json();
+    } catch {
+      /* ignore */
+    }
+    throw new ApiError(res.status, payload?.message ?? res.statusText, payload?.code, payload?.details);
+  }
+
+  if (res.status === 204) return undefined as T;
+  return res.json() as Promise<T>;
+}
+
 export const api = {
   get: <T>(path: string, query?: RequestOpts['query']) => request<T>(path, { query }),
   post: <T>(path: string, body?: unknown) => request<T>(path, { method: 'POST', body }),
+  postForm: <T>(path: string, form: FormData) => postForm<T>(path, form),
   patch: <T>(path: string, body?: unknown) => request<T>(path, { method: 'PATCH', body }),
   put: <T>(path: string, body?: unknown) => request<T>(path, { method: 'PUT', body }),
   del: <T>(path: string) => request<T>(path, { method: 'DELETE' }),

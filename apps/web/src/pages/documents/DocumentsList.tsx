@@ -1,12 +1,18 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { FileText, Download } from 'lucide-react';
+import { FileText, Download, Upload } from 'lucide-react';
+import { can } from '@kaya/shared';
 import type { DocumentPage } from '@kaya/shared';
+import { useAuth } from '../../auth/AuthContext';
 import { api } from '../../lib/api';
 import { PageHeader } from '../../components/PageHeader';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { Button } from '../../components/ui/Button';
+import { Modal } from '../../components/ui/Modal';
+import { UploadDocumentForm } from '../../forms/UploadDocumentForm';
 
 function formatBytes(n: number) {
   if (n < 1024) return `${n} B`;
@@ -15,6 +21,8 @@ function formatBytes(n: number) {
 }
 
 export function DocumentsList() {
+  const { user } = useAuth();
+  const [showUpload, setShowUpload] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ['documents'],
     queryFn: () => api.get<DocumentPage>('/documents', { pageSize: 50 }),
@@ -22,7 +30,15 @@ export function DocumentsList() {
 
   return (
     <>
-      <PageHeader title="Documents" subtitle={data ? `${data.total} files` : undefined} />
+      <PageHeader
+        title="Documents"
+        subtitle={data ? `${data.total} files` : undefined}
+        actions={
+          user && can(user.role, 'documents:edit') ? (
+            <Button onClick={() => setShowUpload(true)}><Upload size={16} /> Upload document</Button>
+          ) : undefined
+        }
+      />
       <div className="p-8">
         {isLoading ? (
           <Spinner />
@@ -59,6 +75,9 @@ export function DocumentsList() {
           </Card>
         )}
       </div>
+      <Modal open={showUpload} onClose={() => setShowUpload(false)} title="Upload document">
+        <UploadDocumentForm onDone={() => setShowUpload(false)} />
+      </Modal>
     </>
   );
 }
