@@ -1,0 +1,48 @@
+# Render Blueprint — deploys Kaya as a single web service (API + built
+# frontend served from one Express process) plus a managed Postgres.
+#
+# Usage: push this repo to GitHub (already done), then in the Render
+# dashboard: New -> Blueprint -> pick this repo -> Apply. Render reads this
+# file and provisions both resources below automatically.
+#
+# IMPORTANT one-time step after the first deploy: the database Render
+# creates has only its own owner role, not Kaya's row-level-security setup.
+# Run scripts/deploy-setup.sh once against it before using the app for real
+# — see the comment in that script for exact instructions. Until that runs,
+# the API will be up but every request that touches the database will fail.
+
+databases:
+  - name: kaya-db
+    plan: free
+    databaseName: kaya
+    user: kaya
+
+services:
+  - type: web
+    name: kaya
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build -w @kaya/web
+    startCommand: cd apps/api && npx tsx src/server.ts
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_ADMIN_URL
+        fromDatabase:
+          name: kaya-db
+          property: connectionString
+      # DATABASE_URL should point at the kaya_app role instead (created by
+      # scripts/deploy-setup.sh) so row-level security actually applies —
+      # set it manually in the Render dashboard after running that script.
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: PLATFORM_JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://kaya.onrender.com
+      - key: LOG_LEVEL
+        value: info

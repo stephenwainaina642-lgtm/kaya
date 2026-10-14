@@ -1,8 +1,16 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, { type Express } from 'express';
 import pinoHttp from 'pino-http';
-import { corsOrigins } from './config/env';
+import { corsOrigins, env } from './config/env';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// apps/web's production build, copied alongside the compiled API at deploy
+// time (see scripts/deploy-setup.sh / render.yaml) — lets one web service
+// serve both the app and its API with no CORS or proxy config needed.
+const WEB_DIST = path.resolve(__dirname, '../../web/dist');
 import { notFoundHandler, errorHandler } from './middleware/error';
 import { authRouter } from './modules/auth/auth.routes';
 import { leadsRouter } from './modules/leads/leads.routes';
@@ -57,8 +65,17 @@ export function createApp(): Express {
   app.use('/api/communications', communicationsRouter);
   app.use('/api/documents', documentsRouter);
 
-  app.use(notFoundHandler);
-  app.use(errorHandler);
+  app.use('/api', notFoundHandler);
+  app.use('/api', errorHandler);
+
+  if (env.NODE_ENV === 'production') {
+    // Serve the built React app and let client-side routing handle any
+    // path that isn't an API call or a real static file.
+    app.use(express.static(WEB_DIST));
+    app.get('*', (_req, res) => {
+      res.sendFile(path.join(WEB_DIST, 'index.html'));
+    });
+  }
 
   return app;
 }
