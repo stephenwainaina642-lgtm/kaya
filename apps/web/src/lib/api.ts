@@ -62,7 +62,7 @@ async function request<T>(path: string, opts: RequestOpts = {}): Promise<T> {
     } catch {
       /* ignore */
     }
-    throw new ApiError(res.status, payload?.message ?? res.statusText, payload?.code, payload?.details);
+    throw new ApiError(res.status, payload?.error?.message ?? res.statusText, payload?.error?.code, payload?.error?.details?.fields);
   }
 
   if (res.status === 204) return undefined as T;
@@ -92,7 +92,7 @@ async function postForm<T>(path: string, form: FormData): Promise<T> {
     } catch {
       /* ignore */
     }
-    throw new ApiError(res.status, payload?.message ?? res.statusText, payload?.code, payload?.details);
+    throw new ApiError(res.status, payload?.error?.message ?? res.statusText, payload?.error?.code, payload?.error?.details?.fields);
   }
 
   if (res.status === 204) return undefined as T;
