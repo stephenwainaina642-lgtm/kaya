@@ -1,4 +1,4 @@
-import { pgTable, text, uuid } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { planEnum } from './enums';
 import { timestamps } from './base';
 
@@ -11,5 +11,8 @@ export const organizations = pgTable('organizations', {
   currency: text('currency').notNull().default('KES'),
   logoUrl: text('logo_url'),
   phone: text('phone'),
+  // Set by a platform admin to lock an agency out of signing in without
+  // deleting its data. Null means active.
+  suspendedAt: timestamp('suspended_at', { withTimezone: true }),
   ...timestamps(),
 });

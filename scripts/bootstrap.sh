@@ -97,4 +97,5 @@ Start the servers with:
 Demo logins:
   wanjiru@savannaridge.co.ke / Kaya!Demo2026   (Savanna Ridge Realty)
   salim@coastline.example / Kaya!Demo2026      (Coastline Properties)
+  ops@kaya.co.ke / Kaya!Demo2026               (platform admin, at /platform/login)
 EOF

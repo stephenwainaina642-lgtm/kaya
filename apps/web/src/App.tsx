@@ -27,6 +27,12 @@ import { SettingsPage } from './pages/settings/SettingsPage';
 import { PublicShortlist } from './pages/public/PublicShortlist';
 import { Landing } from './pages/marketing/Landing';
 import { NotFound } from './pages/NotFound';
+import { PlatformAuthProvider, usePlatformAuth } from './platform/PlatformAuthContext';
+import { PlatformLogin } from './platform/PlatformLogin';
+import { PlatformLayout } from './platform/PlatformLayout';
+import { PlatformDashboard } from './platform/PlatformDashboard';
+import { OrganizationsList } from './platform/OrganizationsList';
+import { OrganizationDetail } from './platform/OrganizationDetail';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -47,11 +53,40 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function ProtectedPlatformRoute({ children }: { children: React.ReactNode }) {
+  const { admin } = usePlatformAuth();
+  if (!admin) return <Navigate to="/platform/login" replace />;
+  return <>{children}</>;
+}
+
 export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/share/:token" element={<PublicShortlist />} />
+      <Route
+        path="/platform/*"
+        element={
+          <PlatformAuthProvider>
+            <Routes>
+              <Route path="login" element={<PlatformLogin />} />
+              <Route
+                path=""
+                element={
+                  <ProtectedPlatformRoute>
+                    <PlatformLayout />
+                  </ProtectedPlatformRoute>
+                }
+              >
+                <Route index element={<PlatformDashboard />} />
+                <Route path="organizations" element={<OrganizationsList />} />
+                <Route path="organizations/:id" element={<OrganizationDetail />} />
+                <Route path="*" element={<NotFound />} />
+              </Route>
+            </Routes>
+          </PlatformAuthProvider>
+        }
+      />
       <Route
         path="/"
         element={

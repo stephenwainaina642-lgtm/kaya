@@ -6,7 +6,7 @@ import {
   organizations, users, owners, properties, propertyImages, propertyFeatures,
   leads, clients, requirements, dealStages, deals, offers, commissions,
   viewings, viewingFeedback, followUps, tasks, communications, activities,
-  clientShortlists, shortlistItems,
+  clientShortlists, shortlistItems, platformAdmins,
 } from '../schema';
 import { hashPassword } from '../../lib/password';
 import { inOrder } from '../../lib/in-order';
@@ -19,7 +19,7 @@ const TENANT_TABLES = [
   'shortlist_items', 'client_shortlists', 'client_property_matches', 'property_features',
   'property_images', 'properties', 'owners', 'documents', 'communications', 'activities',
   'follow_ups', 'tasks', 'requirements', 'audit_logs', 'refresh_tokens', 'clients', 'leads',
-  'users', 'organizations',
+  'users', 'organizations', 'platform_admins',
 ];
 
 async function resetDb() {
@@ -447,6 +447,15 @@ async function seedCoastline() {
   return { org, lead };
 }
 
+async function seedPlatformAdmin() {
+  await systemDb.insert(platformAdmins).values({
+    name: 'Kaya Platform Ops',
+    email: 'ops@kaya.co.ke',
+    passwordHash: await hashPassword(DEMO_PASSWORD),
+  });
+  console.log(`Seeded platform admin: ops@kaya.co.ke / ${DEMO_PASSWORD}`);
+}
+
 async function main() {
   console.log('Resetting database...');
   await resetDb();
@@ -454,6 +463,8 @@ async function main() {
   await seedSavannaRidge();
   console.log('Seeding Coastline Properties (second tenant)...');
   await seedCoastline();
+  console.log('Seeding platform admin...');
+  await seedPlatformAdmin();
   console.log('Seed complete.');
 }
 

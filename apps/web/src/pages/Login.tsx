@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { ApiError } from '../lib/api';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 
@@ -23,8 +24,8 @@ export function Login() {
     setError(null);
     try {
       await login(email, password);
-    } catch {
-      setError('Invalid email or password.');
+    } catch (err) {
+      setError(err instanceof ApiError && err.status === 403 ? err.message : 'Invalid email or password.');
     } finally {
       setBusy(false);
     }

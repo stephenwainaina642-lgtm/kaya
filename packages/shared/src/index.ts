@@ -8,3 +8,4 @@ export * from './communications';
 export * from './money';
 export * from './permissions';
 export * from './whatsapp';
+export * from './platform';

@@ -2,10 +2,10 @@ import { eq, and, gt } from 'drizzle-orm';
 import { z } from 'zod';
 import { systemDb } from '../../db/system';
 import { withTenant } from '../../db/client';
-import { users, refreshTokens } from '../../db/schema';
+import { users, refreshTokens, organizations } from '../../db/schema';
 import { verifyPassword, hashPassword } from '../../lib/password';
 import { signAccessToken, newRefreshToken, hashRefreshToken } from '../../lib/tokens';
-import { unauthorized, invalid } from '../../lib/errors';
+import { unauthorized, invalid, forbidden } from '../../lib/errors';
 import { parse } from '../../lib/validate';
 
 export const loginInput = z.object({
@@ -27,6 +27,9 @@ export async function login(body: unknown): Promise<LoginResult> {
   if (!user) throw unauthorized('Invalid email or password');
   const ok = await verifyPassword(user.passwordHash, input.password);
   if (!ok) throw unauthorized('Invalid email or password');
+
+  const [org] = await systemDb.select().from(organizations).where(eq(organizations.id, user.organizationId));
+  if (org?.suspendedAt) throw forbidden('This workspace has been suspended. Contact your account manager.');
 
   const accessToken = signAccessToken({
     sub: user.id,
@@ -60,6 +63,9 @@ export async function refresh(token: string | undefined): Promise<LoginResult> {
     .innerJoin(users, eq(users.id, refreshTokens.userId))
     .where(and(eq(refreshTokens.tokenHash, tokenHash), gt(refreshTokens.expiresAt, new Date())));
   if (!row) throw unauthorized('Invalid or expired refresh token');
+
+  const [org] = await systemDb.select().from(organizations).where(eq(organizations.id, row.user.organizationId));
+  if (org?.suspendedAt) throw forbidden('This workspace has been suspended. Contact your account manager.');
 
   const accessToken = signAccessToken({
     sub: row.user.id,

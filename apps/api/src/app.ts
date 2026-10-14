@@ -16,6 +16,7 @@ import { propertiesRouter } from './modules/properties/properties.routes';
 import { matchingRouter } from './modules/matching/matching.routes';
 import { shortlistsRouter } from './modules/shortlists/shortlists.routes';
 import { platformRouter } from './modules/platform/platform.routes';
+import { platformAdminRouter } from './modules/platform/platform-admin.routes';
 import { viewingsRouter } from './modules/viewings/viewings.routes';
 import { dealsRouter } from './modules/deals/deals.routes';
 import { calendarRouter } from './modules/calendar/calendar.routes';
@@ -49,6 +50,7 @@ export function createApp(): Express {
   app.use('/api/matching', matchingRouter);
   app.use('/api/shortlists', shortlistsRouter);
   app.use('/api/public', platformRouter);
+  app.use('/api/platform', platformAdminRouter);
   app.use('/api/viewings', viewingsRouter);
   app.use('/api/deals', dealsRouter);
   app.use('/api/calendar', calendarRouter);
