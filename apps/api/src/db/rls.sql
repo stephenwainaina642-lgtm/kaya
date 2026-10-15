@@ -23,6 +23,11 @@ BEGIN
     ])
   LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
+    -- Explicitly turn FORCE back off — ENABLE alone does not clear a FORCE
+    -- flag a previous run of this script may have already set (this script
+    -- used to apply FORCE; a deploy that ran before that was reverted would
+    -- otherwise be stuck with it forever).
+    EXECUTE format('ALTER TABLE %I NO FORCE ROW LEVEL SECURITY', t);
     EXECUTE format('DROP POLICY IF EXISTS tenant_isolation ON %I', t);
     EXECUTE format(
       'CREATE POLICY tenant_isolation ON %I USING (organization_id = current_setting(''app.org_id'', true)::uuid) WITH CHECK (organization_id = current_setting(''app.org_id'', true)::uuid)',
@@ -36,6 +41,7 @@ $$;
 -- organizations: every org-scoped row may read its own org row (needed for
 -- joins/lookups like timezone/currency); writes go through systemDb only.
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE organizations NO FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS tenant_isolation ON organizations;
 CREATE POLICY tenant_isolation ON organizations
   USING (id = current_setting('app.org_id', true)::uuid)
