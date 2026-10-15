@@ -22,7 +22,11 @@ services:
     name: kaya
     runtime: node
     plan: free
-    buildCommand: npm install && npm run build -w @kaya/web
+    # --include=dev is required here: the service's NODE_ENV=production env
+    # var (below) is also present during the build step, and npm treats
+    # that as a signal to skip devDependencies — which would silently drop
+    # vite, typescript and the @types/* packages the web build needs.
+    buildCommand: npm install --include=dev && npm run build -w @kaya/web
     startCommand: cd apps/api && npx tsx src/server.ts
     envVars:
       - key: NODE_ENV
