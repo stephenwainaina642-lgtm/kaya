@@ -5,11 +5,10 @@
 # dashboard: New -> Blueprint -> pick this repo -> Apply. Render reads this
 # file and provisions both resources below automatically.
 #
-# IMPORTANT one-time step after the first deploy: the database Render
-# creates has only its own owner role, not Kaya's row-level-security setup.
-# Run scripts/deploy-setup.sh once against it before using the app for real
-# — see the comment in that script for exact instructions. Until that runs,
-# the API will be up but every request that touches the database will fail.
+# No manual database setup needed: the start command runs
+# scripts/deploy-setup.mjs first, which creates the RLS-scoped kaya_app
+# role, pushes the schema, applies row-level-security, and seeds demo data
+# on first boot only (it's idempotent — safe on every restart).
 
 databases:
   - name: kaya-db
@@ -27,7 +26,7 @@ services:
     # that as a signal to skip devDependencies — which would silently drop
     # vite, typescript and the @types/* packages the web build needs.
     buildCommand: npm install --include=dev && npm run build -w @kaya/web
-    startCommand: cd apps/api && npx tsx src/server.ts
+    startCommand: node scripts/deploy-setup.mjs && cd apps/api && npx tsx src/server.ts
     envVars:
       - key: NODE_ENV
         value: production
@@ -37,11 +36,8 @@ services:
         fromDatabase:
           name: kaya-db
           property: connectionString
-      # DATABASE_URL should point at the kaya_app role instead (created by
-      # scripts/deploy-setup.sh) so row-level security actually applies —
-      # set it manually in the Render dashboard after running that script.
-      - key: DATABASE_URL
-        sync: false
+      - key: APP_DB_PASSWORD
+        generateValue: true
       - key: JWT_ACCESS_SECRET
         generateValue: true
       - key: PLATFORM_JWT_SECRET
