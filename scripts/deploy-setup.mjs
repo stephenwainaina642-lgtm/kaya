@@ -82,10 +82,18 @@ async function main() {
   await client2.query(rlsSql);
 
   console.log('[deploy-setup] Checking whether demo data needs seeding');
-  const { rows: orgRows } = await client2.query('SELECT 1 FROM organizations LIMIT 1');
+  // Check for the actual seeded demo user, not just "any row in
+  // organizations" — a crashed seed attempt (e.g. an earlier RLS failure
+  // partway through insertion) can leave a stray partial organizations row
+  // behind with no matching user, which would otherwise look "seeded" and
+  // get wrongly skipped forever. seed/index.ts's resetDb() TRUNCATEs
+  // everything first, so it's safe to re-run against partial leftovers.
+  const { rows: userRows } = await client2.query(
+    `SELECT 1 FROM users WHERE email = 'wanjiru@savannaridge.co.ke' LIMIT 1`,
+  );
   await client2.end();
 
-  if (orgRows.length === 0) {
+  if (userRows.length === 0) {
     console.log('[deploy-setup] Database is empty — seeding demo data');
     run('npx', ['tsx', 'src/db/seed/index.ts'], {
       cwd: path.join(ROOT, 'apps/api'),
