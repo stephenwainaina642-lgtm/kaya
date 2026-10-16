@@ -16,5 +16,14 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     return;
   }
   req.log?.error({ err }, 'unhandled error');
-  res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Something went wrong' } });
+  // TEMP: surface the real error message/stack in the response body while
+  // we're bringing the Render deploy up — there's no other practical way
+  // to see server errors on Render's free tier (no shell, slow/awkward log
+  // search). Safe for now: this is pre-launch demo data, not real tenant
+  // data. Revert to the generic message before onboarding real customers.
+  const debugMessage = err instanceof Error ? err.message : String(err);
+  const debugStack = err instanceof Error ? err.stack : undefined;
+  res.status(500).json({
+    error: { code: 'INTERNAL_ERROR', message: 'Something went wrong', debugMessage, debugStack },
+  });
 }
