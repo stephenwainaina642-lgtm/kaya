@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { EyeOff, Eye, Bookmark } from 'lucide-react';
+import { EyeOff, Eye, Bookmark, Lock } from 'lucide-react';
 import type { PropertyMatchPage, ShortlistSummary } from '@kaya/shared';
 import { formatKes } from '@kaya/shared';
-import { api } from '../lib/api';
+import { api, ApiError } from '../lib/api';
 import { Card } from './ui/Card';
 import { Spinner } from './ui/Spinner';
 import { MatchVerdictBadge } from './MatchVerdictBadge';
@@ -13,9 +13,10 @@ export function PropertyMatchesPanel({ contactType, contactId }: { contactType: 
   const qc = useQueryClient();
   const [showDismissed, setShowDismissed] = useState(false);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ['matches', contactType, contactId],
     queryFn: () => api.get<PropertyMatchPage>(`/matching/${contactType}s/${contactId}/properties`),
+    retry: false,
   });
 
   const { data: shortlists } = useQuery({
@@ -46,6 +47,14 @@ export function PropertyMatchesPanel({ contactType, contactId }: { contactType: 
   });
 
   if (isLoading) return <Card className="p-5"><Spinner /></Card>;
+  if (isError) {
+    return (
+      <Card className="p-5">
+        <h2 className="mb-2 flex items-center gap-2 font-display text-lg font-semibold text-ink"><Lock size={16} /> Matching properties</h2>
+        <p className="text-sm text-muted">{error instanceof ApiError ? error.message : "This feature isn't on your plan."}</p>
+      </Card>
+    );
+  }
   if (!data || data.items.length === 0) {
     return (
       <Card className="p-5">

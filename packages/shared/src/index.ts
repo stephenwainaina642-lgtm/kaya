@@ -7,5 +7,7 @@ export * from './documents';
 export * from './communications';
 export * from './money';
 export * from './permissions';
+export * from './plans';
+export * from './audit';
 export * from './whatsapp';
 export * from './platform';

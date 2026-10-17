@@ -3,7 +3,7 @@ import { systemDb } from '../db/system';
 import { organizations, users } from '../db/schema';
 import { signAccessToken } from '../lib/tokens';
 import { hashPassword } from '../lib/password';
-import type { Role } from '@kaya/shared';
+import type { Plan, Role } from '@kaya/shared';
 
 const TENANT_TABLES = [
   'commissions', 'offers', 'viewing_feedback', 'viewings', 'deals', 'deal_stages',
@@ -17,10 +17,14 @@ export async function truncateAll(): Promise<void> {
   await systemDb.execute(sql.raw(`TRUNCATE TABLE ${TENANT_TABLES.join(', ')} RESTART IDENTITY CASCADE`));
 }
 
-export async function createOrg(name = 'Test Realty'): Promise<{ id: string }> {
+export async function createOrg(name = 'Test Realty', plan: Plan = 'STARTER'): Promise<{ id: string; plan: Plan }> {
   const [org] = await systemDb
     .insert(organizations)
-    .values({ name, slug: `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}` })
+    .values({
+      name,
+      slug: `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      plan,
+    })
     .returning();
   if (!org) throw new Error('failed to create test org');
   return org;
@@ -43,8 +47,8 @@ export async function createUser(
   return { id: row.id, organizationId, role, name, token };
 }
 
-export async function setupTenant(role: Role = 'ORG_ADMIN') {
-  const org = await createOrg();
+export async function setupTenant(role: Role = 'ORG_ADMIN', plan: Plan = 'STARTER') {
+  const org = await createOrg('Test Realty', plan);
   const user = await createUser(org.id, { role });
   return { org, user, authHeader: { Authorization: `Bearer ${user.token}` } };
 }

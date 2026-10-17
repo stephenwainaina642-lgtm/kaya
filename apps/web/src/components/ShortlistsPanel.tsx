@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link2, Trash2, ChevronDown, ChevronRight, Plus } from 'lucide-react';
+import { Link2, Trash2, ChevronDown, ChevronRight, Plus, Lock } from 'lucide-react';
 import type { ShortlistSummary, ShortlistDetail } from '@kaya/shared';
 import { formatKes } from '@kaya/shared';
-import { api } from '../lib/api';
+import { api, ApiError } from '../lib/api';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -81,9 +81,10 @@ export function ShortlistsPanel({ clientId }: { clientId: string }) {
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState('');
 
-  const { data } = useQuery({
+  const { data, isError, error } = useQuery({
     queryKey: ['shortlists', clientId],
     queryFn: () => api.get<{ items: ShortlistSummary[] }>(`/shortlists/clients/${clientId}`),
+    retry: false,
   });
 
   const create = useMutation({
@@ -94,6 +95,15 @@ export function ShortlistsPanel({ clientId }: { clientId: string }) {
       setCreating(false);
     },
   });
+
+  if (isError) {
+    return (
+      <Card className="p-5">
+        <h2 className="mb-2 flex items-center gap-2 font-display text-lg font-semibold text-ink"><Lock size={16} /> Shortlists</h2>
+        <p className="text-sm text-muted">{error instanceof ApiError ? error.message : "This feature isn't on your plan."}</p>
+      </Card>
+    );
+  }
 
   return (
     <Card className="p-5">

@@ -1,11 +1,14 @@
 import { Router } from 'express';
 import { authenticate, ctx } from '../../middleware/auth';
+import { requirePlanModule } from '../../middleware/plan';
 import { getBoard, getDeal, createDeal, updateDeal, moveDealStage, deleteDeal } from './deals.service';
 import { addOffer, setOfferStatus } from './offers.service';
 import { listCommissions, recordPayment } from './commissions.service';
 
 export const dealsRouter = Router();
 dealsRouter.use(authenticate);
+// Deal pipeline + commissions are a Growth-and-up feature (see pricing table).
+dealsRouter.use(requirePlanModule('dealsPipeline'));
 
 dealsRouter.get('/board', async (req, res) => {
   res.json(await getBoard(ctx(req)));

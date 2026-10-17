@@ -1,5 +1,6 @@
 import { eq, and, gt } from 'drizzle-orm';
 import { z } from 'zod';
+import type { Plan } from '@kaya/shared';
 import { systemDb } from '../../db/system';
 import { withTenant } from '../../db/client';
 import { users, refreshTokens, organizations } from '../../db/schema';
@@ -18,7 +19,7 @@ const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 export interface LoginResult {
   accessToken: string;
   refreshToken: string;
-  user: { id: string; name: string; email: string; role: string; organizationId: string };
+  user: { id: string; name: string; email: string; role: string; organizationId: string; plan: Plan };
 }
 
 export async function login(body: unknown): Promise<LoginResult> {
@@ -50,7 +51,7 @@ export async function login(body: unknown): Promise<LoginResult> {
   return {
     accessToken,
     refreshToken,
-    user: { id: user.id, name: user.name, email: user.email, role: user.role, organizationId: user.organizationId },
+    user: { id: user.id, name: user.name, email: user.email, role: user.role, organizationId: user.organizationId, plan: org?.plan ?? 'STARTER' },
   };
 }
 
@@ -86,7 +87,14 @@ export async function refresh(token: string | undefined): Promise<LoginResult> {
   return {
     accessToken,
     refreshToken: newToken,
-    user: { id: row.user.id, name: row.user.name, email: row.user.email, role: row.user.role, organizationId: row.user.organizationId },
+    user: {
+      id: row.user.id,
+      name: row.user.name,
+      email: row.user.email,
+      role: row.user.role,
+      organizationId: row.user.organizationId,
+      plan: org?.plan ?? 'STARTER',
+    },
   };
 }
 
@@ -102,7 +110,17 @@ export async function me(organizationId: string, userId: string) {
   return withTenant(organizationId, async (tx) => {
     const [user] = await tx.select().from(users).where(eq(users.id, userId));
     if (!user) throw unauthorized();
-    return { id: user.id, name: user.name, email: user.email, role: user.role, organizationId: user.organizationId, jobTitle: user.jobTitle, avatarUrl: user.avatarUrl };
+    const [org] = await tx.select({ plan: organizations.plan }).from(organizations).where(eq(organizations.id, organizationId));
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      organizationId: user.organizationId,
+      plan: org?.plan ?? 'STARTER',
+      jobTitle: user.jobTitle,
+      avatarUrl: user.avatarUrl,
+    };
   });
 }
 

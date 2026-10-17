@@ -30,3 +30,7 @@ export function unauthorized(message = 'Unauthorized'): AppError {
 export function conflict(message: string, code = 'CONFLICT'): AppError {
   return new AppError(409, code, message);
 }
+
+export function planUpgradeRequired(message: string, requiredPlan: string): AppError {
+  return new AppError(403, 'PLAN_UPGRADE_REQUIRED', message, { requiredPlan });
+}

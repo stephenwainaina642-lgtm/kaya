@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
+import { Lock } from 'lucide-react';
 import type { CommissionPage } from '@kaya/shared';
 import { formatKes } from '@kaya/shared';
-import { api } from '../../lib/api';
+import { api, ApiError } from '../../lib/api';
 import { PageHeader } from '../../components/PageHeader';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
@@ -13,9 +14,10 @@ const STATUS_TONE: Record<string, 'ok' | 'warn' | 'danger' | 'neutral' | 'accent
 };
 
 export function CommissionsList() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ['commissions'],
     queryFn: () => api.get<CommissionPage>('/deals/commissions', { pageSize: 50 }),
+    retry: false,
   });
 
   return (
@@ -28,7 +30,15 @@ export function CommissionsList() {
             <Card className="p-4"><p className="text-xs text-muted">Paid</p><p className="font-display text-xl font-semibold text-ink">{formatKes(data.totalPaid, { compact: true })}</p></Card>
           </div>
         )}
-        {isLoading ? (
+        {isError ? (
+          <Card>
+            <EmptyState
+              icon={<Lock size={28} />}
+              title="This feature isn't on your plan"
+              body={error instanceof ApiError ? error.message : 'Ask your workspace admin to upgrade.'}
+            />
+          </Card>
+        ) : isLoading ? (
           <Spinner />
         ) : !data || data.items.length === 0 ? (
           <Card><EmptyState title="No commissions yet" /></Card>

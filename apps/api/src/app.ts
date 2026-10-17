@@ -30,6 +30,7 @@ import { dealsRouter } from './modules/deals/deals.routes';
 import { calendarRouter } from './modules/calendar/calendar.routes';
 import { communicationsRouter } from './modules/communications/communications.routes';
 import { documentsRouter } from './modules/documents/documents.routes';
+import { auditRouter } from './modules/audit/audit.routes';
 
 export function createApp(): Express {
   const app = express();
@@ -64,6 +65,7 @@ export function createApp(): Express {
   app.use('/api/calendar', calendarRouter);
   app.use('/api/communications', communicationsRouter);
   app.use('/api/documents', documentsRouter);
+  app.use('/api/audit', auditRouter);
 
   app.use('/api', notFoundHandler);
   app.use('/api', errorHandler);

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate, ctx } from '../../middleware/auth';
+import { requirePlanModule } from '../../middleware/plan';
 import { uuidField } from '../crm/common';
 import {
   listShortlistsForClient, getShortlist, createShortlist, addPropertyToShortlist,
@@ -8,6 +9,11 @@ import {
 
 export const shortlistsRouter = Router();
 shortlistsRouter.use(authenticate);
+// Client shortlists are a Growth-and-up feature (see pricing table). Public
+// /share/:token viewing lives on a different router (platform.routes.ts)
+// and is unaffected — clients can still view a shortlist shared before any
+// downgrade.
+shortlistsRouter.use(requirePlanModule('shortlists'));
 
 shortlistsRouter.get('/clients/:clientId', async (req, res) => {
   const a = ctx(req);

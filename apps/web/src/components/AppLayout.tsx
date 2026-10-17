@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, UserCircle, Building2, Landmark, CalendarClock, ListChecks,
-  Handshake, Wallet, Calendar, MessageSquare, FileText, BarChart3, UsersRound, Settings, LogOut, Menu, X,
+  Handshake, Wallet, Calendar, MessageSquare, FileText, BarChart3, UsersRound, Settings, LogOut, Menu, X, ShieldCheck,
 } from 'lucide-react';
+import { planHasModule } from '@kaya/shared';
 import { useAuth } from '../auth/AuthContext';
 import { Avatar } from './ui/Avatar';
 
@@ -16,18 +17,20 @@ const NAV = [
   { to: '/viewings', label: 'Viewings', icon: CalendarClock },
   { to: '/follow-ups', label: 'Follow-ups', icon: ListChecks },
   { to: '/tasks', label: 'Tasks', icon: ListChecks },
-  { to: '/deals', label: 'Deals', icon: Handshake },
-  { to: '/commissions', label: 'Commissions', icon: Wallet },
+  { to: '/deals', label: 'Deals', icon: Handshake, module: 'dealsPipeline' as const },
+  { to: '/commissions', label: 'Commissions', icon: Wallet, module: 'dealsPipeline' as const },
   { to: '/calendar', label: 'Calendar', icon: Calendar },
   { to: '/communications', label: 'Communications', icon: MessageSquare },
   { to: '/documents', label: 'Documents', icon: FileText },
   { to: '/reports', label: 'Reports', icon: BarChart3 },
+  { to: '/audit-log', label: 'Audit Log', icon: ShieldCheck, module: 'auditLog' as const },
   { to: '/team', label: 'Team', icon: UsersRound },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { user, logout } = useAuth();
+  const items = NAV.filter((item) => !item.module || !user || planHasModule(user.plan, item.module));
   return (
     <>
       <div className="flex items-center gap-2 px-5 py-5">
@@ -37,7 +40,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         <span className="font-display text-lg font-semibold text-ink">Kaya</span>
       </div>
       <nav className="scrollbar-thin flex-1 overflow-y-auto px-3 py-2">
-        {NAV.map(({ to, label, icon: Icon, end }) => (
+        {items.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}

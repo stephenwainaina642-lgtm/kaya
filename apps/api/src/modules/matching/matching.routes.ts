@@ -1,10 +1,13 @@
 import { Router } from 'express';
 import { authenticate, ctx } from '../../middleware/auth';
+import { requirePlanModule } from '../../middleware/plan';
 import { uuidField } from '../crm/common';
 import { matchPropertiesForContact, matchPeopleForProperty, dismissMatch, undismissMatch } from './matching.service';
 
 export const matchingRouter = Router();
 matchingRouter.use(authenticate);
+// Property matching engine is a Growth-and-up feature (see pricing table).
+matchingRouter.use(requirePlanModule('matching'));
 
 matchingRouter.get('/leads/:id/properties', async (req, res) => {
   const a = ctx(req);

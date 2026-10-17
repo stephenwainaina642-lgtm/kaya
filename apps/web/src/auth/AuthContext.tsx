@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { Role } from '@kaya/shared';
+import type { Plan, Role } from '@kaya/shared';
 import { api, setAccessToken, setUnauthorizedHandler } from '../lib/api';
 
 export interface AuthUser {
@@ -8,6 +8,7 @@ export interface AuthUser {
   email: string;
   role: Role;
   organizationId: string;
+  plan: Plan;
 }
 
 interface AuthState {
