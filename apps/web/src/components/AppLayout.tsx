@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, UserCircle, Building2, Landmark, CalendarClock, ListChecks,
-  Handshake, Wallet, Calendar, MessageSquare, FileText, BarChart3, UsersRound, Settings, LogOut, Menu, X, ShieldCheck,
+  Handshake, Wallet, Calendar, MessageSquare, FileText, BarChart3, UsersRound, Settings, LogOut, Menu, X, ShieldCheck, LineChart,
 } from 'lucide-react';
 import { planHasModule } from '@kaya/shared';
 import { useAuth } from '../auth/AuthContext';
@@ -23,6 +23,7 @@ const NAV = [
   { to: '/communications', label: 'Communications', icon: MessageSquare },
   { to: '/documents', label: 'Documents', icon: FileText },
   { to: '/reports', label: 'Reports', icon: BarChart3 },
+  { to: '/analytics', label: 'Analytics', icon: LineChart, module: 'analytics' as const },
   { to: '/audit-log', label: 'Audit Log', icon: ShieldCheck, module: 'auditLog' as const },
   { to: '/team', label: 'Team', icon: UsersRound },
   { to: '/settings', label: 'Settings', icon: Settings },

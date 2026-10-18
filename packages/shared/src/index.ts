@@ -9,5 +9,6 @@ export * from './money';
 export * from './permissions';
 export * from './plans';
 export * from './audit';
+export * from './analytics';
 export * from './whatsapp';
 export * from './platform';

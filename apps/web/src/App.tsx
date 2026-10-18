@@ -22,6 +22,7 @@ import { CalendarPage } from './pages/calendar/CalendarPage';
 import { CommunicationsList } from './pages/communications/CommunicationsList';
 import { DocumentsList } from './pages/documents/DocumentsList';
 import { ReportsPage } from './pages/reports/ReportsPage';
+import { AnalyticsPage } from './pages/analytics/AnalyticsPage';
 import { AuditLog } from './pages/audit/AuditLog';
 import { TeamPage } from './pages/team/TeamPage';
 import { SettingsPage } from './pages/settings/SettingsPage';
@@ -115,6 +116,7 @@ export default function App() {
         <Route path="communications" element={<CommunicationsList />} />
         <Route path="documents" element={<DocumentsList />} />
         <Route path="reports" element={<ReportsPage />} />
+        <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="audit-log" element={<AuditLog />} />
         <Route path="team" element={<TeamPage />} />
         <Route path="settings" element={<SettingsPage />} />
