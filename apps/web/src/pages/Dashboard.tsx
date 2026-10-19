@@ -9,6 +9,7 @@ import { Card } from '../components/ui/Card';
 import { Spinner } from '../components/ui/Spinner';
 import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
+import { NextActionsWidget } from '../components/ai/NextActionsWidget';
 
 function Kpi({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
   return (
@@ -95,6 +96,8 @@ export function Dashboard() {
             )}
           </Card>
         </div>
+
+        <NextActionsWidget />
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <Card className="p-5">

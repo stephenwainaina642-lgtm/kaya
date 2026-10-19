@@ -46,3 +46,5 @@ services:
         value: https://kaya.onrender.com
       - key: LOG_LEVEL
         value: info
+      - key: ANTHROPIC_API_KEY
+        sync: false # set manually in the Render dashboard (Environment tab) — never stored in this file or in git. Optional: AI features (lead scoring, drafted messages, summaries) are disabled gracefully if unset.

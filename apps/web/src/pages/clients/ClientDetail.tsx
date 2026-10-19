@@ -13,6 +13,7 @@ import { Modal } from '../../components/ui/Modal';
 import { PageHeader } from '../../components/PageHeader';
 import { PropertyMatchesPanel } from '../../components/PropertyMatchesPanel';
 import { ShortlistsPanel } from '../../components/ShortlistsPanel';
+import { AiInsightsCard } from '../../components/ai/AiInsightsCard';
 import { EditClientForm } from '../../forms/EditClientForm';
 
 export function ClientDetail() {
@@ -83,6 +84,7 @@ export function ClientDetail() {
               <MessageCircle size={16} /> Message on WhatsApp
             </a>
           </Card>
+          <AiInsightsCard contactType="client" contactId={client.id} contactName={client.fullName} />
           <ShortlistsPanel clientId={client.id} />
         </div>
       </div>

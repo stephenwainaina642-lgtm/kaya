@@ -79,6 +79,7 @@ const PLANS = [
       'Property matching engine',
       'Shortlists you can share with clients',
       'Team roles and permissions',
+      'AI lead scoring, drafted messages and summaries',
       'Priority support',
     ],
     highlight: true,
@@ -88,7 +89,7 @@ const PLANS = [
     price: 'KES 16,900',
     unit: '/ agent / month',
     body: 'For larger agencies and developers running multiple branches.',
-    features: ['Everything in Growth', 'Multiple branches under one account', 'Full audit log', 'Custom reporting', 'Dedicated onboarding'],
+    features: ['Everything in Growth', 'Multiple branches under one account', 'Full audit log', 'Advanced analytics and agent leaderboards', 'Custom reporting', 'Dedicated onboarding'],
     highlight: false,
   },
 ];

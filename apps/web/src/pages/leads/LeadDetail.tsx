@@ -12,6 +12,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { Modal } from '../../components/ui/Modal';
 import { PageHeader } from '../../components/PageHeader';
 import { PropertyMatchesPanel } from '../../components/PropertyMatchesPanel';
+import { AiInsightsCard } from '../../components/ai/AiInsightsCard';
 import { EditLeadForm } from '../../forms/EditLeadForm';
 
 export function LeadDetail() {
@@ -121,6 +122,7 @@ export function LeadDetail() {
               <MessageCircle size={16} /> Message on WhatsApp
             </a>
           </Card>
+          <AiInsightsCard contactType="lead" contactId={lead.id} contactName={lead.fullName} />
           {lead.assignedAgent && (
             <Card className="p-5">
               <h2 className="mb-2 font-display text-lg font-semibold text-ink">Assigned agent</h2>

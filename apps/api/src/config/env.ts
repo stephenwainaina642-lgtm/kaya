@@ -26,6 +26,10 @@ const schema = z.object({
   PLATFORM_JWT_SECRET: z.string().min(1),
   CORS_ORIGINS: z.string().default('http://localhost:5173'),
   LOG_LEVEL: z.string().default('info'),
+  // Optional — AI features (lead scoring, drafted messages, summaries) are
+  // gated off gracefully (see lib/ai.ts) when this isn't set, rather than
+  // the server failing to start.
+  ANTHROPIC_API_KEY: z.string().optional(),
 });
 
 export const env = schema.parse(process.env);

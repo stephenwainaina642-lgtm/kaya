@@ -32,6 +32,7 @@ import { communicationsRouter } from './modules/communications/communications.ro
 import { documentsRouter } from './modules/documents/documents.routes';
 import { analyticsRouter } from './modules/analytics/analytics.routes';
 import { auditRouter } from './modules/audit/audit.routes';
+import { aiRouter } from './modules/ai/ai.routes';
 
 export function createApp(): Express {
   const app = express();
@@ -68,6 +69,7 @@ export function createApp(): Express {
   app.use('/api/documents', documentsRouter);
   app.use('/api/audit', auditRouter);
   app.use('/api/analytics', analyticsRouter);
+  app.use('/api/ai', aiRouter);
 
   app.use('/api', notFoundHandler);
   app.use('/api', errorHandler);
