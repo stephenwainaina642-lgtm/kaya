@@ -19,7 +19,8 @@ BEGIN
     SELECT unnest(ARRAY[
       'users', 'leads', 'clients', 'requirements', 'activities', 'communications',
       'documents', 'follow_ups', 'tasks', 'audit_logs', 'owners', 'properties',
-      'client_property_matches', 'client_shortlists', 'deal_stages', 'deals', 'viewings'
+      'client_property_matches', 'client_shortlists', 'deal_stages', 'deals', 'viewings',
+      'automation_rules', 'drip_sequences', 'drip_enrollments'
     ])
   LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
@@ -58,7 +59,7 @@ BEGIN
   FOR t IN
     SELECT unnest(ARRAY[
       'property_images', 'property_features', 'shortlist_items',
-      'offers', 'commissions', 'viewing_feedback', 'refresh_tokens'
+      'offers', 'commissions', 'viewing_feedback', 'refresh_tokens', 'drip_sequence_steps'
     ])
   LOOP
     EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON %I TO kaya_app', t);

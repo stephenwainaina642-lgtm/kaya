@@ -6,4 +6,5 @@ export * from './crm';
 export * from './properties';
 export * from './sales';
 export * from './ops';
+export * from './automation';
 export * from './platform';

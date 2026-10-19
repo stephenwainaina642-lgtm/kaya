@@ -8,7 +8,7 @@ import { PLANS, type Plan } from './enums';
  * available on every plan — those are the modules every tier's feature
  * list includes starting from Starter.
  */
-export const PLAN_MODULES = ['dealsPipeline', 'matching', 'shortlists', 'auditLog', 'analytics', 'aiInsights'] as const;
+export const PLAN_MODULES = ['dealsPipeline', 'matching', 'shortlists', 'auditLog', 'analytics', 'aiInsights', 'automation'] as const;
 export type PlanModule = (typeof PLAN_MODULES)[number];
 
 export interface PlanLimits {
@@ -24,11 +24,11 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
   },
   GROWTH: {
     maxUsers: null,
-    modules: ['dealsPipeline', 'matching', 'shortlists', 'aiInsights'],
+    modules: ['dealsPipeline', 'matching', 'shortlists', 'aiInsights', 'automation'],
   },
   PRO: {
     maxUsers: null,
-    modules: ['dealsPipeline', 'matching', 'shortlists', 'auditLog', 'analytics', 'aiInsights'],
+    modules: ['dealsPipeline', 'matching', 'shortlists', 'auditLog', 'analytics', 'aiInsights', 'automation'],
   },
 };
 

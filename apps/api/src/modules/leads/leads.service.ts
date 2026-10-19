@@ -15,6 +15,8 @@ import { findDuplicate, duplicateError } from '../crm/duplicates';
 import { requirementsInput, saveRequirements, getRequirements, moveRequirementsToClient } from '../crm/requirements';
 import { contactLogInput, logContact, loadTimeline, timelineQuery } from '../crm/timeline';
 import { recordAudit } from '../../lib/audit';
+import { applyAutoAssignRule } from '../automation/rules.service';
+import { enrollLeadInMatchingSequences } from '../automation/drip.service';
 
 export const leadCreate = z.object({
   fullName: nameField,
@@ -126,7 +128,17 @@ export async function createLead(a: Auth, body: unknown): Promise<LeadDetail> {
     const dup = await findDuplicate(tx, a.organizationId, input.phone);
     if (dup) throw duplicateError(dup);
 
-    const assignedAgentId = await resolveAssignee(a, input.assignedAgentId ?? undefined, true);
+    // An explicit assignedAgentId is the agent's own choice and always wins.
+    // Otherwise, give the org's auto-assignment rules (if any) first say —
+    // falling back to the existing default (assign to whoever's creating
+    // the lead) when no active rule matches.
+    let assignedAgentId: string | null;
+    if (input.assignedAgentId) {
+      assignedAgentId = await resolveAssignee(a, input.assignedAgentId, true);
+    } else {
+      assignedAgentId = await applyAutoAssignRule(tx, a.organizationId, input.source);
+      if (!assignedAgentId) assignedAgentId = await resolveAssignee(a, undefined, true);
+    }
     const [row] = await tx.insert(leads).values({
       organizationId: a.organizationId,
       fullName: input.fullName,
@@ -147,6 +159,7 @@ export async function createLead(a: Auth, body: unknown): Promise<LeadDetail> {
     if (input.requirements) {
       await saveRequirements(tx, a.organizationId, { leadId: row.id }, input.requirements);
     }
+    await enrollLeadInMatchingSequences(tx, a.organizationId, row.id, input.source);
     await recordAudit(tx, {
       organizationId: a.organizationId, actorId: a.userId, action: 'CREATE', entityType: 'lead', entityId: row.id,
       summary: `Created lead ${row.fullName}`,

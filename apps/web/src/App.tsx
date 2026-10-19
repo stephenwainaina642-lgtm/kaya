@@ -24,6 +24,7 @@ import { DocumentsList } from './pages/documents/DocumentsList';
 import { ReportsPage } from './pages/reports/ReportsPage';
 import { AnalyticsPage } from './pages/analytics/AnalyticsPage';
 import { AuditLog } from './pages/audit/AuditLog';
+import { AutomationPage } from './pages/automation/AutomationPage';
 import { TeamPage } from './pages/team/TeamPage';
 import { SettingsPage } from './pages/settings/SettingsPage';
 import { PublicShortlist } from './pages/public/PublicShortlist';
@@ -118,6 +119,7 @@ export default function App() {
         <Route path="reports" element={<ReportsPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="audit-log" element={<AuditLog />} />
+        <Route path="automation" element={<AutomationPage />} />
         <Route path="team" element={<TeamPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="*" element={<NotFound />} />

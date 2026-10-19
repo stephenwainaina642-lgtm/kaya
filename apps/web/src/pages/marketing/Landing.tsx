@@ -80,6 +80,7 @@ const PLANS = [
       'Shortlists you can share with clients',
       'Team roles and permissions',
       'AI lead scoring, drafted messages and summaries',
+      'Auto-assignment rules and drip follow-up sequences',
       'Priority support',
     ],
     highlight: true,

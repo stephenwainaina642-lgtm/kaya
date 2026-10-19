@@ -10,6 +10,7 @@ const TENANT_TABLES = [
   'shortlist_items', 'client_shortlists', 'client_property_matches', 'property_features',
   'property_images', 'properties', 'owners', 'documents', 'communications', 'activities',
   'follow_ups', 'tasks', 'requirements', 'audit_logs', 'refresh_tokens', 'clients', 'leads',
+  'drip_enrollments', 'drip_sequence_steps', 'drip_sequences', 'automation_rules',
   'users', 'organizations', 'platform_admins',
 ];
 

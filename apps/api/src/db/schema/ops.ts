@@ -12,6 +12,7 @@ import { leads, clients } from './crm';
 import { owners, properties } from './properties';
 import { deals } from './sales';
 import { viewings } from './sales';
+import { dripEnrollments } from './automation';
 
 export const activities = pgTable('activities', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -78,6 +79,10 @@ export const followUps = pgTable('follow_ups', {
   clientId: uuid('client_id').references(() => clients.id, { onDelete: 'cascade' }),
   assignedToId: uuid('assigned_to_id').references(() => users.id, { onDelete: 'set null' }),
   completedAt: timestamp('completed_at', { withTimezone: true }),
+  // Set when this follow-up was auto-created by a drip sequence step, so
+  // canceling the enrollment (e.g. the lead was won/lost) can cancel any
+  // still-pending follow-ups it generated. Null for ordinary manual ones.
+  dripEnrollmentId: uuid('drip_enrollment_id').references(() => dripEnrollments.id, { onDelete: 'set null' }),
   ...timestamps(),
 });
 

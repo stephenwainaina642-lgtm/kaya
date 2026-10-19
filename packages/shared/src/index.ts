@@ -10,5 +10,6 @@ export * from './permissions';
 export * from './plans';
 export * from './audit';
 export * from './analytics';
+export * from './automation';
 export * from './whatsapp';
 export * from './platform';
