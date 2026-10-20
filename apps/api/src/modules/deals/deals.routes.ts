@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate, ctx } from '../../middleware/auth';
+import { authenticate, ctx, requirePermission } from '../../middleware/auth';
 import { requirePlanModule } from '../../middleware/plan';
 import { getBoard, getDeal, createDeal, updateDeal, moveDealStage, deleteDeal } from './deals.service';
 import { addOffer, setOfferStatus } from './offers.service';
@@ -10,44 +10,42 @@ dealsRouter.use(authenticate);
 // Deal pipeline + commissions are a Growth-and-up feature (see pricing table).
 dealsRouter.use(requirePlanModule('dealsPipeline'));
 
-dealsRouter.get('/board', async (req, res) => {
-  res.json(await getBoard(ctx(req)));
+dealsRouter.get('/board', requirePermission('deals:view'), async (req, res, next) => {
+  try { res.json(await getBoard(ctx(req))); } catch (err) { next(err); }
 });
 
-dealsRouter.get('/commissions', async (req, res) => {
-  res.json(await listCommissions(ctx(req), req.query));
+dealsRouter.get('/commissions', requirePermission('commissions:view'), async (req, res, next) => {
+  try { res.json(await listCommissions(ctx(req), req.query)); } catch (err) { next(err); }
 });
 
-dealsRouter.post('/commissions/:id/payments', async (req, res) => {
-  await recordPayment(ctx(req), req.params.id, req.body);
-  res.status(204).end();
+dealsRouter.post('/commissions/:id/payments', requirePermission('commissions:edit'), async (req, res, next) => {
+  try { await recordPayment(ctx(req), req.params.id!, req.body); res.status(204).end(); } catch (err) { next(err); }
 });
 
-dealsRouter.get('/:id', async (req, res) => {
-  res.json(await getDeal(ctx(req), req.params.id));
+dealsRouter.get('/:id', requirePermission('deals:view'), async (req, res, next) => {
+  try { res.json(await getDeal(ctx(req), req.params.id!)); } catch (err) { next(err); }
 });
 
-dealsRouter.post('/', async (req, res) => {
-  res.status(201).json(await createDeal(ctx(req), req.body));
+dealsRouter.post('/', requirePermission('deals:create'), async (req, res, next) => {
+  try { res.status(201).json(await createDeal(ctx(req), req.body)); } catch (err) { next(err); }
 });
 
-dealsRouter.patch('/:id', async (req, res) => {
-  res.json(await updateDeal(ctx(req), req.params.id, req.body));
+dealsRouter.patch('/:id', requirePermission('deals:edit'), async (req, res, next) => {
+  try { res.json(await updateDeal(ctx(req), req.params.id!, req.body)); } catch (err) { next(err); }
 });
 
-dealsRouter.post('/:id/stage', async (req, res) => {
-  res.json(await moveDealStage(ctx(req), req.params.id, req.body));
+dealsRouter.post('/:id/stage', requirePermission('deals:edit'), async (req, res, next) => {
+  try { res.json(await moveDealStage(ctx(req), req.params.id!, req.body)); } catch (err) { next(err); }
 });
 
-dealsRouter.delete('/:id', async (req, res) => {
-  await deleteDeal(ctx(req), req.params.id);
-  res.status(204).end();
+dealsRouter.delete('/:id', requirePermission('deals:delete'), async (req, res, next) => {
+  try { await deleteDeal(ctx(req), req.params.id!); res.status(204).end(); } catch (err) { next(err); }
 });
 
-dealsRouter.post('/:id/offers', async (req, res) => {
-  res.status(201).json(await addOffer(ctx(req), req.params.id, req.body));
+dealsRouter.post('/:id/offers', requirePermission('deals:edit'), async (req, res, next) => {
+  try { res.status(201).json(await addOffer(ctx(req), req.params.id!, req.body)); } catch (err) { next(err); }
 });
 
-dealsRouter.post('/:id/offers/:offerId/status', async (req, res) => {
-  res.json(await setOfferStatus(ctx(req), req.params.id, req.params.offerId, req.body));
+dealsRouter.post('/:id/offers/:offerId/status', requirePermission('deals:edit'), async (req, res, next) => {
+  try { res.json(await setOfferStatus(ctx(req), req.params.id!, req.params.offerId!, req.body)); } catch (err) { next(err); }
 });

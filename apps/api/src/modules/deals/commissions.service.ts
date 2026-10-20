@@ -3,7 +3,7 @@ import { and, eq, desc } from 'drizzle-orm';
 import type { CommissionListItem, CommissionPage } from '@kaya/shared';
 import { withTenant } from '../../db/client';
 import { commissions, deals, users } from '../../db/schema';
-import { notFound } from '../../lib/errors';
+import { notFound, invalid } from '../../lib/errors';
 import { parse } from '../../lib/validate';
 import { type Auth, uuidField, pagingQuery, pageWindow, agentRef } from '../crm/common';
 
@@ -72,6 +72,11 @@ export async function recordPayment(a: Auth, id: string, body: unknown): Promise
       .innerJoin(deals, eq(deals.id, commissions.dealId))
       .where(and(eq(commissions.id, id), eq(deals.organizationId, a.organizationId)));
     if (!row) throw notFound('Commission');
+
+    const remaining = row.c.amount - row.c.paidAmount;
+    if (input.amount > remaining) {
+      throw invalid({ amount: `Cannot record more than the outstanding balance (KES ${remaining.toLocaleString('en-KE')})` });
+    }
 
     const paidAmount = row.c.paidAmount + input.amount;
     const status = paidAmount >= row.c.amount ? 'PAID' : paidAmount > 0 ? 'PARTIALLY_PAID' : row.c.status;

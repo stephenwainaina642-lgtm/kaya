@@ -15,34 +15,58 @@ shortlistsRouter.use(authenticate);
 // downgrade.
 shortlistsRouter.use(requirePlanModule('shortlists'));
 
-shortlistsRouter.get('/clients/:clientId', async (req, res) => {
-  const a = ctx(req);
-  const clientId = uuidField.parse(req.params.clientId);
-  res.json({ items: await listShortlistsForClient(a, clientId) });
+shortlistsRouter.get('/clients/:clientId', async (req, res, next) => {
+  try {
+    const a = ctx(req);
+    const clientId = uuidField.parse(req.params.clientId);
+    res.json({ items: await listShortlistsForClient(a, clientId) });
+  } catch (err) {
+    next(err);
+  }
 });
 
-shortlistsRouter.post('/', async (req, res) => {
-  const a = ctx(req);
-  res.status(201).json(await createShortlist(a, req.body));
+shortlistsRouter.post('/', async (req, res, next) => {
+  try {
+    const a = ctx(req);
+    res.status(201).json(await createShortlist(a, req.body));
+  } catch (err) {
+    next(err);
+  }
 });
 
-shortlistsRouter.get('/:id', async (req, res) => {
-  const a = ctx(req);
-  res.json(await getShortlist(a, req.params.id));
+shortlistsRouter.get('/:id', async (req, res, next) => {
+  try {
+    const a = ctx(req);
+    res.json(await getShortlist(a, req.params.id));
+  } catch (err) {
+    next(err);
+  }
 });
 
-shortlistsRouter.post('/:id/items', async (req, res) => {
-  const a = ctx(req);
-  res.json(await addPropertyToShortlist(a, req.params.id, req.body));
+shortlistsRouter.post('/:id/items', async (req, res, next) => {
+  try {
+    const a = ctx(req);
+    res.json(await addPropertyToShortlist(a, req.params.id, req.body));
+  } catch (err) {
+    next(err);
+  }
 });
 
-shortlistsRouter.delete('/:id/items/:propertyId', async (req, res) => {
-  const a = ctx(req);
-  res.json(await removePropertyFromShortlist(a, req.params.id, req.params.propertyId));
+shortlistsRouter.delete('/:id/items/:propertyId', async (req, res, next) => {
+  try {
+    const a = ctx(req);
+    res.json(await removePropertyFromShortlist(a, req.params.id, req.params.propertyId));
+  } catch (err) {
+    next(err);
+  }
 });
 
-shortlistsRouter.delete('/:id', async (req, res) => {
-  const a = ctx(req);
-  await deleteShortlist(a, req.params.id);
-  res.status(204).end();
+shortlistsRouter.delete('/:id', async (req, res, next) => {
+  try {
+    const a = ctx(req);
+    await deleteShortlist(a, req.params.id);
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
 });
