@@ -75,13 +75,24 @@ export async function signPortalDocument(token: string, documentId: string, body
   const [existing] = await systemDb.select({ id: documentSignatures.id }).from(documentSignatures).where(eq(documentSignatures.documentId, documentId));
   if (existing) throw invalid({ documentId: 'This document has already been signed' });
 
-  await systemDb.insert(documentSignatures).values({
-    organizationId: doc.organizationId,
-    documentId,
-    signerName: input.signerName,
-    signatureDataUrl: input.signatureDataUrl,
-    ipAddress,
-  });
+  try {
+    await systemDb.insert(documentSignatures).values({
+      organizationId: doc.organizationId,
+      documentId,
+      signerName: input.signerName,
+      signatureDataUrl: input.signatureDataUrl,
+      ipAddress,
+    });
+  } catch (err) {
+    // documentId has a DB-level unique constraint as the real guard against a
+    // race between two concurrent sign attempts (e.g. two open tabs) slipping
+    // past the existence check above — translate that into the same clean
+    // error rather than letting a raw Postgres 23505 surface as a 500.
+    if (err && typeof err === 'object' && 'code' in err && err.code === '23505') {
+      throw invalid({ documentId: 'This document has already been signed' });
+    }
+    throw err;
+  }
 }
 
 // --- Staff (authenticated) ---

@@ -167,6 +167,43 @@ describe('client self-service portal', () => {
     expect(resignRes.status).toBe(422);
   });
 
+  it('handles two concurrent sign attempts on the same document cleanly — exactly one succeeds, neither 500s', async () => {
+    const { authHeader } = await setupTenant('ORG_ADMIN', 'GROWTH');
+    const owner = await createOwner(authHeader);
+    const property = await createProperty(authHeader, owner.id);
+    const client = await createClient(authHeader);
+    const shortlist = await createShortlist(authHeader, client.id, property.id);
+
+    const uploadRes = await request(app)
+      .post('/api/documents')
+      .set(authHeader)
+      .field('type', 'AGREEMENT')
+      .field('clientId', client.id)
+      .field('requiresSignature', 'true')
+      .attach('file', Buffer.from('%PDF-1.4 fake tenancy agreement'), 'agreement.pdf');
+    expect(uploadRes.status).toBe(201);
+
+    const signatureDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+    // Two tabs open to the same portal link both submitting at once — the
+    // app-level "already signed?" check can't see the other request's
+    // in-flight insert, so the DB's unique constraint on documentId is the
+    // real guard. It must come back as a clean 422, not an unhandled 500.
+    const [a, b] = await Promise.all([
+      request(app)
+        .post(`/api/public/shortlists/${shortlist.shareToken}/documents/${uploadRes.body.id}/sign`)
+        .send({ signerName: 'Amina Hassan', signatureDataUrl }),
+      request(app)
+        .post(`/api/public/shortlists/${shortlist.shareToken}/documents/${uploadRes.body.id}/sign`)
+        .send({ signerName: 'Amina Hassan', signatureDataUrl }),
+    ]);
+
+    const statuses = [a.status, b.status].sort();
+    expect(statuses).toEqual([201, 422]);
+
+    const portalAfter = await request(app).get(`/api/public/shortlists/${shortlist.shareToken}`);
+    expect(portalAfter.body.documents[0].signed).toBe(true);
+  });
+
   it('refuses to sign a document that does not require a signature', async () => {
     const { authHeader } = await setupTenant('ORG_ADMIN', 'GROWTH');
     const owner = await createOwner(authHeader);
