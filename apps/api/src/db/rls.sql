@@ -20,7 +20,8 @@ BEGIN
       'users', 'leads', 'clients', 'requirements', 'activities', 'communications',
       'documents', 'follow_ups', 'tasks', 'audit_logs', 'owners', 'properties',
       'client_property_matches', 'client_shortlists', 'deal_stages', 'deals', 'viewings',
-      'automation_rules', 'drip_sequences', 'drip_enrollments'
+      'automation_rules', 'drip_sequences', 'drip_enrollments',
+      'viewing_requests', 'document_signatures'
     ])
   LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);

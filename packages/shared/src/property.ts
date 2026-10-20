@@ -7,6 +7,7 @@ import type {
 } from './enums';
 import type { AgentRef } from './crm';
 import type { ScheduleItem } from './dashboard';
+import type { PortalDocument } from './portal';
 
 export interface PropertyFeatureItem {
   id: string;
@@ -141,6 +142,7 @@ export interface ShortlistDetail extends ShortlistSummary {
 }
 
 export interface PublicProperty {
+  id: string;
   title: string;
   listingType: ListingType;
   propertyType: PropertyType;
@@ -156,6 +158,7 @@ export interface PublicShortlist {
   title: string;
   agencyName: string;
   items: { property: PublicProperty; note: string | null }[];
+  documents: PortalDocument[];
 }
 
 export interface ViewingPropertyRef {

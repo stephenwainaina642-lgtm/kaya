@@ -16,6 +16,9 @@ export interface DocumentItem {
   sizeBytes: number;
   links: DocumentLinks;
   uploadedBy: AgentRef | null;
+  requiresSignature: boolean;
+  signed: boolean;
+  signedAt: string | null;
   createdAt: string;
 }
 

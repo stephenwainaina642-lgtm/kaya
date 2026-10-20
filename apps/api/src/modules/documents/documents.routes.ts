@@ -62,6 +62,7 @@ documentsRouter.post('/', requirePermission('documents:edit'), upload.single('fi
       propertyId: req.body.propertyId || null,
       ownerId: req.body.ownerId || null,
       dealId: req.body.dealId || null,
+      requiresSignature: req.body.requiresSignature === 'true',
     });
     res.status(201).json(await uploadDocument(a, req.file, meta));
   } catch (err) {

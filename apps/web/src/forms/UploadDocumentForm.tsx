@@ -15,6 +15,7 @@ export function UploadDocumentForm({ onDone }: { onDone: () => void }) {
   const [type, setType] = useState<string>(DOCUMENT_TYPES[DOCUMENT_TYPES.length - 1]);
   const [linkKind, setLinkKind] = useState<'clientId' | 'propertyId' | 'ownerId' | 'dealId'>('clientId');
   const [linkId, setLinkId] = useState('');
+  const [requiresSignature, setRequiresSignature] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const { data: clients } = useQuery({
@@ -47,6 +48,7 @@ export function UploadDocumentForm({ onDone }: { onDone: () => void }) {
       if (name.trim()) form.append('name', name.trim());
       form.append('type', type);
       form.append(linkKind, linkId);
+      form.append('requiresSignature', String(requiresSignature));
       return api.postForm('/documents', form);
     },
     onSuccess: () => {
@@ -104,6 +106,12 @@ export function UploadDocumentForm({ onDone }: { onDone: () => void }) {
           </Select>
         </Field>
       </div>
+      {linkKind === 'clientId' && (
+        <label className="mb-4 flex items-center gap-2 text-sm text-ink">
+          <input type="checkbox" checked={requiresSignature} onChange={(e) => setRequiresSignature(e.target.checked)} />
+          Ask the client to sign this through their portal
+        </label>
+      )}
       {error && <p className="mb-3 text-sm text-danger">{error}</p>}
       <Button type="submit" disabled={upload.isPending || !file || !linkId} className="w-full">
         {upload.isPending ? 'Uploading…' : 'Upload document'}

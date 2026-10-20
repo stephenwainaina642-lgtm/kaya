@@ -11,5 +11,6 @@ export * from './plans';
 export * from './audit';
 export * from './analytics';
 export * from './automation';
+export * from './portal';
 export * from './whatsapp';
 export * from './platform';

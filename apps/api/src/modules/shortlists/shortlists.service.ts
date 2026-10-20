@@ -1,10 +1,13 @@
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import { and, eq, inArray, asc, sql as dsql } from 'drizzle-orm';
-import type { ShortlistSummary, ShortlistDetail, ShortlistItem, PublicShortlist, PublicProperty } from '@kaya/shared';
+import type { ShortlistSummary, ShortlistDetail, ShortlistItem, PublicShortlist, PublicProperty, PortalDocument } from '@kaya/shared';
 import { withTenant, type Tx } from '../../db/client';
 import { systemDb } from '../../db/system';
-import { clientShortlists, shortlistItems, clients, properties, propertyImages, users, organizations } from '../../db/schema';
+import {
+  clientShortlists, shortlistItems, clients, properties, propertyImages, users, organizations,
+  documents, documentSignatures,
+} from '../../db/schema';
 import { notFound } from '../../lib/errors';
 import { parse } from '../../lib/validate';
 import { type Auth, uuidField, textField, requireClient, requireProperty, agentRef } from '../crm/common';
@@ -188,12 +191,22 @@ export async function deleteShortlist(a: Auth, id: string): Promise<void> {
   });
 }
 
-/** No-auth: resolves a public share token to its shortlist, using the privileged connection
- * since the caller has no organization context yet. */
-export async function getPublicShortlist(token: string): Promise<PublicShortlist> {
+/**
+ * No-auth: resolves a public share token to its underlying shortlist row,
+ * using the privileged connection since the caller has no organization
+ * context yet. Shared by getPublicShortlist below and by modules/portal,
+ * which reuses the same share link for viewing requests and document
+ * signing — the client's whole self-service portal lives behind one token.
+ */
+export async function resolveShareToken(token: string): Promise<typeof clientShortlists.$inferSelect> {
   const [row] = await systemDb.select().from(clientShortlists).where(eq(clientShortlists.shareToken, token));
   if (!row) throw notFound('Shortlist');
   if (row.shareExpiresAt && row.shareExpiresAt.getTime() < Date.now()) throw notFound('Shortlist');
+  return row;
+}
+
+export async function getPublicShortlist(token: string): Promise<PublicShortlist> {
+  const row = await resolveShareToken(token);
 
   const [org] = await systemDb.select({ name: organizations.name }).from(organizations).where(eq(organizations.id, row.organizationId));
 
@@ -222,6 +235,7 @@ export async function getPublicShortlist(token: string): Promise<PublicShortlist
   const mapped: { property: PublicProperty; note: string | null }[] = items.map((i) => ({
     note: i.note,
     property: {
+      id: i.propertyId,
       title: i.title,
       listingType: i.listingType,
       propertyType: i.propertyType,
@@ -234,5 +248,18 @@ export async function getPublicShortlist(token: string): Promise<PublicShortlist
     },
   }));
 
-  return { title: row.title, agencyName: org?.name ?? 'Kaya', items: mapped };
+  const docRows = await systemDb
+    .select({ d: documents, signedAt: documentSignatures.signedAt })
+    .from(documents)
+    .leftJoin(documentSignatures, eq(documentSignatures.documentId, documents.id))
+    .where(eq(documents.clientId, row.clientId));
+  const portalDocuments: PortalDocument[] = docRows.map((d) => ({
+    id: d.d.id,
+    name: d.d.name,
+    requiresSignature: d.d.requiresSignature,
+    signed: d.signedAt !== null,
+    signedAt: d.signedAt?.toISOString() ?? null,
+  }));
+
+  return { title: row.title, agencyName: org?.name ?? 'Kaya', items: mapped, documents: portalDocuments };
 }

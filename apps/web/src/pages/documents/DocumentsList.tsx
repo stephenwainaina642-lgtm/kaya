@@ -53,6 +53,7 @@ export function DocumentsList() {
                   <th className="px-5 py-3 font-medium">Type</th>
                   <th className="px-5 py-3 font-medium">Size</th>
                   <th className="px-5 py-3 font-medium">Uploaded by</th>
+                  <th className="px-5 py-3 font-medium">Signature</th>
                   <th className="px-5 py-3" />
                 </tr>
               </thead>
@@ -63,6 +64,15 @@ export function DocumentsList() {
                     <td className="px-5 py-3"><Badge>{d.type.replace(/_/g, ' ')}</Badge></td>
                     <td className="px-5 py-3 text-muted">{formatBytes(d.sizeBytes)}</td>
                     <td className="px-5 py-3 text-muted">{d.uploadedBy?.name ?? '—'}</td>
+                    <td className="px-5 py-3">
+                      {!d.requiresSignature ? (
+                        <span className="text-faint">—</span>
+                      ) : d.signed ? (
+                        <Badge tone="ok">Signed</Badge>
+                      ) : (
+                        <Badge tone="warn">Awaiting signature</Badge>
+                      )}
+                    </td>
                     <td className="px-5 py-3 text-right">
                       <a href={`/api/documents/${d.id}/download`} className="inline-flex items-center gap-1 text-cypress-700 hover:underline">
                         <Download size={14} /> Download

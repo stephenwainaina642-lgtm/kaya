@@ -7,4 +7,5 @@ export * from './properties';
 export * from './sales';
 export * from './ops';
 export * from './automation';
+export * from './portal';
 export * from './platform';

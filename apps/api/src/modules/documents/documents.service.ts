@@ -3,7 +3,7 @@ import { and, eq, desc, sql as dsql } from 'drizzle-orm';
 import { DOCUMENT_TYPES } from '@kaya/shared';
 import type { DocumentItem, DocumentPage } from '@kaya/shared';
 import { withTenant, type Tx } from '../../db/client';
-import { documents, users } from '../../db/schema';
+import { documents, users, documentSignatures } from '../../db/schema';
 import { type Auth, pagingQuery, pageWindow, uuidField } from '../crm/common';
 import { notFound, invalid } from '../../lib/errors';
 import { saveFile, deleteFile } from '../../lib/storage';
@@ -16,6 +16,7 @@ export const documentUploadMeta = z.object({
   propertyId: uuidField.nullable().optional(),
   ownerId: uuidField.nullable().optional(),
   dealId: uuidField.nullable().optional(),
+  requiresSignature: z.boolean().default(false),
 });
 
 export const documentsQuery = pagingQuery.extend({
@@ -26,7 +27,7 @@ export const documentsQuery = pagingQuery.extend({
   type: z.enum(DOCUMENT_TYPES).optional(),
 });
 
-function toItem(row: { d: typeof documents.$inferSelect; uploaderName: string | null }): DocumentItem {
+function toItem(row: { d: typeof documents.$inferSelect; uploaderName: string | null; signedAt: Date | null }): DocumentItem {
   return {
     id: row.d.id,
     name: row.d.name,
@@ -40,6 +41,9 @@ function toItem(row: { d: typeof documents.$inferSelect; uploaderName: string | 
       dealId: row.d.dealId,
     },
     uploadedBy: row.d.uploadedById ? { id: row.d.uploadedById, name: row.uploaderName ?? 'User' } : null,
+    requiresSignature: row.d.requiresSignature,
+    signed: row.signedAt !== null,
+    signedAt: row.signedAt?.toISOString() ?? null,
     createdAt: row.d.createdAt.toISOString(),
   };
 }
@@ -48,9 +52,10 @@ function toItem(row: { d: typeof documents.$inferSelect; uploaderName: string | 
 // so neither has to call the other and open a second, independently-committed transaction.
 async function hydrate(tx: Tx, organizationId: string, id: string): Promise<DocumentItem> {
   const [row] = await tx
-    .select({ d: documents, uploaderName: users.name })
+    .select({ d: documents, uploaderName: users.name, signedAt: documentSignatures.signedAt })
     .from(documents)
     .leftJoin(users, eq(users.id, documents.uploadedById))
+    .leftJoin(documentSignatures, eq(documentSignatures.documentId, documents.id))
     .where(and(eq(documents.id, id), eq(documents.organizationId, organizationId)));
   if (!row) throw notFound('Document');
   return toItem(row);
@@ -67,9 +72,10 @@ export async function listDocuments(a: Auth, q: z.infer<typeof documentsQuery>):
     if (q.type) conditions.push(eq(documents.type, q.type));
 
     const rows = await tx
-      .select({ d: documents, uploaderName: users.name })
+      .select({ d: documents, uploaderName: users.name, signedAt: documentSignatures.signedAt })
       .from(documents)
       .leftJoin(users, eq(users.id, documents.uploadedById))
+      .leftJoin(documentSignatures, eq(documentSignatures.documentId, documents.id))
       .where(and(...conditions))
       .orderBy(desc(documents.createdAt))
       .limit(limit)
@@ -112,6 +118,7 @@ export async function uploadDocument(
           ownerId: meta.ownerId ?? null,
           dealId: meta.dealId ?? null,
           uploadedById: a.userId,
+          requiresSignature: meta.requiresSignature,
         })
         .returning();
       if (!row) throw notFound('Document');

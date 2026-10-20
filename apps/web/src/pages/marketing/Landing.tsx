@@ -77,7 +77,7 @@ const PLANS = [
       'Everything in Starter',
       'Deal pipeline and commissions',
       'Property matching engine',
-      'Shortlists you can share with clients',
+      'Shortlists with a client self-service portal — request viewings, sign documents',
       'Team roles and permissions',
       'AI lead scoring, drafted messages and summaries',
       'Auto-assignment rules and drip follow-up sequences',

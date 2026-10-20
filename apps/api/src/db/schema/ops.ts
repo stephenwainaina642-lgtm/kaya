@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, integer, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, integer, jsonb, boolean } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import {
   activityTypeEnum, commChannelEnum, commDirectionEnum, commDeliveryEnum,
@@ -63,6 +63,12 @@ export const documents = pgTable('documents', {
   ownerId: uuid('owner_id').references(() => owners.id, { onDelete: 'cascade' }),
   dealId: uuid('deal_id').references(() => deals.id, { onDelete: 'cascade' }),
   uploadedById: uuid('uploaded_by_id').references(() => users.id, { onDelete: 'set null' }),
+  // When true, the client portal (see modules/portal) offers this document
+  // for e-signature on its share link. Capturing a typed/drawn signature is
+  // NOT a legally-binding e-signature (no identity verification, no
+  // tamper-evident seal) — it's a lightweight "I reviewed and agreed"
+  // record, and the UI says so.
+  requiresSignature: boolean('requires_signature').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
