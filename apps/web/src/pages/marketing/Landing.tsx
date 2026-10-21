@@ -1,9 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  Menu, X, Users, SlidersHorizontal, Handshake, CalendarClock, FileText, BarChart3,
-  Check, Plus, Minus,
-} from 'lucide-react';
+import { Menu, X, Check, Plus, Minus } from 'lucide-react';
 
 const NAV_LINKS = [
   { href: '#features', label: 'Features' },
@@ -21,32 +18,26 @@ const WORKFLOW = [
 
 const FEATURES = [
   {
-    icon: Users,
     title: 'Leads and clients in one pipeline',
     body: 'Every enquiry, call and WhatsApp thread lives against the person it came from — from first contact to signed client, visible to the whole team.',
   },
   {
-    icon: SlidersHorizontal,
     title: 'Property matching, explained',
     body: 'Listings are ranked against a lead’s stated requirements with a visible score and reasons — not a black box.',
   },
   {
-    icon: Handshake,
     title: 'Deals and commissions',
     body: 'A kanban pipeline for every sale or letting, with offers, counter-offers and commission splits tracked per agent.',
   },
   {
-    icon: CalendarClock,
     title: 'Viewings and follow-ups',
     body: 'Every scheduled viewing and promised follow-up shows up on one calendar, so nothing slips between agents.',
   },
   {
-    icon: FileText,
     title: 'Documents, properly linked',
     body: 'Agreements, IDs and offer letters attach to the client, property or deal they belong to — not a shared folder.',
   },
   {
-    icon: BarChart3,
     title: 'Reports built for owners',
     body: 'Pipeline value, commission by month, and agent performance — the numbers an agency actually runs on.',
   },
@@ -276,12 +267,12 @@ export function Landing() {
       <section id="features" className="border-t border-line bg-sunk">
         <div className="mx-auto max-w-6xl px-5 py-20 md:py-28">
           <h2 className="max-w-md font-display text-3xl font-semibold text-ink">Everything an agency runs on, nothing it doesn’t</h2>
-          <div className="mt-12 grid gap-5 md:grid-cols-3">
+          <div className="mt-14 grid gap-x-10 gap-y-12 md:grid-cols-2">
             {FEATURES.map((f) => (
-              <div key={f.title} className="rounded-panel border border-line bg-surface p-6">
-                <f.icon size={20} className="text-cypress-600" strokeWidth={2} />
-                <h3 className="mt-4 font-display text-lg font-semibold text-ink">{f.title}</h3>
-                <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted">{f.body}</p>
+              <div key={f.title} className="border-t border-line pt-5">
+                <span className="block h-[3px] w-6 bg-brass" />
+                <h3 className="mt-4 font-display text-xl font-semibold text-ink">{f.title}</h3>
+                <p className="mt-2 max-w-md text-sm leading-relaxed text-muted">{f.body}</p>
               </div>
             ))}
           </div>

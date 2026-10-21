@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { formatKes } from '@kaya/shared';
-import type { DashboardData } from '@kaya/shared';
+import type { DashboardData, AttentionItem } from '@kaya/shared';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, TrendingUp, Users, Building2, Handshake, CalendarClock } from 'lucide-react';
+import { CalendarClock } from 'lucide-react';
 import { api } from '../lib/api';
 import { PageHeader } from '../components/PageHeader';
 import { Card } from '../components/ui/Card';
@@ -11,15 +11,19 @@ import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { NextActionsWidget } from '../components/ai/NextActionsWidget';
 
-function Kpi({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+const ATTENTION_ACCENT: Record<AttentionItem['kind'], string> = {
+  STALLED_DEAL: 'border-l-brass',
+  OVERDUE_FOLLOW_UP: 'border-l-warn',
+  OVERDUE_TASK: 'border-l-danger',
+  UNASSIGNED_LEAD: 'border-l-cypress-500',
+};
+
+function SecondaryStat({ label, value }: { label: string; value: string }) {
   return (
-    <Card className="p-5">
-      <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-control bg-cypress-50 text-cypress-700">
-        <Icon size={18} />
-      </div>
+    <div className="flex-1 px-5 py-4 first:pl-0 last:pr-0">
       <p className="font-display text-2xl font-semibold text-ink">{value}</p>
-      <p className="text-sm text-muted">{label}</p>
-    </Card>
+      <p className="mt-0.5 text-sm text-muted">{label}</p>
+    </div>
   );
 }
 
@@ -45,11 +49,17 @@ export function Dashboard() {
     <>
       <PageHeader title="Dashboard" subtitle="Your agency at a glance" />
       <div className="space-y-6 p-8">
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <Kpi icon={Users} label="Active leads" value={String(kpis.activeLeads)} />
-          <Kpi icon={Building2} label="Active clients" value={String(kpis.activeClients)} />
-          <Kpi icon={Handshake} label="Deals in progress" value={String(kpis.dealsInProgress)} />
-          <Kpi icon={TrendingUp} label="Pipeline value" value={formatKes(kpis.pipelineValue, { compact: true })} />
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <div className="rounded-panel bg-ink p-6 text-white lg:col-span-1">
+            <span className="block h-[3px] w-6 bg-brass" />
+            <p className="mt-4 text-sm text-white/60">Pipeline value</p>
+            <p className="mt-1 font-display text-4xl font-semibold text-white">{formatKes(kpis.pipelineValue, { compact: true })}</p>
+          </div>
+          <Card className="flex divide-x divide-line p-0 lg:col-span-2">
+            <SecondaryStat label="Active leads" value={String(kpis.activeLeads)} />
+            <SecondaryStat label="Active clients" value={String(kpis.activeClients)} />
+            <SecondaryStat label="Deals in progress" value={String(kpis.dealsInProgress)} />
+          </Card>
         </div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -60,15 +70,14 @@ export function Dashboard() {
             ) : (
               <ul className="divide-y divide-line">
                 {attention.map((item) => (
-                  <li key={item.id} className="flex items-center gap-3 py-3">
-                    <AlertTriangle size={16} className="shrink-0 text-warn" />
+                  <li key={item.id} className={`flex items-center gap-3 border-l-2 py-3 pl-3 ${ATTENTION_ACCENT[item.kind]}`}>
                     <div className="min-w-0 flex-1">
-                      <Link to={item.link} className="truncate text-sm font-medium text-ink hover:text-cypress-700">
+                      <Link to={item.link} className="block truncate text-sm font-medium text-ink hover:text-cypress-700">
                         {item.title}
                       </Link>
                       {item.subtitle && <p className="truncate text-xs text-muted">{item.subtitle}</p>}
                     </div>
-                    <Badge tone="warn">{item.kind.replace(/_/g, ' ').toLowerCase()}</Badge>
+                    <span className="shrink-0"><Badge>{item.kind.replace(/_/g, ' ').toLowerCase()}</Badge></span>
                   </li>
                 ))}
               </ul>
