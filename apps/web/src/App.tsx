@@ -28,6 +28,7 @@ import { AutomationPage } from './pages/automation/AutomationPage';
 import { TeamPage } from './pages/team/TeamPage';
 import { SettingsPage } from './pages/settings/SettingsPage';
 import { PublicShortlist } from './pages/public/PublicShortlist';
+import { PublicInquiry } from './pages/public/PublicInquiry';
 import { Landing } from './pages/marketing/Landing';
 import { NotFound } from './pages/NotFound';
 import { PlatformAuthProvider, usePlatformAuth } from './platform/PlatformAuthContext';
@@ -67,6 +68,7 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/share/:token" element={<PublicShortlist />} />
+      <Route path="/inquire/:slug" element={<PublicInquiry />} />
       <Route
         path="/platform/*"
         element={

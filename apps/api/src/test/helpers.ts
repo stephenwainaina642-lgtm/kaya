@@ -19,7 +19,7 @@ export async function truncateAll(): Promise<void> {
   await systemDb.execute(sql.raw(`TRUNCATE TABLE ${TENANT_TABLES.join(', ')} RESTART IDENTITY CASCADE`));
 }
 
-export async function createOrg(name = 'Test Realty', plan: Plan = 'STARTER'): Promise<{ id: string; plan: Plan }> {
+export async function createOrg(name = 'Test Realty', plan: Plan = 'STARTER'): Promise<{ id: string; plan: Plan; slug: string }> {
   const [org] = await systemDb
     .insert(organizations)
     .values({

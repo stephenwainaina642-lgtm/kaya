@@ -65,8 +65,14 @@ async function request<T>(path: string, opts: RequestOpts = {}): Promise<T> {
     throw new ApiError(res.status, payload?.error?.message ?? res.statusText, payload?.error?.code, payload?.error?.details?.fields);
   }
 
+  // Some endpoints reply 201 with no body (fire-and-forget creates, like a
+  // public form submission) rather than echoing back the created resource.
+  // res.json() throws on an empty body, so treat "no content" the same way
+  // regardless of status code instead of special-casing 204 alone.
   if (res.status === 204) return undefined as T;
-  return res.json() as Promise<T>;
+  const text = await res.text();
+  if (!text) return undefined as T;
+  return JSON.parse(text) as T;
 }
 
 async function postForm<T>(path: string, form: FormData): Promise<T> {
@@ -95,8 +101,14 @@ async function postForm<T>(path: string, form: FormData): Promise<T> {
     throw new ApiError(res.status, payload?.error?.message ?? res.statusText, payload?.error?.code, payload?.error?.details?.fields);
   }
 
+  // Some endpoints reply 201 with no body (fire-and-forget creates, like a
+  // public form submission) rather than echoing back the created resource.
+  // res.json() throws on an empty body, so treat "no content" the same way
+  // regardless of status code instead of special-casing 204 alone.
   if (res.status === 204) return undefined as T;
-  return res.json() as Promise<T>;
+  const text = await res.text();
+  if (!text) return undefined as T;
+  return JSON.parse(text) as T;
 }
 
 export const api = {

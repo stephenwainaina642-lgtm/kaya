@@ -4,9 +4,14 @@ import {
   listLeads, getLead, createLead, updateLead, setLeadStatus, logLeadContact, saveLeadRequirements,
   getLeadTimeline, qualifyLead, deleteLead,
 } from './leads.service';
+import { getMyInquiryLink } from './public-inquiry.service';
 
 export const leadsRouter = Router();
 leadsRouter.use(authenticate);
+
+leadsRouter.get('/inquiry-link', requirePermission('leads:view'), async (req, res, next) => {
+  try { res.json(await getMyInquiryLink(ctx(req))); } catch (err) { next(err); }
+});
 
 leadsRouter.get('/', requirePermission('leads:view'), async (req, res, next) => {
   try { res.json(await listLeads(ctx(req), req.query)); } catch (err) { next(err); }

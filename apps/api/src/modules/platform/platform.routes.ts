@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { getPublicShortlist } from '../shortlists/shortlists.service';
 import { createPublicViewingRequest, getPortalDocumentFile, signPortalDocument } from '../portal/portal.service';
+import { getPublicOrgInfo, submitPublicInquiry } from '../leads/public-inquiry.service';
 import { readFile } from '../../lib/storage';
 
 /**
@@ -43,6 +44,25 @@ platformRouter.post('/shortlists/:token/documents/:documentId/sign', async (req,
   try {
     const ip = req.ip ?? null;
     await signPortalDocument(req.params.token!, req.params.documentId!, req.body, ip);
+    res.status(201).end();
+  } catch (err) {
+    next(err);
+  }
+});
+
+// An agency's own public "contact us" page — see modules/leads/public-inquiry.service.ts.
+platformRouter.get('/organizations/:slug', async (req, res, next) => {
+  try {
+    res.json(await getPublicOrgInfo(req.params.slug!));
+  } catch (err) {
+    next(err);
+  }
+});
+
+platformRouter.post('/organizations/:slug/inquiries', async (req, res, next) => {
+  try {
+    const ip = req.ip ?? null;
+    await submitPublicInquiry(req.params.slug!, req.body, ip);
     res.status(201).end();
   } catch (err) {
     next(err);
