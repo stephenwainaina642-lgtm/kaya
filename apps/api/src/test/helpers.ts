@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { systemDb } from '../db/system';
-import { organizations, users } from '../db/schema';
-import { signAccessToken } from '../lib/tokens';
+import { organizations, users, platformAdmins } from '../db/schema';
+import { signAccessToken, signPlatformToken } from '../lib/tokens';
 import { hashPassword } from '../lib/password';
 import type { Plan, Role } from '@kaya/shared';
 
@@ -53,4 +53,14 @@ export async function setupTenant(role: Role = 'ORG_ADMIN', plan: Plan = 'STARTE
   const org = await createOrg('Test Realty', plan);
   const user = await createUser(org.id, { role });
   return { org, user, authHeader: { Authorization: `Bearer ${user.token}` } };
+}
+
+export async function createPlatformAdmin(opts: { name?: string; email?: string } = {}) {
+  const email = opts.email ?? `admin-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@kaya.co.ke`;
+  const name = opts.name ?? 'Test Operator';
+  const passwordHash = await hashPassword('Test!Pass1234');
+  const [row] = await systemDb.insert(platformAdmins).values({ name, email, passwordHash }).returning();
+  if (!row) throw new Error('failed to create test platform admin');
+  const token = signPlatformToken({ sub: row.id, email: row.email, name: row.name });
+  return { id: row.id, name: row.name, email: row.email, authHeader: { Authorization: `Bearer ${token}` } };
 }

@@ -155,6 +155,10 @@ export async function getStats(): Promise<PlatformStats> {
   ]);
 
   const byPlan = PLANS.map((plan) => ({ plan, count: orgs.filter((o) => o.plan === plan).length }));
+  const recentOrganizations = [...orgs]
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .slice(0, 5)
+    .map((o) => ({ id: o.id, name: o.name, slug: o.slug, plan: o.plan, createdAt: o.createdAt.toISOString() }));
 
   return {
     totalOrganizations: orgs.length,
@@ -162,5 +166,6 @@ export async function getStats(): Promise<PlatformStats> {
     totalPipelineValue: dealAgg?.value ?? 0,
     suspendedOrganizations: orgs.filter((o) => o.suspendedAt !== null).length,
     byPlan,
+    recentOrganizations,
   };
 }

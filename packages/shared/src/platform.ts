@@ -65,4 +65,5 @@ export interface PlatformStats {
   totalPipelineValue: number;
   suspendedOrganizations: number;
   byPlan: { plan: Plan; count: number }[];
+  recentOrganizations: { id: string; name: string; slug: string; plan: Plan; createdAt: string }[];
 }

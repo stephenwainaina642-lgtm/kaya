@@ -60,33 +60,35 @@ export function OrganizationDetail() {
             </ul>
           </Card>
 
-          <Card className="p-5">
-            <h2 className="mb-3 font-display text-lg font-semibold text-ink">Activity</h2>
-            <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {[
-                ['Leads', org.counts.leads],
-                ['Clients', org.counts.clients],
-                ['Properties', org.counts.properties],
-                ['Deals', org.counts.deals],
-              ].map(([label, value]) => (
-                <div key={label as string}>
-                  <dt className="text-xs text-muted">{label}</dt>
-                  <dd className="font-display text-xl font-semibold text-ink">{value}</dd>
-                </div>
-              ))}
-            </dl>
+          <Card className="flex divide-x divide-line p-0">
+            {[
+              ['Leads', org.counts.leads],
+              ['Clients', org.counts.clients],
+              ['Properties', org.counts.properties],
+              ['Deals', org.counts.deals],
+            ].map(([label, value]) => (
+              <div key={label as string} className="flex-1 px-5 py-4 first:pl-5 last:pr-5">
+                <p className="font-display text-2xl font-semibold text-ink">{value}</p>
+                <p className="mt-0.5 text-sm text-muted">{label}</p>
+              </div>
+            ))}
           </Card>
         </div>
 
         <div className="space-y-6">
-          <Card className="p-5">
-            {org.suspended ? <Badge tone="danger">Suspended</Badge> : <Badge tone="ok">Active</Badge>}
-            <p className="mt-3 font-display text-2xl font-semibold text-cypress-700">
+          <div className="rounded-panel bg-[#14201a] p-6 text-white">
+            <div className="flex items-center justify-between">
+              <span className="block h-[3px] w-6 bg-brass" />
+              {org.suspended ? <Badge tone="danger">Suspended</Badge> : <Badge tone="ok">Active</Badge>}
+            </div>
+            <p className="mt-4 text-sm text-cypress-100/70">Total pipeline value</p>
+            <p className="mt-1 font-display text-3xl font-semibold text-white">
               {formatKes(org.pipelineValue, { compact: true })}
             </p>
-            <p className="text-xs text-muted">Total pipeline value</p>
+          </div>
 
-            <dl className="mt-4 space-y-2 border-t border-line pt-4 text-sm">
+          <Card className="p-5">
+            <dl className="space-y-2 text-sm">
               <div className="flex justify-between"><dt className="text-muted">Currency</dt><dd className="text-ink">{org.currency}</dd></div>
               <div className="flex justify-between"><dt className="text-muted">Timezone</dt><dd className="text-ink">{org.timezone}</dd></div>
               <div className="flex justify-between"><dt className="text-muted">Phone</dt><dd className="text-ink">{org.phone ?? '—'}</dd></div>

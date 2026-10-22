@@ -1,22 +1,21 @@
 import { useQuery } from '@tanstack/react-query';
-import { Building2, Users, TrendingUp, Ban } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import type { PlatformStats } from '@kaya/shared';
 import { formatKes } from '@kaya/shared';
 import { platformApi } from './api';
 import { PageHeader } from '../components/PageHeader';
 import { Card } from '../components/ui/Card';
+import { Badge } from '../components/ui/Badge';
 import { Spinner } from '../components/ui/Spinner';
+import { EmptyState } from '../components/ui/EmptyState';
 import { HorizontalBars } from '../components/charts/HorizontalBars';
 
-function Kpi({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+function SecondaryStat({ label, value }: { label: string; value: string }) {
   return (
-    <Card className="p-5">
-      <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-control bg-cypress-50 text-cypress-700">
-        <Icon size={18} />
-      </div>
+    <div className="flex-1 px-5 py-4 first:pl-0 last:pr-0">
       <p className="font-display text-2xl font-semibold text-ink">{value}</p>
-      <p className="text-sm text-muted">{label}</p>
-    </Card>
+      <p className="mt-0.5 text-sm text-muted">{label}</p>
+    </div>
   );
 }
 
@@ -34,16 +33,51 @@ export function PlatformDashboard() {
           <Spinner />
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-              <Kpi icon={Building2} label="Organizations" value={String(data.totalOrganizations)} />
-              <Kpi icon={Users} label="Total users" value={String(data.totalUsers)} />
-              <Kpi icon={TrendingUp} label="Platform pipeline value" value={formatKes(data.totalPipelineValue, { compact: true })} />
-              <Kpi icon={Ban} label="Suspended" value={String(data.suspendedOrganizations)} />
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              <div className="rounded-panel bg-[#14201a] p-6 text-white lg:col-span-1">
+                <span className="block h-[3px] w-6 bg-brass" />
+                <p className="mt-4 text-sm text-cypress-100/70">Pipeline value under management</p>
+                <p className="mt-1 font-display text-4xl font-semibold text-white">
+                  {formatKes(data.totalPipelineValue, { compact: true })}
+                </p>
+              </div>
+              <Card className="flex divide-x divide-line p-0 lg:col-span-2">
+                <SecondaryStat label="Organizations" value={String(data.totalOrganizations)} />
+                <SecondaryStat label="Total users" value={String(data.totalUsers)} />
+                <SecondaryStat label="Suspended" value={String(data.suspendedOrganizations)} />
+              </Card>
             </div>
-            <Card className="p-5">
-              <h2 className="mb-4 font-display text-lg font-semibold text-ink">Organizations by plan</h2>
-              <HorizontalBars data={data.byPlan.map((p) => ({ label: p.plan, value: p.count }))} tone="brass" />
-            </Card>
+
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+              <Card className="p-5 lg:col-span-2">
+                <h2 className="mb-4 font-display text-lg font-semibold text-ink">Organizations by plan</h2>
+                <HorizontalBars data={data.byPlan.map((p) => ({ label: p.plan, value: p.count }))} tone="brass" />
+              </Card>
+
+              <Card className="p-5 lg:col-span-3">
+                <h2 className="mb-4 font-display text-lg font-semibold text-ink">Recently onboarded</h2>
+                {data.recentOrganizations.length === 0 ? (
+                  <EmptyState title="No agencies yet" body="New organizations will appear here as they sign up." />
+                ) : (
+                  <ul className="divide-y divide-line">
+                    {data.recentOrganizations.map((o) => (
+                      <li key={o.id} className="flex items-center gap-3 py-3">
+                        <div className="min-w-0 flex-1">
+                          <Link to={`/platform/organizations/${o.id}`} className="block truncate text-sm font-medium text-ink hover:text-cypress-700">
+                            {o.name}
+                          </Link>
+                          <p className="truncate text-xs text-faint">{o.slug}</p>
+                        </div>
+                        <Badge tone="accent">{o.plan}</Badge>
+                        <span className="hidden w-24 shrink-0 text-right text-xs text-faint sm:block">
+                          {new Date(o.createdAt).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' })}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Card>
+            </div>
           </>
         )}
       </div>
