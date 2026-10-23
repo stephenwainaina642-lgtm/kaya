@@ -12,6 +12,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // serve both the app and its API with no CORS or proxy config needed.
 const WEB_DIST = path.resolve(__dirname, '../../web/dist');
 import { notFoundHandler, errorHandler } from './middleware/error';
+import { apiLimiter } from './middleware/rateLimit';
 import { authRouter } from './modules/auth/auth.routes';
 import { leadsRouter } from './modules/leads/leads.routes';
 import { clientsRouter } from './modules/clients/clients.routes';
@@ -39,6 +40,13 @@ import { viewingRequestsRouter } from './modules/portal/portal.routes';
 export function createApp(): Express {
   const app = express();
 
+  // Render terminates TLS and sits in front of this process, so the real
+  // client IP only shows up in X-Forwarded-For — needed for rate limiting
+  // (and req.ip generally) to key by the actual caller rather than Render's
+  // proxy. express-rate-limit refuses to start if it sees that header with
+  // trust proxy unset, as a safety check against IP spoofing.
+  if (env.NODE_ENV === 'production') app.set('trust proxy', 1);
+
   app.use(
     pinoHttp({
       level: process.env.LOG_LEVEL ?? 'info',
@@ -48,6 +56,7 @@ export function createApp(): Express {
   app.use(cors({ origin: corsOrigins, credentials: true }));
   app.use(cookieParser());
   app.use(express.json({ limit: '2mb' }));
+  app.use('/api', apiLimiter);
 
   app.get('/health', (_req, res) => res.json({ ok: true }));
 

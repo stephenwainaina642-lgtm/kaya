@@ -27,6 +27,10 @@ export function unauthorized(message = 'Unauthorized'): AppError {
   return new AppError(401, 'UNAUTHORIZED', message);
 }
 
+export function locked(message: string): AppError {
+  return new AppError(423, 'ACCOUNT_LOCKED', message);
+}
+
 export function conflict(message: string, code = 'CONFLICT'): AppError {
   return new AppError(409, code, message);
 }

@@ -6,8 +6,9 @@ import { withTenant } from '../../db/client';
 import { users, refreshTokens, organizations } from '../../db/schema';
 import { verifyPassword, hashPassword } from '../../lib/password';
 import { signAccessToken, newRefreshToken, hashRefreshToken } from '../../lib/tokens';
-import { unauthorized, invalid, forbidden } from '../../lib/errors';
+import { unauthorized, invalid, forbidden, locked } from '../../lib/errors';
 import { parse } from '../../lib/validate';
+import { isLocked, recordFailedAttempt, clearLockout } from '../../lib/lockout';
 
 export const loginInput = z.object({
   email: z.string().email(),
@@ -26,8 +27,16 @@ export async function login(body: unknown): Promise<LoginResult> {
   const input = parse(loginInput, body);
   const [user] = await systemDb.select().from(users).where(eq(users.email, input.email.toLowerCase()));
   if (!user) throw unauthorized('Invalid email or password');
+
+  if (isLocked(user.lockedUntil)) {
+    throw locked('Too many failed attempts. Try again in a few minutes.');
+  }
+
   const ok = await verifyPassword(user.passwordHash, input.password);
-  if (!ok) throw unauthorized('Invalid email or password');
+  if (!ok) {
+    await systemDb.update(users).set(recordFailedAttempt(user.failedLoginAttempts)).where(eq(users.id, user.id));
+    throw unauthorized('Invalid email or password');
+  }
 
   const [org] = await systemDb.select().from(organizations).where(eq(organizations.id, user.organizationId));
   if (org?.suspendedAt) throw forbidden('This workspace has been suspended. Contact your account manager.');
@@ -45,7 +54,7 @@ export async function login(body: unknown): Promise<LoginResult> {
       tokenHash: hashRefreshToken(refreshToken),
       expiresAt: new Date(Date.now() + REFRESH_TTL_MS),
     });
-    await tx.update(users).set({ lastLoginAt: new Date() }).where(eq(users.id, user.id));
+    await tx.update(users).set({ lastLoginAt: new Date(), ...clearLockout }).where(eq(users.id, user.id));
   });
 
   return {

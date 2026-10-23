@@ -8,8 +8,9 @@ import { systemDb } from '../../db/system';
 import { organizations, users, leads, clients, properties, deals, platformAdmins } from '../../db/schema';
 import { verifyPassword } from '../../lib/password';
 import { signPlatformToken } from '../../lib/tokens';
-import { unauthorized, notFound } from '../../lib/errors';
+import { unauthorized, notFound, locked } from '../../lib/errors';
 import { parse } from '../../lib/validate';
+import { isLocked, recordFailedAttempt, clearLockout } from '../../lib/lockout';
 
 export const platformLoginInput = z.object({
   email: z.string().email(),
@@ -20,10 +21,18 @@ export async function platformLogin(body: unknown): Promise<PlatformLoginResult>
   const input = parse(platformLoginInput, body);
   const [admin] = await systemDb.select().from(platformAdmins).where(eq(platformAdmins.email, input.email.toLowerCase()));
   if (!admin) throw unauthorized('Invalid email or password');
-  const ok = await verifyPassword(admin.passwordHash, input.password);
-  if (!ok) throw unauthorized('Invalid email or password');
 
-  await systemDb.update(platformAdmins).set({ lastLoginAt: new Date() }).where(eq(platformAdmins.id, admin.id));
+  if (isLocked(admin.lockedUntil)) {
+    throw locked('Too many failed attempts. Try again in a few minutes.');
+  }
+
+  const ok = await verifyPassword(admin.passwordHash, input.password);
+  if (!ok) {
+    await systemDb.update(platformAdmins).set(recordFailedAttempt(admin.failedLoginAttempts)).where(eq(platformAdmins.id, admin.id));
+    throw unauthorized('Invalid email or password');
+  }
+
+  await systemDb.update(platformAdmins).set({ lastLoginAt: new Date(), ...clearLockout }).where(eq(platformAdmins.id, admin.id));
 
   const accessToken = signPlatformToken({ sub: admin.id, email: admin.email, name: admin.name });
   return { accessToken, admin: { id: admin.id, name: admin.name, email: admin.email } };

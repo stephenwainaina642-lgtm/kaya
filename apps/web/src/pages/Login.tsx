@@ -25,7 +25,12 @@ export function Login() {
     try {
       await login(email, password);
     } catch (err) {
-      setError(err instanceof ApiError && err.status === 403 ? err.message : 'Invalid email or password.');
+      // 403 = workspace suspended, 423 = account locked out, 429 = too many
+      // attempts from this network — all three have a real, specific
+      // message worth showing. Anything else (401, wrong password) stays
+      // generic so a bad guess doesn't learn whether the email exists.
+      const showServerMessage = err instanceof ApiError && [403, 423, 429].includes(err.status);
+      setError(showServerMessage ? (err as ApiError).message : 'Invalid email or password.');
     } finally {
       setBusy(false);
     }

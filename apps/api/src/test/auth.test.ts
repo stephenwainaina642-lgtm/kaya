@@ -39,6 +39,33 @@ describe('auth', () => {
     expect(res.status).toBe(401);
   });
 
+  it('locks the account after 5 consecutive wrong passwords, and a correct password clears it', async () => {
+    const org = await createOrg();
+    const passwordHash = await hashPassword('Correct!Pass1');
+    await systemDb.insert(users).values({ organizationId: org.id, name: 'Wanjiru', email: 'wanjiru@test.kaya', passwordHash, role: 'ORG_ADMIN' });
+
+    for (let i = 0; i < 4; i++) {
+      const res = await request(app).post('/api/auth/login').send({ email: 'wanjiru@test.kaya', password: 'wrong' });
+      expect(res.status).toBe(401);
+    }
+    // 5th wrong attempt trips the lock, even though the password is irrelevant at this point.
+    const fifth = await request(app).post('/api/auth/login').send({ email: 'wanjiru@test.kaya', password: 'wrong' });
+    expect(fifth.status).toBe(401);
+
+    // Locked out now — even the CORRECT password is rejected until the cooldown passes.
+    const lockedOut = await request(app).post('/api/auth/login').send({ email: 'wanjiru@test.kaya', password: 'Correct!Pass1' });
+    expect(lockedOut.status).toBe(423);
+
+    // Manually expire the lock (as if the cooldown had passed) to confirm a correct login then clears it.
+    await systemDb.update(users).set({ lockedUntil: new Date(Date.now() - 1000) }).where(eq(users.email, 'wanjiru@test.kaya'));
+    const recovered = await request(app).post('/api/auth/login').send({ email: 'wanjiru@test.kaya', password: 'Correct!Pass1' });
+    expect(recovered.status).toBe(200);
+
+    const [row] = await systemDb.select().from(users).where(eq(users.email, 'wanjiru@test.kaya'));
+    expect(row?.failedLoginAttempts).toBe(0);
+    expect(row?.lockedUntil).toBeNull();
+  });
+
   it('refreshes an access token using the refresh cookie', async () => {
     const org = await createOrg();
     const passwordHash = await hashPassword('Correct!Pass1');

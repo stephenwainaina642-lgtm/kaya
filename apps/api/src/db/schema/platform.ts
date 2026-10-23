@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, integer } from 'drizzle-orm/pg-core';
 import { pk, timestamps } from './base';
 
 /**
@@ -14,5 +14,10 @@ export const platformAdmins = pgTable('platform_admins', {
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
   lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
+  // See users.failedLoginAttempts / lockedUntil in identity.ts — same
+  // lockout mechanism, arguably more important here since this account
+  // can touch every tenant.
+  failedLoginAttempts: integer('failed_login_attempts').notNull().default(0),
+  lockedUntil: timestamp('locked_until', { withTimezone: true }),
   ...timestamps(),
 });

@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import { login, refresh, logout, me, updateProfile, changePassword } from './auth.service';
 import { authenticate, ctx } from '../../middleware/auth';
+import { createLoginLimiter } from '../../middleware/rateLimit';
+
+const loginLimiter = createLoginLimiter();
 
 export const authRouter = Router();
 
@@ -18,7 +21,7 @@ function setRefreshCookie(res: import('express').Response, token: string) {
   });
 }
 
-authRouter.post('/login', async (req, res, next) => {
+authRouter.post('/login', loginLimiter, async (req, res, next) => {
   try {
     const result = await login(req.body);
     setRefreshCookie(res, result.refreshToken);

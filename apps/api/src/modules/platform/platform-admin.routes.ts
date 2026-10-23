@@ -1,12 +1,14 @@
 import { Router } from 'express';
 import { authenticatePlatform, platformCtx } from '../../middleware/platformAuth';
+import { createLoginLimiter } from '../../middleware/rateLimit';
 import {
   platformLogin, listOrganizations, getOrganization, updateOrganization, getStats,
 } from './platform-admin.service';
 
 export const platformAdminRouter = Router();
+const loginLimiter = createLoginLimiter();
 
-platformAdminRouter.post('/auth/login', async (req, res, next) => {
+platformAdminRouter.post('/auth/login', loginLimiter, async (req, res, next) => {
   try {
     res.json(await platformLogin(req.body));
   } catch (err) {
