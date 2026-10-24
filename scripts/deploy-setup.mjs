@@ -61,55 +61,92 @@ async function main() {
   await client.query('GRANT ALL ON SCHEMA public TO kaya_app');
 
   // drizzle-kit push pauses for an interactive y/n confirmation before any
-  // statement it considers possibly destructive — e.g. adding a UNIQUE
-  // constraint to a table that already has rows, which is exactly what
-  // shortlist_items_pair_unique needs here once the table has real data.
-  // There's no TTY on Render, so that confirmation can never be answered.
-  // Observed behaviour was worse than a clean hang: push silently abandoned
-  // the REST of its pending statements too (leaving tables like
-  // automation_rules never created, even though creating a new empty table
-  // needs no confirmation at all) while still exiting 0 — `--force` does
-  // NOT fix this; confirmed by reproducing it locally. The failure only
-  // surfaced seconds later as a hard crash in the RLS step below, taking
-  // the whole service down and crash-looping on every restart.
+  // statement it considers possibly destructive — adding a UNIQUE
+  // constraint to a table that already has rows (shortlist_items_pair_unique)
+  // is one example. There's no TTY on Render, so that confirmation can
+  // never be answered. Observed behaviour is worse than a clean hang: push
+  // picks its default answer for that ONE statement and then silently
+  // abandons every statement still queued after it in that run — including
+  // completely unrelated ones (a new table, a plain ADD COLUMN on a
+  // different table entirely) — while still exiting 0. `--force` does NOT
+  // fix this; confirmed by reproducing it locally both before and after
+  // this fix. Two real incidents from this exact failure so far:
+  //   1. automation_rules was never created, which then crashed the RLS
+  //      step below and crash-looped the whole service.
+  //   2. users.failed_login_attempts / users.locked_until (added for the
+  //      login-lockout feature) were silently never added, which broke
+  //      EVERY login and token refresh with a 500 — even though the
+  //      deploy itself reported success.
+  // In case (2), the fix below for case (1) was already live, which means
+  // push still hit a confirmation prompt it had nothing to do with case 1
+  // — there is evidently more than one statement in our history that can
+  // trigger this, and probably more in the future.
   //
-  // Fix: apply this one constraint ourselves, directly and idempotently,
-  // before push ever runs — so by the time push looks at the schema diff,
-  // there's nothing left that needs confirming. Verified safe to add
-  // unconditionally: the app's shortlist-item upsert
-  // (modules/shortlists/shortlists.service.ts) already does
-  // .onConflictDoUpdate on exactly this (shortlist_id, property_id) pair,
-  // which only works with this constraint in place, so no duplicate pair
-  // can exist through the app — only a table that doesn't have the
-  // constraint yet could have one slip in some other way, and it hasn't.
-  console.log('[deploy-setup] Pre-applying shortlist_items_pair_unique (avoids a push confirmation prompt)');
-  await client.query(`
-    DO $$
-    BEGIN
-      IF to_regclass('shortlist_items') IS NOT NULL
-         AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'shortlist_items_pair_unique')
-      THEN
-        ALTER TABLE shortlist_items ADD CONSTRAINT shortlist_items_pair_unique UNIQUE (shortlist_id, property_id);
-      END IF;
-    END $$;
-  `);
+  // General fix: apply every schema change we know has ever needed
+  // confirmation ourselves, directly and idempotently, in applyKnownFixups()
+  // below — both BEFORE push (so push has nothing left to ask about) and
+  // AGAIN AFTER push (as a safety net: if push still hit some *other*,
+  // not-yet-known confirmation and silently dropped these along with
+  // everything after it, this repairs it instead of leaving production
+  // broken with no visible failure). We also run push itself up to 3 times
+  // in a row — since statements before a confirmation point do commit, a
+  // second run re-diffs and makes progress on whatever's left, converging
+  // as long as there are fewer than 3 distinct confirmation points pending.
+  //
+  // shortlist_items_pair_unique is verified safe to add unconditionally:
+  // the app's shortlist-item upsert (modules/shortlists/shortlists.service.ts)
+  // already does .onConflictDoUpdate on exactly this (shortlist_id,
+  // property_id) pair, which only works with this constraint in place, so
+  // no duplicate pair can exist through the app. The two lockout columns
+  // are a plain NOT-NULL-with-default and a plain nullable column — adding
+  // either can't lose data.
+  async function applyKnownFixups(c) {
+    await c.query(`
+      DO $$
+      BEGIN
+        IF to_regclass('shortlist_items') IS NOT NULL
+           AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'shortlist_items_pair_unique')
+        THEN
+          ALTER TABLE shortlist_items ADD CONSTRAINT shortlist_items_pair_unique UNIQUE (shortlist_id, property_id);
+        END IF;
+      END $$;
+    `);
+    for (const table of ['users', 'platform_admins']) {
+      await c.query(`
+        DO $$
+        BEGIN
+          IF to_regclass('${table}') IS NOT NULL THEN
+            ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS failed_login_attempts integer NOT NULL DEFAULT 0;
+            ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS locked_until timestamptz;
+          END IF;
+        END $$;
+      `);
+    }
+  }
+
+  console.log('[deploy-setup] Pre-applying known schema fixups (avoids push confirmation prompts)');
+  await applyKnownFixups(client);
 
   await client.end();
 
   console.log('[deploy-setup] Pushing schema');
-  // --force on top of the above: belt-and-braces for any other
-  // confirmation-gated statement we haven't hit yet (e.g. a future column
-  // drop). It alone would not have fixed today's failure — see above — but
-  // it's still strictly better than leaving a future prompt to stall.
-  run('npx', ['drizzle-kit', 'push', '--force'], {
-    cwd: path.join(ROOT, 'apps/api'),
-    env: { ...process.env, DATABASE_ADMIN_URL: adminUrl },
-  });
+  // Run up to 3 times — see the long comment above for why one run can
+  // leave things incomplete even with --force.
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    console.log(`[deploy-setup] drizzle-kit push attempt ${attempt}/3`);
+    run('npx', ['drizzle-kit', 'push', '--force'], {
+      cwd: path.join(ROOT, 'apps/api'),
+      env: { ...process.env, DATABASE_ADMIN_URL: adminUrl },
+    });
+  }
 
   // Reconnect — drizzle-kit push can take a while and our earlier client
   // may be stale by now.
   const client2 = new Client({ connectionString: adminUrl });
   await client2.connect();
+
+  console.log('[deploy-setup] Re-applying known schema fixups (safety net in case push dropped them again)');
+  await applyKnownFixups(client2);
 
   console.log('[deploy-setup] Granting kaya_app access to tables created by the schema push');
   await client2.query('GRANT ALL ON ALL TABLES IN SCHEMA public TO kaya_app');
@@ -118,6 +155,30 @@ async function main() {
   console.log('[deploy-setup] Applying row-level-security policies');
   const rlsSql = readFileSync(path.join(ROOT, 'apps/api/src/db/rls.sql'), 'utf8');
   await client2.query(rlsSql);
+
+  // Final loud check: if any of the columns/constraints we just went to
+  // this much trouble to guarantee are STILL missing, don't let the
+  // service come up silently broken the way it did today — log it as
+  // unmissable so it's the first thing visible in the deploy log, without
+  // crash-looping the whole service over it.
+  const { rows: missing } = await client2.query(`
+    SELECT 'users.failed_login_attempts' AS item WHERE NOT EXISTS (
+      SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'failed_login_attempts'
+    )
+    UNION ALL
+    SELECT 'platform_admins.failed_login_attempts' WHERE NOT EXISTS (
+      SELECT 1 FROM information_schema.columns WHERE table_name = 'platform_admins' AND column_name = 'failed_login_attempts'
+    )
+    UNION ALL
+    SELECT 'shortlist_items_pair_unique' WHERE NOT EXISTS (
+      SELECT 1 FROM pg_constraint WHERE conname = 'shortlist_items_pair_unique'
+    )
+  `);
+  if (missing.length > 0) {
+    console.error(`[deploy-setup] *** STILL MISSING after push + fixups: ${missing.map((r) => r.item).join(', ')} ***`);
+  } else {
+    console.log('[deploy-setup] Verified: all known fixups are in place.');
+  }
 
   console.log('[deploy-setup] Checking whether demo data needs seeding');
   // Check for the actual seeded demo user, not just "any row in
