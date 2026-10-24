@@ -1,17 +1,22 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { Plus } from 'lucide-react';
 import type { PlatformOrgPage } from '@kaya/shared';
 import { formatKes } from '@kaya/shared';
 import { platformApi } from './api';
+import { CreateOrganizationForm } from './CreateOrganizationForm';
 import { PageHeader } from '../components/PageHeader';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Spinner } from '../components/ui/Spinner';
 import { Input } from '../components/ui/Input';
+import { Button } from '../components/ui/Button';
+import { Modal } from '../components/ui/Modal';
 
 export function OrganizationsList() {
   const [q, setQ] = useState('');
+  const [showCreate, setShowCreate] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ['platform-organizations'],
     queryFn: () => platformApi.get<PlatformOrgPage>('/organizations'),
@@ -23,7 +28,14 @@ export function OrganizationsList() {
 
   return (
     <>
-      <PageHeader title="Organizations" subtitle={data ? `${data.total} agencies on Kaya` : undefined} />
+      <PageHeader
+        title="Organizations"
+        subtitle={data ? `${data.total} agencies on Kaya` : undefined}
+        actions={<Button onClick={() => setShowCreate(true)}><Plus size={16} /> New organization</Button>}
+      />
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Onboard a new agency">
+        <CreateOrganizationForm onDone={() => setShowCreate(false)} />
+      </Modal>
       <div className="p-8">
         <div className="mb-4 max-w-xs">
           <Input placeholder="Search by name…" value={q} onChange={(e) => setQ(e.target.value)} />

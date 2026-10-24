@@ -59,6 +59,11 @@ export interface PlatformOrgDetail {
   pipelineValue: number;
 }
 
+export interface PlatformCreateOrgResult {
+  organization: PlatformOrgListItem;
+  admin: { id: string; name: string; email: string; tempPassword: string };
+}
+
 export interface PlatformStats {
   totalOrganizations: number;
   totalUsers: number;

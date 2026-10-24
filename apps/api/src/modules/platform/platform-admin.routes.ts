@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { authenticatePlatform, platformCtx } from '../../middleware/platformAuth';
 import { createLoginLimiter } from '../../middleware/rateLimit';
 import {
-  platformLogin, listOrganizations, getOrganization, updateOrganization, getStats,
+  platformLogin, listOrganizations, getOrganization, updateOrganization, getStats, createOrganization,
 } from './platform-admin.service';
 
 export const platformAdminRouter = Router();
@@ -34,6 +34,14 @@ platformAdminRouter.get('/stats', async (_req, res, next) => {
 platformAdminRouter.get('/organizations', async (_req, res, next) => {
   try {
     res.json(await listOrganizations());
+  } catch (err) {
+    next(err);
+  }
+});
+
+platformAdminRouter.post('/organizations', async (req, res, next) => {
+  try {
+    res.status(201).json(await createOrganization(req.body));
   } catch (err) {
     next(err);
   }

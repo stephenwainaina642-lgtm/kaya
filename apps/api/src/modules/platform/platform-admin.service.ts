@@ -1,14 +1,16 @@
+import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
-import { eq, sql, inArray } from 'drizzle-orm';
+import { eq, sql, inArray, like } from 'drizzle-orm';
 import type {
-  PlatformLoginResult, PlatformOrgPage, PlatformOrgDetail, PlatformStats,
+  PlatformLoginResult, PlatformOrgPage, PlatformOrgDetail, PlatformStats, PlatformCreateOrgResult,
 } from '@kaya/shared';
 import { PLANS } from '@kaya/shared';
 import { systemDb } from '../../db/system';
+import { withTenant } from '../../db/client';
 import { organizations, users, leads, clients, properties, deals, platformAdmins } from '../../db/schema';
-import { verifyPassword } from '../../lib/password';
+import { verifyPassword, hashPassword } from '../../lib/password';
 import { signPlatformToken } from '../../lib/tokens';
-import { unauthorized, notFound, locked } from '../../lib/errors';
+import { unauthorized, notFound, locked, conflict } from '../../lib/errors';
 import { parse } from '../../lib/validate';
 import { isLocked, recordFailedAttempt, clearLockout } from '../../lib/lockout';
 
@@ -154,6 +156,95 @@ export async function updateOrganization(id: string, body: unknown): Promise<Pla
     await systemDb.update(organizations).set(patch).where(eq(organizations.id, id));
   }
   return getOrganization(id);
+}
+
+function generateTempPassword(): string {
+  // Same scheme as the agency-side "invite a team member" flow
+  // (team.routes.ts) — 12 url-safe characters, easy to read off a screen
+  // and share with the new agency over a call or WhatsApp.
+  return randomBytes(9).toString('base64url');
+}
+
+async function uniqueSlug(name: string): Promise<string> {
+  const base = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'agency';
+
+  const existing = await systemDb
+    .select({ slug: organizations.slug })
+    .from(organizations)
+    .where(like(organizations.slug, `${base}%`));
+  const taken = new Set(existing.map((o) => o.slug));
+  if (!taken.has(base)) return base;
+  for (let n = 2; ; n++) {
+    const candidate = `${base}-${n}`;
+    if (!taken.has(candidate)) return candidate;
+  }
+}
+
+export const createOrganizationInput = z.object({
+  organizationName: z.string().trim().min(1).max(200),
+  plan: z.enum(PLANS).default('STARTER'),
+  adminName: z.string().trim().min(1).max(200),
+  adminEmail: z.string().trim().toLowerCase().email(),
+  phone: z.string().trim().max(40).nullable().optional(),
+});
+
+/**
+ * The only way a real agency gets onto Kaya right now: a platform operator
+ * fills this in by hand (no self-serve signup — see /inquire/:slug for the
+ * *lead* capture equivalent, which is a different thing). Creates the
+ * organization and its first ORG_ADMIN user in one step, with a
+ * server-generated temporary password the operator copies and shares
+ * with the agency directly — there's no outbound email sending in this
+ * app, so a password reset link isn't an option yet.
+ */
+export async function createOrganization(body: unknown): Promise<PlatformCreateOrgResult> {
+  const input = parse(createOrganizationInput, body);
+
+  const [existingEmail] = await systemDb.select({ id: users.id }).from(users).where(eq(users.email, input.adminEmail));
+  if (existingEmail) throw conflict('A user with this email already exists on Kaya');
+
+  const slug = await uniqueSlug(input.organizationName);
+  const tempPassword = generateTempPassword();
+  const passwordHash = await hashPassword(tempPassword);
+
+  const [orgRow] = await systemDb
+    .insert(organizations)
+    .values({ name: input.organizationName, slug, plan: input.plan, phone: input.phone ?? null })
+    .returning();
+  const org = orgRow!;
+
+  const admin = await withTenant(org.id, async (tx) => {
+    const [row] = await tx
+      .insert(users)
+      .values({
+        organizationId: org.id,
+        name: input.adminName,
+        email: input.adminEmail,
+        passwordHash,
+        role: 'ORG_ADMIN',
+      })
+      .returning();
+    return row!;
+  });
+
+  return {
+    organization: {
+      id: org.id,
+      name: org.name,
+      slug: org.slug,
+      plan: org.plan,
+      currency: org.currency,
+      suspended: false,
+      createdAt: org.createdAt.toISOString(),
+      userCount: 1,
+      dealCount: 0,
+      pipelineValue: 0,
+    },
+    admin: { id: admin.id, name: admin.name, email: admin.email, tempPassword },
+  };
 }
 
 export async function getStats(): Promise<PlatformStats> {

@@ -47,4 +47,46 @@ describe('platform operator console', () => {
     const recovered = await request(app).post('/api/platform/auth/login').send({ email: operator.email, password: 'Test!Pass1234' });
     expect(recovered.status).toBe(200);
   });
+
+  it('onboards a new agency — creates the org and a working first login for its admin', async () => {
+    const operator = await createPlatformAdmin();
+
+    const res = await request(app).post('/api/platform/organizations').set(operator.authHeader).send({
+      organizationName: 'Rift Valley Homes',
+      plan: 'GROWTH',
+      adminName: 'Joseph Kiprop',
+      adminEmail: 'joseph@riftvalleyhomes.co.ke',
+    });
+    expect(res.status).toBe(201);
+    expect(res.body.organization.slug).toBe('rift-valley-homes');
+    expect(res.body.organization.plan).toBe('GROWTH');
+    expect(res.body.admin.tempPassword).toHaveLength(12);
+
+    // The generated temp password actually works, for the agency's own login (not the platform one).
+    const login = await request(app).post('/api/auth/login').send({
+      email: 'joseph@riftvalleyhomes.co.ke',
+      password: res.body.admin.tempPassword,
+    });
+    expect(login.status).toBe(200);
+    expect(login.body.user.role).toBe('ORG_ADMIN');
+    expect(login.body.user.organizationId).toBe(res.body.organization.id);
+  });
+
+  it('gives a second org with the same name a distinct slug, and rejects a duplicate admin email', async () => {
+    const operator = await createPlatformAdmin();
+    const payload = { organizationName: 'Coast Properties', adminName: 'A', adminEmail: 'a@coast.example' };
+
+    const first = await request(app).post('/api/platform/organizations').set(operator.authHeader).send(payload);
+    expect(first.status).toBe(201);
+    expect(first.body.organization.slug).toBe('coast-properties');
+
+    const second = await request(app).post('/api/platform/organizations').set(operator.authHeader)
+      .send({ ...payload, adminEmail: 'b@coast.example' });
+    expect(second.status).toBe(201);
+    expect(second.body.organization.slug).toBe('coast-properties-2');
+
+    const dup = await request(app).post('/api/platform/organizations').set(operator.authHeader)
+      .send({ ...payload, organizationName: 'Someone Else' });
+    expect(dup.status).toBe(409);
+  });
 });
