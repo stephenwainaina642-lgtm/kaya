@@ -24,6 +24,17 @@ BEGIN
       'viewing_requests', 'document_signatures'
     ])
   LOOP
+    -- Guard against a table this script expects but that the schema push
+    -- just before it didn't (yet) create — e.g. drizzle-kit push stalled
+    -- part-way through on an unrelated interactive confirmation. Previously
+    -- this ALTER TABLE threw "relation does not exist" and crashed the
+    -- entire deploy (and kept crash-looping on every restart) over ONE
+    -- missing table; skip it and keep RLS applied to every table that does
+    -- exist, rather than taking the whole service down.
+    IF to_regclass(t) IS NULL THEN
+      RAISE WARNING 'rls.sql: table % does not exist yet — skipping (likely an incomplete schema push)', t;
+      CONTINUE;
+    END IF;
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
     -- Explicitly turn FORCE back off — ENABLE alone does not clear a FORCE
     -- flag a previous run of this script may have already set (this script
@@ -63,6 +74,10 @@ BEGIN
       'offers', 'commissions', 'viewing_feedback', 'refresh_tokens', 'drip_sequence_steps'
     ])
   LOOP
+    IF to_regclass(t) IS NULL THEN
+      RAISE WARNING 'rls.sql: table % does not exist yet — skipping (likely an incomplete schema push)', t;
+      CONTINUE;
+    END IF;
     EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON %I TO kaya_app', t);
   END LOOP;
 END

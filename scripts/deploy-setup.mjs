@@ -60,10 +60,48 @@ async function main() {
   await client.query(`GRANT ALL PRIVILEGES ON DATABASE "${dbName}" TO kaya_app`);
   await client.query('GRANT ALL ON SCHEMA public TO kaya_app');
 
+  // drizzle-kit push pauses for an interactive y/n confirmation before any
+  // statement it considers possibly destructive — e.g. adding a UNIQUE
+  // constraint to a table that already has rows, which is exactly what
+  // shortlist_items_pair_unique needs here once the table has real data.
+  // There's no TTY on Render, so that confirmation can never be answered.
+  // Observed behaviour was worse than a clean hang: push silently abandoned
+  // the REST of its pending statements too (leaving tables like
+  // automation_rules never created, even though creating a new empty table
+  // needs no confirmation at all) while still exiting 0 — `--force` does
+  // NOT fix this; confirmed by reproducing it locally. The failure only
+  // surfaced seconds later as a hard crash in the RLS step below, taking
+  // the whole service down and crash-looping on every restart.
+  //
+  // Fix: apply this one constraint ourselves, directly and idempotently,
+  // before push ever runs — so by the time push looks at the schema diff,
+  // there's nothing left that needs confirming. Verified safe to add
+  // unconditionally: the app's shortlist-item upsert
+  // (modules/shortlists/shortlists.service.ts) already does
+  // .onConflictDoUpdate on exactly this (shortlist_id, property_id) pair,
+  // which only works with this constraint in place, so no duplicate pair
+  // can exist through the app — only a table that doesn't have the
+  // constraint yet could have one slip in some other way, and it hasn't.
+  console.log('[deploy-setup] Pre-applying shortlist_items_pair_unique (avoids a push confirmation prompt)');
+  await client.query(`
+    DO $$
+    BEGIN
+      IF to_regclass('shortlist_items') IS NOT NULL
+         AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'shortlist_items_pair_unique')
+      THEN
+        ALTER TABLE shortlist_items ADD CONSTRAINT shortlist_items_pair_unique UNIQUE (shortlist_id, property_id);
+      END IF;
+    END $$;
+  `);
+
   await client.end();
 
   console.log('[deploy-setup] Pushing schema');
-  run('npx', ['drizzle-kit', 'push'], {
+  // --force on top of the above: belt-and-braces for any other
+  // confirmation-gated statement we haven't hit yet (e.g. a future column
+  // drop). It alone would not have fixed today's failure — see above — but
+  // it's still strictly better than leaving a future prompt to stall.
+  run('npx', ['drizzle-kit', 'push', '--force'], {
     cwd: path.join(ROOT, 'apps/api'),
     env: { ...process.env, DATABASE_ADMIN_URL: adminUrl },
   });
