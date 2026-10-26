@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { EyeOff, Eye, Bookmark, Lock } from 'lucide-react';
 import type { PropertyMatchPage, ShortlistSummary } from '@kaya/shared';
-import { formatKes } from '@kaya/shared';
+import { formatMoney } from '@kaya/shared';
 import { api, ApiError } from '../lib/api';
 import { Card } from './ui/Card';
 import { Spinner } from './ui/Spinner';
@@ -81,7 +81,7 @@ export function PropertyMatchesPanel({ contactType, contactId }: { contactType: 
               <Link to={`/properties/${m.property.id}`} className="line-clamp-1 text-sm font-medium text-ink hover:text-cypress-700">
                 {m.property.title}
               </Link>
-              <p className="text-xs text-muted">{m.property.location} · {formatKes(m.property.price, { compact: true })}</p>
+              <p className="text-xs text-muted">{m.property.location} · {formatMoney(m.property.price, m.property.currency, { compact: true })}</p>
             </div>
             <MatchVerdictBadge verdict={m.verdict} score={m.score.total} />
             {contactType === 'client' && (

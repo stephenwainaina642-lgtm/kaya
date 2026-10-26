@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { TrendingUp, Handshake, Users, Building2, CalendarClock, Award } from 'lucide-react';
 import type { DashboardData } from '@kaya/shared';
-import { formatKes } from '@kaya/shared';
+import { formatMoney } from '@kaya/shared';
 import { api } from '../../lib/api';
+import { useAuth } from '../../auth/AuthContext';
 import { PageHeader } from '../../components/PageHeader';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
@@ -22,6 +23,8 @@ function Kpi({ icon: Icon, label, value }: { icon: any; label: string; value: st
 }
 
 export function ReportsPage() {
+  const { user } = useAuth();
+  const currency = user?.currency ?? 'KES';
   const { data, isLoading } = useQuery({
     queryKey: ['dashboard'],
     queryFn: () => api.get<DashboardData>('/dashboard'),
@@ -36,9 +39,9 @@ export function ReportsPage() {
         ) : (
           <>
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-              <Kpi icon={TrendingUp} label="Pipeline value" value={formatKes(data.kpis.pipelineValue, { compact: true })} />
+              <Kpi icon={TrendingUp} label="Pipeline value" value={formatMoney(data.kpis.pipelineValue, currency, { compact: true })} />
               <Kpi icon={Handshake} label="Deals in progress" value={String(data.kpis.dealsInProgress)} />
-              <Kpi icon={Award} label="Commission this month" value={formatKes(data.kpis.commissionsEarnedThisMonth, { compact: true })} />
+              <Kpi icon={Award} label="Commission this month" value={formatMoney(data.kpis.commissionsEarnedThisMonth, currency, { compact: true })} />
               <Kpi icon={CalendarClock} label="Deals won this month" value={String(data.kpis.wonDealsThisMonth)} />
               <Kpi icon={Users} label="Active leads" value={String(data.kpis.activeLeads)} />
               <Kpi icon={Building2} label="Active clients" value={String(data.kpis.activeClients)} />
@@ -48,12 +51,13 @@ export function ReportsPage() {
                 label="Avg. deal commission"
                 value={
                   data.agentPerformance.length > 0
-                    ? formatKes(
+                    ? formatMoney(
                         data.agentPerformance.reduce((s, a) => s + a.commissionEarned, 0) /
                           Math.max(data.agentPerformance.reduce((s, a) => s + a.dealsWon, 0), 1),
+                        currency,
                         { compact: true },
                       )
-                    : formatKes(0)
+                    : formatMoney(0, currency)
                 }
               />
             </div>
@@ -67,7 +71,7 @@ export function ReportsPage() {
                   data={data.revenueTrend.map((p) => ({
                     month: p.month,
                     value: p.commissionEarned,
-                    displayValue: formatKes(p.commissionEarned, { compact: true }),
+                    displayValue: formatMoney(p.commissionEarned, currency, { compact: true }),
                   }))}
                 />
               )}
@@ -115,7 +119,7 @@ export function ReportsPage() {
                               <td className="py-3 pr-4 text-ink">{a.agent.name}</td>
                               <td className="py-3 pr-4 text-muted">{a.activeLeads}</td>
                               <td className="py-3 pr-4 text-muted">{a.dealsWon}</td>
-                              <td className="py-3 pr-4 font-medium text-ink">{formatKes(a.commissionEarned, { compact: true })}</td>
+                              <td className="py-3 pr-4 font-medium text-ink">{formatMoney(a.commissionEarned, currency, { compact: true })}</td>
                               <td className="py-3">
                                 <div className="h-2 w-32 overflow-hidden rounded-full bg-ground">
                                   <div

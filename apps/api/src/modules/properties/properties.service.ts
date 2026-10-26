@@ -5,7 +5,8 @@ import {
 } from '@kaya/shared';
 import type { PropertyListItem, PropertyDetail, Page } from '@kaya/shared';
 import { withTenant, type Tx } from '../../db/client';
-import { properties, propertyImages, propertyFeatures, owners, users } from '../../db/schema';
+import { systemDb } from '../../db/system';
+import { properties, propertyImages, propertyFeatures, owners, users, organizations } from '../../db/schema';
 import { notFound } from '../../lib/errors';
 import { parse } from '../../lib/validate';
 import { type Auth, uuidField, pagingQuery, agentRef, requireProperty } from '../crm/common';
@@ -18,7 +19,11 @@ export const propertyCreate = z.object({
   propertyType: z.enum(PROPERTY_TYPES),
   segment: z.enum(SEGMENTS).default('RESIDENTIAL'),
   price: z.number().min(0),
-  currency: z.string().trim().length(3).default('KES'),
+  // Not defaulted here — if the caller doesn't say, createProperty() below
+  // falls back to the agency's own currency rather than always assuming
+  // KES, so agencies on another currency don't get silently mismatched
+  // listings.
+  currency: z.string().trim().length(3).optional(),
   location: z.string().trim().min(1).max(200),
   neighborhood: z.string().trim().max(100).nullable().optional(),
   city: z.string().trim().min(1).max(100).default('Nairobi'),
@@ -156,6 +161,11 @@ export async function getProperty(a: Auth, id: string): Promise<PropertyDetail> 
 
 export async function createProperty(a: Auth, body: unknown): Promise<PropertyDetail> {
   const input = parse(propertyCreate, body);
+  let currency = input.currency;
+  if (!currency) {
+    const [org] = await systemDb.select({ currency: organizations.currency }).from(organizations).where(eq(organizations.id, a.organizationId));
+    currency = org?.currency ?? 'KES';
+  }
   return withTenant(a.organizationId, async (tx) => {
     const [owner] = await tx.select({ id: owners.id }).from(owners).where(and(eq(owners.id, input.ownerId), eq(owners.organizationId, a.organizationId)));
     if (!owner) throw notFound('Owner');
@@ -168,7 +178,7 @@ export async function createProperty(a: Auth, body: unknown): Promise<PropertyDe
       propertyType: input.propertyType,
       segment: input.segment,
       price: input.price,
-      currency: input.currency,
+      currency,
       location: input.location,
       neighborhood: input.neighborhood ?? null,
       city: input.city,

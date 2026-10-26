@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, BedDouble, Bath, Ruler, MapPin, Pencil } from 'lucide-react';
 import type { PropertyDetail as PropertyDetailT } from '@kaya/shared';
-import { formatKes } from '@kaya/shared';
+import { formatMoney } from '@kaya/shared';
 import { api } from '../../lib/api';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
@@ -77,7 +77,7 @@ export function PropertyDetail() {
           <Card className="p-5">
             <Badge tone="ok">{p.status.replace(/_/g, ' ')}</Badge>
             <p className="mt-3 font-display text-2xl font-semibold text-cypress-700">
-              {formatKes(p.price, { compact: true })}{p.listingType === 'RENT' ? '/mo' : ''}
+              {formatMoney(p.price, p.currency, { compact: true })}{p.listingType === 'RENT' ? '/mo' : ''}
             </p>
             <p className="mb-4 flex items-center gap-1 text-sm text-muted"><MapPin size={14} /> {p.location}</p>
             <div className="flex items-center gap-4 border-t border-line pt-4 text-sm text-muted">

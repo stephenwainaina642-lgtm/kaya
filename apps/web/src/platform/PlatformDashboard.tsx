@@ -37,6 +37,10 @@ export function PlatformDashboard() {
               <div className="rounded-panel bg-[#14201a] p-6 text-white lg:col-span-1">
                 <span className="block h-[3px] w-6 bg-brass" />
                 <p className="mt-4 text-sm text-cypress-100/70">Pipeline value under management</p>
+                {/* Summed across every agency regardless of their own currency — a
+                    true multi-currency total would need live FX conversion, which
+                    isn't wired up yet, so this stays a KES-labelled raw sum rather
+                    than silently implying it already converts correctly. */}
                 <p className="mt-1 font-display text-4xl font-semibold text-white">
                   {formatKes(data.totalPipelineValue, { compact: true })}
                 </p>

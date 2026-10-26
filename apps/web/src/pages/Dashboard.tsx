@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { formatKes } from '@kaya/shared';
+import { formatMoney } from '@kaya/shared';
 import type { DashboardData, AttentionItem } from '@kaya/shared';
 import { Link } from 'react-router-dom';
 import { CalendarClock } from 'lucide-react';
 import { api } from '../lib/api';
+import { useAuth } from '../auth/AuthContext';
 import { PageHeader } from '../components/PageHeader';
 import { Card } from '../components/ui/Card';
 import { Spinner } from '../components/ui/Spinner';
@@ -28,6 +29,8 @@ function SecondaryStat({ label, value }: { label: string; value: string }) {
 }
 
 export function Dashboard() {
+  const { user } = useAuth();
+  const currency = user?.currency ?? 'KES';
   const { data, isLoading } = useQuery({
     queryKey: ['dashboard'],
     queryFn: () => api.get<DashboardData>('/dashboard'),
@@ -53,7 +56,7 @@ export function Dashboard() {
           <div className="rounded-panel bg-ink p-6 text-white lg:col-span-1">
             <span className="block h-[3px] w-6 bg-brass" />
             <p className="mt-4 text-sm text-white/60">Pipeline value</p>
-            <p className="mt-1 font-display text-4xl font-semibold text-white">{formatKes(kpis.pipelineValue, { compact: true })}</p>
+            <p className="mt-1 font-display text-4xl font-semibold text-white">{formatMoney(kpis.pipelineValue, currency, { compact: true })}</p>
           </div>
           <Card className="flex divide-x divide-line p-0 lg:col-span-2">
             <SecondaryStat label="Active leads" value={String(kpis.activeLeads)} />
@@ -137,7 +140,7 @@ export function Dashboard() {
               {revenueTrend.map((pt) => (
                 <li key={pt.month} className="flex items-center justify-between text-sm">
                   <span className="text-muted">{pt.month}</span>
-                  <span className="font-medium text-ink">{formatKes(pt.commissionEarned, { compact: true })}</span>
+                  <span className="font-medium text-ink">{formatMoney(pt.commissionEarned, currency, { compact: true })}</span>
                 </li>
               ))}
             </ul>

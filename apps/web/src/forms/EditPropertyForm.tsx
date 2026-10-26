@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { LISTING_TYPES, PROPERTY_TYPES, SEGMENTS, PROPERTY_STATUSES } from '@kaya/shared';
 import type { OwnerListItem, Page, PropertyDetail } from '@kaya/shared';
 import { api, ApiError } from '../lib/api';
+import { useAuth } from '../auth/AuthContext';
 import { Field } from '../components/ui/Field';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
@@ -10,6 +11,8 @@ import { TextArea } from '../components/ui/TextArea';
 import { Button } from '../components/ui/Button';
 
 export function EditPropertyForm({ property, onDone }: { property: PropertyDetail; onDone: () => void }) {
+  const { user } = useAuth();
+  const currency = user?.currency ?? 'KES';
   const qc = useQueryClient();
   const { data: owners } = useQuery({
     queryKey: ['owners-picker'],
@@ -76,7 +79,7 @@ export function EditPropertyForm({ property, onDone }: { property: PropertyDetai
         </Field>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Price (KES)">
+        <Field label={`Price (${currency})`}>
           <Input type="number" min="0" value={price} onChange={(e) => setPrice(e.target.value)} required />
         </Field>
         <Field label="Location">

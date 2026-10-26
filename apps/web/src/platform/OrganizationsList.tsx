@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import type { PlatformOrgPage } from '@kaya/shared';
-import { formatKes } from '@kaya/shared';
+import { formatMoney } from '@kaya/shared';
 import { platformApi } from './api';
 import { CreateOrganizationForm } from './CreateOrganizationForm';
 import { PageHeader } from '../components/PageHeader';
@@ -68,7 +68,7 @@ export function OrganizationsList() {
                       <td className="px-5 py-3"><Badge tone="accent">{o.plan}</Badge></td>
                       <td className="px-5 py-3 text-muted">{o.userCount}</td>
                       <td className="px-5 py-3 text-muted">{o.dealCount}</td>
-                      <td className="px-5 py-3 text-muted">{formatKes(o.pipelineValue, { compact: true })}</td>
+                      <td className="px-5 py-3 text-muted">{formatMoney(o.pipelineValue, o.currency, { compact: true })}</td>
                       <td className="px-5 py-3">
                         {o.suspended ? <Badge tone="danger">Suspended</Badge> : <Badge tone="ok">Active</Badge>}
                       </td>

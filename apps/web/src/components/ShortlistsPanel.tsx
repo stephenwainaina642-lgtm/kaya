@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link2, Trash2, ChevronDown, ChevronRight, Plus, Lock } from 'lucide-react';
 import type { ShortlistSummary, ShortlistDetail } from '@kaya/shared';
-import { formatKes } from '@kaya/shared';
+import { formatMoney } from '@kaya/shared';
 import { api, ApiError } from '../lib/api';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
@@ -62,7 +62,7 @@ function ShortlistRow({ summary }: { summary: ShortlistSummary }) {
               {detail.items.map((item) => (
                 <li key={item.id} className="flex items-center justify-between gap-2 text-sm">
                   <span className="min-w-0 truncate text-ink">{item.property.title}</span>
-                  <span className="shrink-0 text-xs text-muted">{formatKes(item.property.price, { compact: true })}</span>
+                  <span className="shrink-0 text-xs text-muted">{formatMoney(item.property.price, item.property.currency, { compact: true })}</span>
                   <button onClick={() => removeItem.mutate(item.property.id)} className="shrink-0 text-faint hover:text-danger">
                     <Trash2 size={12} />
                   </button>

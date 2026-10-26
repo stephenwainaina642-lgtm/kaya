@@ -10,6 +10,10 @@ export const organizations = pgTable('organizations', {
   timezone: text('timezone').notNull().default('Africa/Nairobi'),
   currency: text('currency').notNull().default('KES'),
   logoUrl: text('logo_url'),
+  // Hex color (e.g. "#2F5D4E") an org admin can set to theme their workspace
+  // and public-facing pages (inquiry form, shortlist links). Null = use
+  // Kaya's default cypress/brass palette.
+  brandColor: text('brand_color'),
   phone: text('phone'),
   // Set by a platform admin to lock an agency out of signing in without
   // deleting its data. Null means active.

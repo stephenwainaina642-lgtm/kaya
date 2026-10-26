@@ -4,6 +4,27 @@ export type Role = (typeof ROLES)[number];
 export const PLANS = ['STARTER', 'GROWTH', 'PRO'] as const;
 export type Plan = (typeof PLANS)[number];
 
+/**
+ * Currencies an agency can bill and track deals in. Weighted toward East
+ * Africa (Kaya's home market) with the other major currencies an
+ * international agency is likely to need, rather than the full ISO 4217
+ * list — a shorter, curated list is easier to pick from at signup.
+ */
+export const CURRENCIES = [
+  { code: 'KES', label: 'Kenyan Shilling' },
+  { code: 'UGX', label: 'Ugandan Shilling' },
+  { code: 'TZS', label: 'Tanzanian Shilling' },
+  { code: 'RWF', label: 'Rwandan Franc' },
+  { code: 'NGN', label: 'Nigerian Naira' },
+  { code: 'GHS', label: 'Ghanaian Cedi' },
+  { code: 'ZAR', label: 'South African Rand' },
+  { code: 'USD', label: 'US Dollar' },
+  { code: 'EUR', label: 'Euro' },
+  { code: 'GBP', label: 'British Pound' },
+  { code: 'AED', label: 'UAE Dirham' },
+] as const;
+export type CurrencyCode = (typeof CURRENCIES)[number]['code'];
+
 export const LEAD_STATUSES = ['NEW', 'CONTACTED', 'QUALIFIED', 'WON', 'LOST'] as const;
 export type LeadStatus = (typeof LEAD_STATUSES)[number];
 

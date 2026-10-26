@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { ApiError } from '../lib/api';
 import { Button } from '../components/ui/Button';
@@ -64,6 +64,12 @@ export function Login() {
           </Button>
         </form>
         <p className="mt-4 text-center text-xs text-faint">Demo: wanjiru@savannaridge.co.ke / Kaya!Demo2026</p>
+        <p className="mt-4 text-center text-sm text-muted">
+          New to Kaya?{' '}
+          <Link to="/signup" className="font-medium text-cypress-700 hover:underline">
+            Create your agency workspace
+          </Link>
+        </p>
       </div>
     </div>
   );

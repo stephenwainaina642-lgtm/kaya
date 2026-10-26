@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
-import { eq, sql, inArray, like } from 'drizzle-orm';
+import { eq, sql, inArray } from 'drizzle-orm';
 import type {
   PlatformLoginResult, PlatformOrgPage, PlatformOrgDetail, PlatformStats, PlatformCreateOrgResult,
 } from '@kaya/shared';
@@ -13,6 +13,7 @@ import { signPlatformToken } from '../../lib/tokens';
 import { unauthorized, notFound, locked, conflict } from '../../lib/errors';
 import { parse } from '../../lib/validate';
 import { isLocked, recordFailedAttempt, clearLockout } from '../../lib/lockout';
+import { uniqueSlug } from '../../lib/slug';
 
 export const platformLoginInput = z.object({
   email: z.string().email(),
@@ -163,24 +164,6 @@ function generateTempPassword(): string {
   // (team.routes.ts) — 12 url-safe characters, easy to read off a screen
   // and share with the new agency over a call or WhatsApp.
   return randomBytes(9).toString('base64url');
-}
-
-async function uniqueSlug(name: string): Promise<string> {
-  const base = name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '') || 'agency';
-
-  const existing = await systemDb
-    .select({ slug: organizations.slug })
-    .from(organizations)
-    .where(like(organizations.slug, `${base}%`));
-  const taken = new Set(existing.map((o) => o.slug));
-  if (!taken.has(base)) return base;
-  for (let n = 2; ; n++) {
-    const candidate = `${base}-${n}`;
-    if (!taken.has(candidate)) return candidate;
-  }
 }
 
 export const createOrganizationInput = z.object({

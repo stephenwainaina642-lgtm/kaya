@@ -45,7 +45,7 @@ const FEATURES = [
 
 const CAPABILITIES = [
   'Each agency’s data fully isolated',
-  'Priced and shown in KES',
+  'Priced and shown in your currency',
   'WhatsApp-ready messaging',
   'Role-based access for every team member',
 ];
@@ -187,7 +187,7 @@ export function Landing() {
           </nav>
           <div className="hidden items-center gap-3 md:flex">
             <Link to="/login" className="text-sm font-medium text-muted hover:text-ink">Sign in</Link>
-            <Link to="/login" className="rounded-control bg-cypress-600 px-4 py-2 text-sm font-medium text-white hover:bg-cypress-700">
+            <Link to="/signup" className="rounded-control bg-cypress-600 px-4 py-2 text-sm font-medium text-white hover:bg-cypress-700">
               Start free
             </Link>
           </div>
@@ -202,7 +202,7 @@ export function Landing() {
                 <a key={l.href} href={l.href} onClick={() => setMenuOpen(false)} className="text-sm font-medium text-ink">{l.label}</a>
               ))}
               <Link to="/login" className="text-sm font-medium text-ink">Sign in</Link>
-              <Link to="/login" className="rounded-control bg-cypress-600 px-4 py-2 text-center text-sm font-medium text-white">Start free</Link>
+              <Link to="/signup" className="rounded-control bg-cypress-600 px-4 py-2 text-center text-sm font-medium text-white">Start free</Link>
             </nav>
           </div>
         )}
@@ -216,10 +216,10 @@ export function Landing() {
               The CRM built for how Kenyan agencies actually sell property.
             </h1>
             <p className="mt-5 max-w-md text-base leading-relaxed text-muted">
-              Leads, listings, viewings, deals and commissions in one place — priced in KES, built for WhatsApp follow-ups, and honest about what it automates and what it doesn’t.
+              Leads, listings, viewings, deals and commissions in one place — built for WhatsApp follow-ups, priced in your own currency, and honest about what it automates and what it doesn’t.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Link to="/login" className="rounded-control bg-cypress-600 px-5 py-3 text-sm font-medium text-white hover:bg-cypress-700">
+              <Link to="/signup" className="rounded-control bg-cypress-600 px-5 py-3 text-sm font-medium text-white hover:bg-cypress-700">
                 Start free
               </Link>
               <a href="#contact" className="rounded-control border border-line px-5 py-3 text-sm font-medium text-ink hover:bg-sunk">
@@ -281,8 +281,8 @@ export function Landing() {
 
       {/* Pricing */}
       <section id="pricing" className="mx-auto max-w-6xl px-5 py-20 md:py-28">
-        <h2 className="font-display text-3xl font-semibold text-ink">Priced per agent, in KES</h2>
-        <p className="mt-3 max-w-md text-sm leading-relaxed text-muted">Start on Starter and move up as your team grows. No setup fees.</p>
+        <h2 className="font-display text-3xl font-semibold text-ink">Priced per agent, in your currency</h2>
+        <p className="mt-3 max-w-md text-sm leading-relaxed text-muted">Start on Starter and move up as your team grows. No setup fees. Prices below shown in KES — pick your own currency when you sign up.</p>
         <div className="mt-12 grid gap-6 md:grid-cols-3">
           {PLANS.map((p) => (
             <div
@@ -309,7 +309,7 @@ export function Landing() {
                 ))}
               </ul>
               <Link
-                to="/login"
+                to="/signup"
                 className={`mt-7 rounded-control px-4 py-2.5 text-center text-sm font-medium ${
                   p.highlight ? 'bg-cypress-600 text-white hover:bg-cypress-700' : 'border border-line text-ink hover:bg-sunk'
                 }`}
@@ -339,7 +339,7 @@ export function Landing() {
             Try Kaya free, or talk to us first — we’ll walk your team through it over a call.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Link to="/login" className="rounded-control bg-white px-5 py-3 text-sm font-medium text-ink hover:bg-cypress-50">
+            <Link to="/signup" className="rounded-control bg-white px-5 py-3 text-sm font-medium text-ink hover:bg-cypress-50">
               Start free
             </Link>
             <a

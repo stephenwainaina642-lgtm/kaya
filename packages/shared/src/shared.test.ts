@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatKes } from './money';
+import { formatKes, formatMoney } from './money';
 import { whatsappLink, buildWhatsAppMessage } from './whatsapp';
 
 describe('formatKes', () => {
@@ -10,6 +10,20 @@ describe('formatKes', () => {
   it('compacts large amounts', () => {
     expect(formatKes(2_500_000, { compact: true })).toBe('KES 2.5M');
     expect(formatKes(45_000, { compact: true })).toBe('KES 45K');
+  });
+});
+
+describe('formatMoney', () => {
+  it('defaults to KES', () => {
+    expect(formatMoney(1500)).toBe('KES 1,500');
+  });
+
+  it('formats in another currency', () => {
+    expect(formatMoney(1500, 'USD')).toBe('USD 1,500');
+  });
+
+  it('compacts large amounts in another currency', () => {
+    expect(formatMoney(2_500_000, 'EUR', { compact: true })).toBe('EUR 2.5M');
   });
 });
 

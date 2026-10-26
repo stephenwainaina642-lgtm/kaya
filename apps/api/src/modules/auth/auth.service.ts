@@ -1,14 +1,16 @@
 import { eq, and, gt } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Plan } from '@kaya/shared';
+import { CURRENCIES } from '@kaya/shared';
 import { systemDb } from '../../db/system';
 import { withTenant } from '../../db/client';
 import { users, refreshTokens, organizations } from '../../db/schema';
 import { verifyPassword, hashPassword } from '../../lib/password';
 import { signAccessToken, newRefreshToken, hashRefreshToken } from '../../lib/tokens';
-import { unauthorized, invalid, forbidden, locked } from '../../lib/errors';
+import { unauthorized, invalid, forbidden, locked, conflict } from '../../lib/errors';
 import { parse } from '../../lib/validate';
 import { isLocked, recordFailedAttempt, clearLockout } from '../../lib/lockout';
+import { uniqueSlug } from '../../lib/slug';
 
 export const loginInput = z.object({
   email: z.string().email(),
@@ -17,10 +19,38 @@ export const loginInput = z.object({
 
 const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
+export interface AuthUserDto {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  organizationId: string;
+  plan: Plan;
+  organizationName: string;
+  currency: string;
+  logoUrl: string | null;
+  brandColor: string | null;
+}
+
 export interface LoginResult {
   accessToken: string;
   refreshToken: string;
-  user: { id: string; name: string; email: string; role: string; organizationId: string; plan: Plan };
+  user: AuthUserDto;
+}
+
+function toUserDto(user: typeof users.$inferSelect, org: typeof organizations.$inferSelect): AuthUserDto {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    organizationId: user.organizationId,
+    plan: org.plan,
+    organizationName: org.name,
+    currency: org.currency,
+    logoUrl: org.logoUrl,
+    brandColor: org.brandColor,
+  };
 }
 
 export async function login(body: unknown): Promise<LoginResult> {
@@ -39,7 +69,8 @@ export async function login(body: unknown): Promise<LoginResult> {
   }
 
   const [org] = await systemDb.select().from(organizations).where(eq(organizations.id, user.organizationId));
-  if (org?.suspendedAt) throw forbidden('This workspace has been suspended. Contact your account manager.');
+  if (!org) throw unauthorized();
+  if (org.suspendedAt) throw forbidden('This workspace has been suspended. Contact your account manager.');
 
   const accessToken = signAccessToken({
     sub: user.id,
@@ -57,11 +88,7 @@ export async function login(body: unknown): Promise<LoginResult> {
     await tx.update(users).set({ lastLoginAt: new Date(), ...clearLockout }).where(eq(users.id, user.id));
   });
 
-  return {
-    accessToken,
-    refreshToken,
-    user: { id: user.id, name: user.name, email: user.email, role: user.role, organizationId: user.organizationId, plan: org?.plan ?? 'STARTER' },
-  };
+  return { accessToken, refreshToken, user: toUserDto(user, org) };
 }
 
 export async function refresh(token: string | undefined): Promise<LoginResult> {
@@ -75,7 +102,8 @@ export async function refresh(token: string | undefined): Promise<LoginResult> {
   if (!row) throw unauthorized('Invalid or expired refresh token');
 
   const [org] = await systemDb.select().from(organizations).where(eq(organizations.id, row.user.organizationId));
-  if (org?.suspendedAt) throw forbidden('This workspace has been suspended. Contact your account manager.');
+  if (!org) throw unauthorized();
+  if (org.suspendedAt) throw forbidden('This workspace has been suspended. Contact your account manager.');
 
   const accessToken = signAccessToken({
     sub: row.user.id,
@@ -93,18 +121,78 @@ export async function refresh(token: string | undefined): Promise<LoginResult> {
     });
   });
 
-  return {
-    accessToken,
-    refreshToken: newToken,
-    user: {
-      id: row.user.id,
-      name: row.user.name,
-      email: row.user.email,
-      role: row.user.role,
-      organizationId: row.user.organizationId,
-      plan: org?.plan ?? 'STARTER',
-    },
-  };
+  return { accessToken, refreshToken: newToken, user: toUserDto(row.user, org) };
+}
+
+export const registerInput = z.object({
+  organizationName: z.string().trim().min(1).max(200),
+  currency: z.enum(CURRENCIES.map((c) => c.code) as [string, ...string[]]).default('KES'),
+  adminName: z.string().trim().min(1).max(200),
+  adminEmail: z.string().trim().toLowerCase().email(),
+  password: z.string().min(8).max(100),
+  phone: z.string().trim().max(40).nullable().optional(),
+});
+
+/**
+ * Public self-serve signup: anyone can create their own agency workspace
+ * and is logged straight in, no platform-admin approval step. This is the
+ * public counterpart to platform-admin.service.ts's createOrganization —
+ * that one stays as the manually-operated path for white-glove/managed
+ * onboarding; this one is for an agency that wants to just get started.
+ * New workspaces default to the STARTER plan — same as any other new
+ * signup anywhere, upgrading is a billing step for later.
+ */
+export async function register(body: unknown): Promise<LoginResult> {
+  const input = parse(registerInput, body);
+
+  const [existingEmail] = await systemDb.select({ id: users.id }).from(users).where(eq(users.email, input.adminEmail));
+  if (existingEmail) throw conflict('A Kaya account with this email already exists. Try logging in instead.');
+
+  const slug = await uniqueSlug(input.organizationName);
+  const passwordHash = await hashPassword(input.password);
+
+  const [org] = await systemDb
+    .insert(organizations)
+    .values({
+      name: input.organizationName,
+      slug,
+      plan: 'STARTER',
+      currency: input.currency,
+      phone: input.phone ?? null,
+    })
+    .returning();
+  if (!org) throw new Error('failed to create organization');
+
+  const user = await withTenant(org.id, async (tx) => {
+    const [row] = await tx
+      .insert(users)
+      .values({
+        organizationId: org.id,
+        name: input.adminName,
+        email: input.adminEmail,
+        passwordHash,
+        role: 'ORG_ADMIN',
+      })
+      .returning();
+    return row!;
+  });
+
+  const accessToken = signAccessToken({
+    sub: user.id,
+    organizationId: org.id,
+    role: user.role,
+    name: user.name,
+  });
+  const refreshToken = newRefreshToken();
+  await withTenant(org.id, async (tx) => {
+    await tx.insert(refreshTokens).values({
+      userId: user.id,
+      tokenHash: hashRefreshToken(refreshToken),
+      expiresAt: new Date(Date.now() + REFRESH_TTL_MS),
+    });
+  });
+
+  return { accessToken, refreshToken, user: toUserDto(user, org) };
 }
 
 export async function logout(organizationId: string | undefined, token: string | undefined): Promise<void> {

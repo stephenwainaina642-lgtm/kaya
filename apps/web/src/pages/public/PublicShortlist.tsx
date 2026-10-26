@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BedDouble, Bath, CalendarClock, FileText, PenLine, CheckCircle2 } from 'lucide-react';
 import type { PublicShortlist as PublicShortlistT } from '@kaya/shared';
-import { formatKes } from '@kaya/shared';
+import { formatMoney } from '@kaya/shared';
 import { api, ApiError } from '../../lib/api';
 import { Spinner } from '../../components/ui/Spinner';
 import { Modal } from '../../components/ui/Modal';
@@ -165,7 +165,7 @@ export function PublicShortlist() {
                   <p className="mb-1 line-clamp-1 font-medium text-ink">{property.title}</p>
                   <p className="mb-2 text-xs text-muted">{property.location}</p>
                   <p className="mb-3 font-display text-lg font-semibold text-cypress-700">
-                    {formatKes(property.price, { compact: true })}{property.listingType === 'RENT' ? '/mo' : ''}
+                    {formatMoney(property.price, property.currency, { compact: true })}{property.listingType === 'RENT' ? '/mo' : ''}
                   </p>
                   <div className="mb-3 flex items-center gap-3 text-xs text-muted">
                     {property.bedrooms != null && <span className="flex items-center gap-1"><BedDouble size={13} /> {property.bedrooms}</span>}

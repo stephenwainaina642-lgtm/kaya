@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { OFFER_PARTIES } from '@kaya/shared';
 import type { DealDetail } from '@kaya/shared';
 import { api, ApiError } from '../lib/api';
+import { useAuth } from '../auth/AuthContext';
 import { Field } from '../components/ui/Field';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
@@ -10,6 +11,8 @@ import { TextArea } from '../components/ui/TextArea';
 import { Button } from '../components/ui/Button';
 
 export function NewOfferForm({ dealId, onDone }: { dealId: string; onDone: () => void }) {
+  const { user } = useAuth();
+  const currency = user?.currency ?? 'KES';
   const qc = useQueryClient();
   const [amount, setAmount] = useState('');
   const [madeBy, setMadeBy] = useState<string>(OFFER_PARTIES[0]);
@@ -36,7 +39,7 @@ export function NewOfferForm({ dealId, onDone }: { dealId: string; onDone: () =>
   return (
     <form onSubmit={(e) => { e.preventDefault(); create.mutate(); }}>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Offer amount (KES)">
+        <Field label={`Offer amount (${currency})`}>
           <Input type="number" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} required />
         </Field>
         <Field label="Made by">

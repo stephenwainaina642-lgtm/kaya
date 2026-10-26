@@ -9,12 +9,26 @@ export interface AuthUser {
   role: Role;
   organizationId: string;
   plan: Plan;
+  organizationName: string;
+  currency: string;
+  logoUrl: string | null;
+  brandColor: string | null;
+}
+
+export interface RegisterInput {
+  organizationName: string;
+  currency: string;
+  adminName: string;
+  adminEmail: string;
+  password: string;
+  phone?: string | null;
 }
 
 interface AuthState {
   user: AuthUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  register: (input: RegisterInput) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (patch: Partial<AuthUser>) => void;
 }
@@ -62,6 +76,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(res.user);
   }, []);
 
+  const register = useCallback(async (input: RegisterInput) => {
+    const res = await api.post<{ accessToken: string; user: AuthUser }>('/auth/register', {
+      organizationName: input.organizationName,
+      currency: input.currency,
+      adminName: input.adminName,
+      adminEmail: input.adminEmail,
+      password: input.password,
+      phone: input.phone ?? null,
+    });
+    setAccessToken(res.accessToken);
+    setUser(res.user);
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await api.post('/auth/logout');
@@ -74,7 +101,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser((prev) => (prev ? { ...prev, ...patch } : prev));
   }, []);
 
-  const value = useMemo(() => ({ user, loading, login, logout, updateUser }), [user, loading, login, logout, updateUser]);
+  const value = useMemo(
+    () => ({ user, loading, login, register, logout, updateUser }),
+    [user, loading, login, register, logout, updateUser],
+  );
 
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;
 }

@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { Lock, Trophy } from 'lucide-react';
 import type { AnalyticsData } from '@kaya/shared';
-import { formatKes } from '@kaya/shared';
+import { formatMoney } from '@kaya/shared';
 import { api, ApiError } from '../../lib/api';
+import { useAuth } from '../../auth/AuthContext';
 import { PageHeader } from '../../components/PageHeader';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
@@ -13,6 +14,8 @@ import { MonthlyBarChart } from '../../components/charts/MonthlyBarChart';
 const RANK_MEDAL: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
 export function AnalyticsPage() {
+  const { user } = useAuth();
+  const currency = user?.currency ?? 'KES';
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['analytics'],
     queryFn: () => api.get<AnalyticsData>('/analytics'),
@@ -51,7 +54,7 @@ export function AnalyticsPage() {
                     data={data.forecast.map((f) => ({
                       month: f.label,
                       value: f.weightedValue,
-                      displayValue: formatKes(f.weightedValue, { compact: true }),
+                      displayValue: formatMoney(f.weightedValue, currency, { compact: true }),
                     }))}
                   />
                 )}
@@ -87,7 +90,7 @@ export function AnalyticsPage() {
                           <td className="py-3 pr-4 text-muted">{row.dealsLost}</td>
                           <td className="py-3 pr-4 text-muted">{Math.round(row.winRate * 100)}%</td>
                           <td className="py-3 pr-4 text-muted">{row.avgDaysToClose !== null ? `${Math.round(row.avgDaysToClose)}d` : '—'}</td>
-                          <td className="py-3 font-medium text-ink">{formatKes(row.commissionEarned, { compact: true })}</td>
+                          <td className="py-3 font-medium text-ink">{formatMoney(row.commissionEarned, currency, { compact: true })}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -119,7 +122,7 @@ export function AnalyticsPage() {
                           <td className="py-3 pr-4 text-muted">{row.totalLeads}</td>
                           <td className="py-3 pr-4 text-muted">{row.dealsWon}</td>
                           <td className="py-3 pr-4 text-muted">{Math.round(row.conversionRate * 100)}%</td>
-                          <td className="py-3 font-medium text-ink">{formatKes(row.commissionEarned, { compact: true })}</td>
+                          <td className="py-3 font-medium text-ink">{formatMoney(row.commissionEarned, currency, { compact: true })}</td>
                         </tr>
                       ))}
                     </tbody>

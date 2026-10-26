@@ -1,9 +1,15 @@
 import { Router } from 'express';
-import { login, refresh, logout, me, updateProfile, changePassword } from './auth.service';
+import { login, refresh, logout, me, updateProfile, changePassword, register } from './auth.service';
 import { authenticate, ctx } from '../../middleware/auth';
 import { createLoginLimiter } from '../../middleware/rateLimit';
 
 const loginLimiter = createLoginLimiter();
+// Tighter than login: a leaked/scraped signup endpoint creating whole new
+// organizations is a more expensive abuse case than a login guess.
+const signupLimiter = createLoginLimiter({
+  limit: 10,
+  message: { error: { code: 'RATE_LIMITED', message: 'Too many signup attempts. Try again later.' } },
+});
 
 export const authRouter = Router();
 
@@ -26,6 +32,16 @@ authRouter.post('/login', loginLimiter, async (req, res, next) => {
     const result = await login(req.body);
     setRefreshCookie(res, result.refreshToken);
     res.json({ accessToken: result.accessToken, user: result.user });
+  } catch (err) {
+    next(err);
+  }
+});
+
+authRouter.post('/register', signupLimiter, async (req, res, next) => {
+  try {
+    const result = await register(req.body);
+    setRefreshCookie(res, result.refreshToken);
+    res.status(201).json({ accessToken: result.accessToken, user: result.user });
   } catch (err) {
     next(err);
   }

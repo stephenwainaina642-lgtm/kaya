@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Plus, Lock } from 'lucide-react';
 import type { DealBoard } from '@kaya/shared';
-import { formatKes } from '@kaya/shared';
+import { formatMoney } from '@kaya/shared';
+import { useAuth } from '../../auth/AuthContext';
 import { api, ApiError } from '../../lib/api';
 import { PageHeader } from '../../components/PageHeader';
 import { Card } from '../../components/ui/Card';
@@ -14,6 +15,8 @@ import { Modal } from '../../components/ui/Modal';
 import { NewDealForm } from '../../forms/NewDealForm';
 
 export function DealsBoard() {
+  const { user } = useAuth();
+  const currency = user?.currency ?? 'KES';
   const [showNew, setShowNew] = useState(false);
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['deals-board'],
@@ -50,7 +53,7 @@ export function DealsBoard() {
                   <h3 className="text-sm font-semibold text-ink">{s.name}</h3>
                   <span className="text-xs text-muted">{s.deals.length}</span>
                 </div>
-                <p className="mb-3 px-1 text-xs text-muted">{formatKes(s.totalValue, { compact: true })}</p>
+                <p className="mb-3 px-1 text-xs text-muted">{formatMoney(s.totalValue, currency, { compact: true })}</p>
                 <div className="space-y-3">
                   {s.deals.map((d) => (
                     <Link key={d.id} to={`/deals/${d.id}`}>
@@ -58,7 +61,7 @@ export function DealsBoard() {
                         <p className="mb-1 line-clamp-1 text-sm font-medium text-ink">{d.name}</p>
                         <p className="mb-2 text-xs text-muted">{d.clientName}</p>
                         <p className="font-display text-sm font-semibold text-cypress-700">
-                          {formatKes(d.value, { compact: true })}
+                          {formatMoney(d.value, currency, { compact: true })}
                         </p>
                         {d.isStalled && <p className="mt-1 text-xs font-medium text-danger">Stalled</p>}
                       </Card>

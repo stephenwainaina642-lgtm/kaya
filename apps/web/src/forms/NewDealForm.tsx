@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { DEAL_TYPES } from '@kaya/shared';
 import type { ClientListItem, PropertyListItem, OwnerListItem, Page } from '@kaya/shared';
 import { api, ApiError } from '../lib/api';
+import { useAuth } from '../auth/AuthContext';
 import { Field } from '../components/ui/Field';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
@@ -10,6 +11,8 @@ import { TextArea } from '../components/ui/TextArea';
 import { Button } from '../components/ui/Button';
 
 export function NewDealForm({ onDone }: { onDone: () => void }) {
+  const { user } = useAuth();
+  const currency = user?.currency ?? 'KES';
   const qc = useQueryClient();
   const [name, setName] = useState('');
   const [dealType, setDealType] = useState<string>(DEAL_TYPES[0]);
@@ -89,7 +92,7 @@ export function NewDealForm({ onDone }: { onDone: () => void }) {
         </Field>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Deal value (KES)">
+        <Field label={`Deal value (${currency})`}>
           <Input type="number" min={0} value={dealValue} onChange={(e) => setDealValue(e.target.value)} required />
         </Field>
         <Field label="Commission rate % (optional)">

@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Search, Plus, BedDouble, Bath } from 'lucide-react';
 import type { PropertyListItem, Page } from '@kaya/shared';
-import { formatKes } from '@kaya/shared';
+import { formatMoney } from '@kaya/shared';
 import { api } from '../../lib/api';
 import { PageHeader } from '../../components/PageHeader';
 import { Card } from '../../components/ui/Card';
@@ -60,7 +60,7 @@ export function PropertiesList() {
                     </div>
                     <p className="mb-2 text-xs text-muted">{p.location}</p>
                     <p className="mb-3 font-display text-lg font-semibold text-cypress-700">
-                      {formatKes(p.price, { compact: true })}{p.listingType === 'RENT' ? '/mo' : ''}
+                      {formatMoney(p.price, p.currency, { compact: true })}{p.listingType === 'RENT' ? '/mo' : ''}
                     </p>
                     <div className="flex items-center gap-3 text-xs text-muted">
                       {p.bedrooms != null && <span className="flex items-center gap-1"><BedDouble size={14} /> {p.bedrooms}</span>}

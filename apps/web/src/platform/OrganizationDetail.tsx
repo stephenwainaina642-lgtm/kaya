@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft } from 'lucide-react';
 import { PLANS } from '@kaya/shared';
 import type { PlatformOrgDetail } from '@kaya/shared';
-import { formatKes } from '@kaya/shared';
+import { formatMoney } from '@kaya/shared';
 import { platformApi } from './api';
 import { PageHeader } from '../components/PageHeader';
 import { Card } from '../components/ui/Card';
@@ -83,7 +83,7 @@ export function OrganizationDetail() {
             </div>
             <p className="mt-4 text-sm text-cypress-100/70">Total pipeline value</p>
             <p className="mt-1 font-display text-3xl font-semibold text-white">
-              {formatKes(org.pipelineValue, { compact: true })}
+              {formatMoney(org.pipelineValue, org.currency, { compact: true })}
             </p>
           </div>
 

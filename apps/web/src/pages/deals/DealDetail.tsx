@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { OFFER_STATUSES, can } from '@kaya/shared';
 import type { DealDetail as DealDetailT } from '@kaya/shared';
-import { formatKes } from '@kaya/shared';
+import { formatMoney } from '@kaya/shared';
 import { useAuth } from '../../auth/AuthContext';
 import { api } from '../../lib/api';
 import { Card } from '../../components/ui/Card';
@@ -18,6 +18,7 @@ import { NewOfferForm } from '../../forms/NewOfferForm';
 export function DealDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const currency = user?.currency ?? 'KES';
   const qc = useQueryClient();
   const [showOffer, setShowOffer] = useState(false);
   const { data: deal, isLoading } = useQuery({
@@ -59,7 +60,7 @@ export function DealDetail() {
                 {deal.offers.map((o) => (
                   <li key={o.id} className="flex items-center justify-between py-3 text-sm">
                     <div>
-                      <p className="font-medium text-ink">{formatKes(o.amount, { compact: true })} · {o.madeBy}</p>
+                      <p className="font-medium text-ink">{formatMoney(o.amount, currency, { compact: true })} · {o.madeBy}</p>
                       <p className="text-xs text-muted">{new Date(o.offeredAt).toLocaleDateString('en-KE')}</p>
                     </div>
                     {user && can(user.role, 'deals:edit') ? (
@@ -88,7 +89,7 @@ export function DealDetail() {
                   <li key={c.id} className="flex items-center justify-between py-3 text-sm">
                     <div>
                       <p className="font-medium text-ink">{c.agent.name} · {c.sharePercent}%</p>
-                      <p className="text-xs text-muted">{formatKes(c.amount, { compact: true })}</p>
+                      <p className="text-xs text-muted">{formatMoney(c.amount, currency, { compact: true })}</p>
                     </div>
                     <Badge tone={c.status === 'PAID' ? 'ok' : 'warn'}>{c.status}</Badge>
                   </li>
@@ -101,13 +102,13 @@ export function DealDetail() {
           <Card className="p-5">
             <Badge>{deal.status}</Badge>
             <p className="mt-3 font-display text-2xl font-semibold text-cypress-700">
-              {formatKes(deal.finalPrice ?? deal.offerPrice ?? deal.dealValue, { compact: true })}
+              {formatMoney(deal.finalPrice ?? deal.offerPrice ?? deal.dealValue, currency, { compact: true })}
             </p>
             <dl className="mt-4 space-y-2 border-t border-line pt-4 text-sm">
               <div className="flex justify-between"><dt className="text-muted">Stage</dt><dd className="text-ink">{deal.stage.name}</dd></div>
               <div className="flex justify-between"><dt className="text-muted">Client</dt><dd className="text-ink">{deal.client.name}</dd></div>
               <div className="flex justify-between"><dt className="text-muted">Agent</dt><dd className="text-ink">{deal.agent.name}</dd></div>
-              <div className="flex justify-between"><dt className="text-muted">Commission</dt><dd className="text-ink">{formatKes(deal.commissionAmount ?? 0, { compact: true })}</dd></div>
+              <div className="flex justify-between"><dt className="text-muted">Commission</dt><dd className="text-ink">{formatMoney(deal.commissionAmount ?? 0, currency, { compact: true })}</dd></div>
             </dl>
           </Card>
         </div>
