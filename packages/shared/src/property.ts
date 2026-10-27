@@ -157,6 +157,8 @@ export interface PublicProperty {
 export interface PublicShortlist {
   title: string;
   agencyName: string;
+  agencyLogoUrl: string | null;
+  agencyBrandColor: string | null;
   items: { property: PublicProperty; note: string | null }[];
   documents: PortalDocument[];
 }

@@ -7,6 +7,7 @@ import {
 import { planHasModule } from '@kaya/shared';
 import { useAuth } from '../auth/AuthContext';
 import { Avatar } from './ui/Avatar';
+import { BrandMark } from './BrandMark';
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -36,10 +37,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <>
       <div className="flex items-center gap-2 px-5 py-5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-control bg-cypress-600 font-display text-sm font-semibold text-white">
-          K
-        </div>
-        <span className="font-display text-lg font-semibold text-ink">Kaya</span>
+        <BrandMark logoUrl={user?.logoUrl} name={user?.organizationName ?? 'Kaya'} brandColor={user?.brandColor} size={32} />
+        <span className="truncate font-display text-lg font-semibold text-ink">{user?.organizationName || 'Kaya'}</span>
       </div>
       <nav className="scrollbar-thin flex-1 overflow-y-auto px-3 py-2">
         {items.map(({ to, label, icon: Icon, end }) => (
@@ -78,6 +77,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 export function AppLayout() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
+  const { user } = useAuth();
 
   return (
     <div className="flex h-screen bg-ground">
@@ -107,10 +107,8 @@ export function AppLayout() {
           <button onClick={() => setOpen(true)} className="rounded-control p-1.5 text-ink hover:bg-sunk">
             <Menu size={20} />
           </button>
-          <div className="flex h-7 w-7 items-center justify-center rounded-control bg-cypress-600 font-display text-xs font-semibold text-white">
-            K
-          </div>
-          <span className="font-display text-base font-semibold text-ink">Kaya</span>
+          <BrandMark logoUrl={user?.logoUrl} name={user?.organizationName ?? 'Kaya'} brandColor={user?.brandColor} size={28} />
+          <span className="truncate font-display text-base font-semibold text-ink">{user?.organizationName || 'Kaya'}</span>
         </div>
         <main key={location.pathname} className="scrollbar-thin flex-1 overflow-y-auto">
           <Outlet />

@@ -12,6 +12,7 @@ import { Field } from '../../components/ui/Field';
 import { Input } from '../../components/ui/Input';
 import { TextArea } from '../../components/ui/TextArea';
 import { SignaturePad, type SignaturePadHandle } from '../../components/SignaturePad';
+import { BrandMark } from '../../components/BrandMark';
 
 function RequestViewingModal({
   token, propertyId, propertyTitle, onClose,
@@ -143,7 +144,10 @@ export function PublicShortlist() {
   return (
     <div className="min-h-screen bg-ground">
       <header className="border-b border-line bg-white px-6 py-8 text-center sm:px-10">
-        <p className="text-xs font-medium uppercase tracking-wide text-faint">{data.agencyName}</p>
+        <div className="flex justify-center">
+          <BrandMark logoUrl={data.agencyLogoUrl} name={data.agencyName} brandColor={data.agencyBrandColor} size={44} />
+        </div>
+        <p className="mt-3 text-xs font-medium uppercase tracking-wide text-faint">{data.agencyName}</p>
         <h1 className="mt-1 font-display text-2xl font-semibold text-ink sm:text-3xl">{data.title}</h1>
         <p className="mt-1 text-sm text-muted">{data.items.length} {data.items.length === 1 ? 'property' : 'properties'} selected for you</p>
       </header>

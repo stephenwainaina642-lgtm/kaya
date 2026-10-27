@@ -12,6 +12,7 @@ import { notFound } from '../../lib/errors';
 import { parse } from '../../lib/validate';
 import { type Auth, uuidField, textField, requireClient, requireProperty, agentRef } from '../crm/common';
 import { recordAudit } from '../../lib/audit';
+import { toPublicLogoUrl } from '../../lib/branding';
 
 export const shortlistCreate = z.object({
   clientId: uuidField,
@@ -208,7 +209,10 @@ export async function resolveShareToken(token: string): Promise<typeof clientSho
 export async function getPublicShortlist(token: string): Promise<PublicShortlist> {
   const row = await resolveShareToken(token);
 
-  const [org] = await systemDb.select({ name: organizations.name }).from(organizations).where(eq(organizations.id, row.organizationId));
+  const [org] = await systemDb
+    .select({ name: organizations.name, slug: organizations.slug, logoUrl: organizations.logoUrl, brandColor: organizations.brandColor })
+    .from(organizations)
+    .where(eq(organizations.id, row.organizationId));
 
   const items = await systemDb
     .select({
@@ -261,5 +265,12 @@ export async function getPublicShortlist(token: string): Promise<PublicShortlist
     signedAt: d.signedAt?.toISOString() ?? null,
   }));
 
-  return { title: row.title, agencyName: org?.name ?? 'Kaya', items: mapped, documents: portalDocuments };
+  return {
+    title: row.title,
+    agencyName: org?.name ?? 'Kaya',
+    agencyLogoUrl: org ? toPublicLogoUrl(org.slug, org.logoUrl) : null,
+    agencyBrandColor: org?.brandColor ?? null,
+    items: mapped,
+    documents: portalDocuments,
+  };
 }

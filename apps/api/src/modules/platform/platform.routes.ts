@@ -2,7 +2,9 @@ import { Router } from 'express';
 import { getPublicShortlist } from '../shortlists/shortlists.service';
 import { createPublicViewingRequest, getPortalDocumentFile, signPortalDocument } from '../portal/portal.service';
 import { getPublicOrgInfo, submitPublicInquiry } from '../leads/public-inquiry.service';
+import { getLogoStorageKeyBySlug } from '../org-settings/org-settings.service';
 import { readFile } from '../../lib/storage';
+import { notFound } from '../../lib/errors';
 
 /**
  * Unauthenticated, public-facing routes — share links clients open without
@@ -54,6 +56,19 @@ platformRouter.post('/shortlists/:token/documents/:documentId/sign', async (req,
 platformRouter.get('/organizations/:slug', async (req, res, next) => {
   try {
     res.json(await getPublicOrgInfo(req.params.slug!));
+  } catch (err) {
+    next(err);
+  }
+});
+
+platformRouter.get('/organizations/:slug/logo', async (req, res, next) => {
+  try {
+    const storageKey = await getLogoStorageKeyBySlug(req.params.slug!);
+    if (!storageKey) throw notFound('Logo');
+    // No stored mime type for logos (unlike documents) — fine here since
+    // the browser sniffs image content-type reliably, and upload already
+    // restricted this file to a handful of known image types.
+    readFile(storageKey).pipe(res);
   } catch (err) {
     next(err);
   }

@@ -11,6 +11,7 @@ import { unauthorized, invalid, forbidden, locked, conflict } from '../../lib/er
 import { parse } from '../../lib/validate';
 import { isLocked, recordFailedAttempt, clearLockout } from '../../lib/lockout';
 import { uniqueSlug } from '../../lib/slug';
+import { toPublicLogoUrl } from '../../lib/branding';
 
 export const loginInput = z.object({
   email: z.string().email(),
@@ -48,7 +49,7 @@ function toUserDto(user: typeof users.$inferSelect, org: typeof organizations.$i
     plan: org.plan,
     organizationName: org.name,
     currency: org.currency,
-    logoUrl: org.logoUrl,
+    logoUrl: toPublicLogoUrl(org.slug, org.logoUrl),
     brandColor: org.brandColor,
   };
 }

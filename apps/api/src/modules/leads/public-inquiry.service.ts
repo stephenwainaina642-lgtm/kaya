@@ -12,6 +12,7 @@ import { findDuplicate } from '../crm/duplicates';
 import { enrollLeadInMatchingSequences } from '../automation/drip.service';
 import { applyAutoAssignRule } from '../automation/rules.service';
 import { recordAudit } from '../../lib/audit';
+import { toPublicLogoUrl } from '../../lib/branding';
 
 export const publicInquiryInput = z.object({
   fullName: z.string().trim().min(1).max(200),
@@ -34,7 +35,11 @@ async function resolveOrgBySlug(slug: string) {
 
 export async function getPublicOrgInfo(slug: string): Promise<PublicOrgInfo> {
   const org = await resolveOrgBySlug(slug);
-  return { name: org.name };
+  return {
+    name: org.name,
+    logoUrl: toPublicLogoUrl(org.slug, org.logoUrl),
+    brandColor: org.brandColor,
+  };
 }
 
 /**

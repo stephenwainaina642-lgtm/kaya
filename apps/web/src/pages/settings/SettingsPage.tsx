@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Copy, Check, ExternalLink } from 'lucide-react';
-import type { InquiryLink } from '@kaya/shared';
+import { Copy, Check, ExternalLink, Upload, Trash2 } from 'lucide-react';
+import type { InquiryLink, OrgBranding } from '@kaya/shared';
 import { useAuth } from '../../auth/AuthContext';
 import { api, ApiError } from '../../lib/api';
 import { PageHeader } from '../../components/PageHeader';
@@ -9,6 +9,7 @@ import { Card } from '../../components/ui/Card';
 import { Field } from '../../components/ui/Field';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import { BrandMark } from '../../components/BrandMark';
 
 function InquiryLinkCard() {
   const { data } = useQuery({
@@ -40,6 +41,96 @@ function InquiryLinkCard() {
           <Button type="button" variant="secondary"><ExternalLink size={15} /></Button>
         </a>
       </div>
+    </Card>
+  );
+}
+
+function BrandingCard() {
+  const { user, updateUser } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [color, setColor] = useState(user?.brandColor ?? '#2F5D4E');
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  const canEdit = user?.role === 'ORG_ADMIN';
+
+  const flash = () => { setSaved(true); setTimeout(() => setSaved(false), 2000); };
+  const onBranding = (branding: OrgBranding) => {
+    updateUser({ logoUrl: branding.logoUrl, brandColor: branding.brandColor });
+    setError(null);
+    flash();
+  };
+  const onError = (err: unknown) => setError(err instanceof ApiError ? err.message : 'Something went wrong');
+
+  const saveColor = useMutation({
+    mutationFn: () => api.patch<OrgBranding>('/org/branding', { brandColor: color }),
+    onSuccess: onBranding,
+    onError,
+  });
+
+  const uploadLogo = useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData();
+      form.append('file', file);
+      return api.postForm<OrgBranding>('/org/logo', form);
+    },
+    onSuccess: onBranding,
+    onError,
+  });
+
+  const removeLogo = useMutation({
+    mutationFn: () => api.del<OrgBranding>('/org/logo'),
+    onSuccess: onBranding,
+    onError,
+  });
+
+  if (!canEdit) return null;
+
+  return (
+    <Card className="max-w-lg p-5">
+      <h2 className="mb-1 font-display text-lg font-semibold text-ink">Workspace branding</h2>
+      <p className="mb-4 text-sm text-muted">
+        Shown in your sidebar and on the public pages clients see — your inquiry form and shared shortlists.
+      </p>
+
+      <div className="mb-5 flex items-center gap-4">
+        <BrandMark logoUrl={user?.logoUrl} name={user?.organizationName ?? 'Kaya'} brandColor={user?.brandColor} size={56} />
+        <div className="flex flex-wrap gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/svg+xml"
+            className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadLogo.mutate(f); e.target.value = ''; }}
+          />
+          <Button type="button" variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={uploadLogo.isPending}>
+            <Upload size={14} /> {uploadLogo.isPending ? 'Uploading…' : 'Upload logo'}
+          </Button>
+          {user?.logoUrl && (
+            <Button type="button" variant="secondary" onClick={() => removeLogo.mutate()} disabled={removeLogo.isPending}>
+              <Trash2 size={14} /> Remove
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <Field label="Accent color">
+        <div className="flex items-center gap-3">
+          <input
+            type="color"
+            value={color}
+            onChange={(e) => setColor(e.target.value)}
+            className="h-9 w-9 shrink-0 cursor-pointer rounded-control border border-line bg-white p-0.5"
+          />
+          <Input value={color} onChange={(e) => setColor(e.target.value)} className="flex-1" />
+          <Button type="button" variant="secondary" onClick={() => saveColor.mutate()} disabled={saveColor.isPending}>
+            {saveColor.isPending ? 'Saving…' : 'Save'}
+          </Button>
+        </div>
+      </Field>
+
+      {error && <p className="mt-3 text-sm text-danger">{error}</p>}
+      {saved && <p className="mt-3 text-sm text-cypress-700">Branding updated.</p>}
     </Card>
   );
 }
@@ -82,6 +173,7 @@ export function SettingsPage() {
       <PageHeader title="Settings" />
       <div className="space-y-6 p-8">
         <InquiryLinkCard />
+        <BrandingCard />
 
         <Card className="max-w-lg p-5">
           <h2 className="mb-4 font-display text-lg font-semibold text-ink">Your account</h2>

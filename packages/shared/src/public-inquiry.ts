@@ -4,6 +4,15 @@ import type { LeadType } from './enums';
  * nothing else leaks through the unauthenticated /inquire/:slug route. */
 export interface PublicOrgInfo {
   name: string;
+  logoUrl: string | null;
+  brandColor: string | null;
+}
+
+/** An agency's own branding settings, as seen/edited from inside the app. */
+export interface OrgBranding {
+  name: string;
+  logoUrl: string | null;
+  brandColor: string | null;
 }
 
 export interface PublicInquiryInput {

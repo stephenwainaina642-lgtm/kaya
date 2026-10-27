@@ -36,6 +36,7 @@ import { auditRouter } from './modules/audit/audit.routes';
 import { aiRouter } from './modules/ai/ai.routes';
 import { automationRouter } from './modules/automation/automation.routes';
 import { viewingRequestsRouter } from './modules/portal/portal.routes';
+import { orgSettingsRouter } from './modules/org-settings/org-settings.routes';
 
 export function createApp(): Express {
   const app = express();
@@ -83,6 +84,7 @@ export function createApp(): Express {
   app.use('/api/ai', aiRouter);
   app.use('/api/automation', automationRouter);
   app.use('/api/viewing-requests', viewingRequestsRouter);
+  app.use('/api/org', orgSettingsRouter);
 
   app.use('/api', notFoundHandler);
   app.use('/api', errorHandler);

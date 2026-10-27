@@ -10,6 +10,7 @@ import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { TextArea } from '../../components/ui/TextArea';
 import { Button } from '../../components/ui/Button';
+import { BrandMark } from '../../components/BrandMark';
 
 const LOOKING_FOR = [
   { value: 'BUYER', label: 'Buying' },
@@ -79,7 +80,10 @@ export function PublicInquiry() {
   return (
     <div className="min-h-screen bg-ground">
       <header className="border-b border-line bg-white px-6 py-10 text-center sm:px-10">
-        <p className="text-xs font-medium uppercase tracking-wide text-faint">{data.name}</p>
+        <div className="flex justify-center">
+          <BrandMark logoUrl={data.logoUrl} name={data.name} brandColor={data.brandColor} size={48} />
+        </div>
+        <p className="mt-3 text-xs font-medium uppercase tracking-wide text-faint">{data.name}</p>
         <h1 className="mx-auto mt-2 max-w-md font-display text-2xl font-semibold text-ink sm:text-3xl">
           Tell us what you're looking for
         </h1>
