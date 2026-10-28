@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, Users, UserCircle, Building2, Landmark, CalendarClock, ListChecks,
   Handshake, Wallet, Calendar, MessageSquare, FileText, BarChart3, UsersRound, Settings, LogOut, Menu, X, ShieldCheck, LineChart, Workflow,
@@ -10,29 +11,30 @@ import { Avatar } from './ui/Avatar';
 import { BrandMark } from './BrandMark';
 
 const NAV = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/leads', label: 'Leads', icon: Users },
-  { to: '/clients', label: 'Clients', icon: UserCircle },
-  { to: '/properties', label: 'Properties', icon: Building2 },
-  { to: '/owners', label: 'Owners', icon: Landmark },
-  { to: '/viewings', label: 'Viewings', icon: CalendarClock },
-  { to: '/follow-ups', label: 'Follow-ups', icon: ListChecks },
-  { to: '/tasks', label: 'Tasks', icon: ListChecks },
-  { to: '/deals', label: 'Deals', icon: Handshake, module: 'dealsPipeline' as const },
-  { to: '/commissions', label: 'Commissions', icon: Wallet, module: 'dealsPipeline' as const },
-  { to: '/calendar', label: 'Calendar', icon: Calendar },
-  { to: '/communications', label: 'Communications', icon: MessageSquare },
-  { to: '/documents', label: 'Documents', icon: FileText },
-  { to: '/reports', label: 'Reports', icon: BarChart3 },
-  { to: '/analytics', label: 'Analytics', icon: LineChart, module: 'analytics' as const },
-  { to: '/automation', label: 'Automation', icon: Workflow, module: 'automation' as const },
-  { to: '/audit-log', label: 'Audit Log', icon: ShieldCheck, module: 'auditLog' as const },
-  { to: '/team', label: 'Team', icon: UsersRound },
-  { to: '/settings', label: 'Settings', icon: Settings },
+  { to: '/', labelKey: 'nav.dashboard', icon: LayoutDashboard, end: true },
+  { to: '/leads', labelKey: 'nav.leads', icon: Users },
+  { to: '/clients', labelKey: 'nav.clients', icon: UserCircle },
+  { to: '/properties', labelKey: 'nav.properties', icon: Building2 },
+  { to: '/owners', labelKey: 'nav.owners', icon: Landmark },
+  { to: '/viewings', labelKey: 'nav.viewings', icon: CalendarClock },
+  { to: '/follow-ups', labelKey: 'nav.followUps', icon: ListChecks },
+  { to: '/tasks', labelKey: 'nav.tasks', icon: ListChecks },
+  { to: '/deals', labelKey: 'nav.deals', icon: Handshake, module: 'dealsPipeline' as const },
+  { to: '/commissions', labelKey: 'nav.commissions', icon: Wallet, module: 'dealsPipeline' as const },
+  { to: '/calendar', labelKey: 'nav.calendar', icon: Calendar },
+  { to: '/communications', labelKey: 'nav.communications', icon: MessageSquare },
+  { to: '/documents', labelKey: 'nav.documents', icon: FileText },
+  { to: '/reports', labelKey: 'nav.reports', icon: BarChart3 },
+  { to: '/analytics', labelKey: 'nav.analytics', icon: LineChart, module: 'analytics' as const },
+  { to: '/automation', labelKey: 'nav.automation', icon: Workflow, module: 'automation' as const },
+  { to: '/audit-log', labelKey: 'nav.auditLog', icon: ShieldCheck, module: 'auditLog' as const },
+  { to: '/team', labelKey: 'nav.team', icon: UsersRound },
+  { to: '/settings', labelKey: 'nav.settings', icon: Settings },
 ];
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const items = NAV.filter((item) => !item.module || !user || planHasModule(user.plan, item.module));
   return (
     <>
@@ -41,7 +43,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         <span className="truncate font-display text-lg font-semibold text-ink">{user?.organizationName || 'Kaya'}</span>
       </div>
       <nav className="scrollbar-thin flex-1 overflow-y-auto px-3 py-2">
-        {items.map(({ to, label, icon: Icon, end }) => (
+        {items.map(({ to, labelKey, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}
@@ -54,7 +56,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             }
           >
             <Icon size={17} strokeWidth={2} />
-            {label}
+            {t(labelKey)}
           </NavLink>
         ))}
       </nav>
@@ -65,7 +67,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             <p className="truncate text-sm font-medium text-ink">{user?.name}</p>
             <p className="truncate text-xs text-muted">{user?.role.replace('_', ' ')}</p>
           </div>
-          <button onClick={() => logout()} className="rounded-control p-1.5 text-faint hover:bg-sunk hover:text-ink" title="Log out">
+          <button onClick={() => logout()} className="rounded-control p-1.5 text-faint hover:bg-sunk hover:text-ink" title={t('nav.logOut')}>
             <LogOut size={16} />
           </button>
         </div>

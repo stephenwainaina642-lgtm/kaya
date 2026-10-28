@@ -1,0 +1,77 @@
+{
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "leads": "Prospects",
+    "clients": "Clients",
+    "properties": "Biens",
+    "owners": "Propriétaires",
+    "viewings": "Visites",
+    "followUps": "Relances",
+    "tasks": "Tâches",
+    "deals": "Transactions",
+    "commissions": "Commissions",
+    "calendar": "Calendrier",
+    "communications": "Communications",
+    "documents": "Documents",
+    "reports": "Rapports",
+    "analytics": "Analytique",
+    "automation": "Automatisation",
+    "auditLog": "Journal d'audit",
+    "team": "Équipe",
+    "settings": "Paramètres",
+    "logOut": "Déconnexion"
+  },
+  "login": {
+    "eyebrow": "Espace agence",
+    "headline": "Tout ce dont votre pipeline a besoin, au même endroit.",
+    "subhead": "Prospects, biens, visites, transactions et commissions — conçu pour la façon dont les agences travaillent vraiment, du premier contact à la vente conclue.",
+    "welcomeBack": "Bon retour",
+    "signInSubtitle": "Connectez-vous à l'espace de votre agence",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "signIn": "Se connecter",
+    "signingIn": "Connexion…",
+    "demoHint": "Démo : wanjiru@savannaridge.co.ke / Kaya!Demo2026",
+    "newToKaya": "Nouveau sur Kaya ?",
+    "createWorkspace": "Créer l'espace de votre agence"
+  },
+  "signup": {
+    "eyebrow": "Essai gratuit",
+    "headline": "Configurez l'espace de votre agence en moins d'une minute.",
+    "subhead": "Aucun appel commercial, aucuns frais d'installation — choisissez votre devise, invitez votre équipe et démarrez dès aujourd'hui.",
+    "title": "Créer l'espace de votre agence",
+    "subtitle": "Configurez Kaya pour votre agence en moins d'une minute — aucun appel commercial requis.",
+    "agencyName": "Nom de l'agence",
+    "yourName": "Votre nom",
+    "workEmail": "E-mail professionnel",
+    "password": "Mot de passe",
+    "currency": "Devise",
+    "submit": "Créer l'espace",
+    "submitting": "Création de votre espace…",
+    "planHint": "Vous démarrez avec le forfait Starter, gratuit à l'essai — mettez à niveau à tout moment depuis les Paramètres.",
+    "alreadyHaveWorkspace": "Vous avez déjà un espace ?",
+    "signIn": "Se connecter"
+  },
+  "landing": {
+    "nav": { "features": "Fonctionnalités", "pricing": "Tarifs", "faq": "FAQ", "signIn": "Se connecter", "startFree": "Essai gratuit" },
+    "hero": {
+      "headline": "Le CRM conçu pour la façon dont les agences kényanes vendent réellement des biens.",
+      "subhead": "Prospects, biens, visites, transactions et commissions réunis en un seul endroit — conçu pour les relances WhatsApp, affiché dans votre propre devise, et honnête sur ce qu'il automatise et ce qu'il ne fait pas.",
+      "startFree": "Essai gratuit",
+      "bookDemo": "Réserver une démo",
+      "noCard": "Aucune carte bancaire requise pour essayer."
+    },
+    "capabilities": {
+      "isolation": "Les données de chaque agence sont totalement isolées",
+      "currency": "Tarification et affichage dans votre devise",
+      "whatsapp": "Messagerie prête pour WhatsApp",
+      "roles": "Accès basé sur les rôles pour chaque membre de l'équipe"
+    },
+    "closingCta": {
+      "headline": "Donnez à votre équipe un seul endroit pour gérer le pipeline",
+      "subhead": "Essayez Kaya gratuitement, ou parlez-nous d'abord — nous guiderons votre équipe lors d'un appel.",
+      "startFree": "Essai gratuit",
+      "bookDemo": "Réserver une démo"
+    }
+  }
+}

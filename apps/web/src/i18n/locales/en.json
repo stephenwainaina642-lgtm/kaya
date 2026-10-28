@@ -1,0 +1,77 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "leads": "Leads",
+    "clients": "Clients",
+    "properties": "Properties",
+    "owners": "Owners",
+    "viewings": "Viewings",
+    "followUps": "Follow-ups",
+    "tasks": "Tasks",
+    "deals": "Deals",
+    "commissions": "Commissions",
+    "calendar": "Calendar",
+    "communications": "Communications",
+    "documents": "Documents",
+    "reports": "Reports",
+    "analytics": "Analytics",
+    "automation": "Automation",
+    "auditLog": "Audit Log",
+    "team": "Team",
+    "settings": "Settings",
+    "logOut": "Log out"
+  },
+  "login": {
+    "eyebrow": "Agency workspace",
+    "headline": "Everything your pipeline needs, in one place.",
+    "subhead": "Leads, listings, viewings, deals and commissions — built for how agencies actually work, from first enquiry to closed deal.",
+    "welcomeBack": "Welcome back",
+    "signInSubtitle": "Sign in to your agency workspace",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign in",
+    "signingIn": "Signing in…",
+    "demoHint": "Demo: wanjiru@savannaridge.co.ke / Kaya!Demo2026",
+    "newToKaya": "New to Kaya?",
+    "createWorkspace": "Create your agency workspace"
+  },
+  "signup": {
+    "eyebrow": "Start free",
+    "headline": "Set up your agency's workspace in under a minute.",
+    "subhead": "No sales call, no setup fee — pick your currency, invite your team, and start running your pipeline today.",
+    "title": "Create your agency workspace",
+    "subtitle": "Set up Kaya for your agency in under a minute — no sales call required.",
+    "agencyName": "Agency name",
+    "yourName": "Your name",
+    "workEmail": "Work email",
+    "password": "Password",
+    "currency": "Currency",
+    "submit": "Create workspace",
+    "submitting": "Creating your workspace…",
+    "planHint": "You start on the Starter plan, free to try — upgrade any time from Settings.",
+    "alreadyHaveWorkspace": "Already have a workspace?",
+    "signIn": "Sign in"
+  },
+  "landing": {
+    "nav": { "features": "Features", "pricing": "Pricing", "faq": "FAQ", "signIn": "Sign in", "startFree": "Start free" },
+    "hero": {
+      "headline": "The CRM built for how Kenyan agencies actually sell property.",
+      "subhead": "Leads, listings, viewings, deals and commissions in one place — built for WhatsApp follow-ups, priced in your own currency, and honest about what it automates and what it doesn't.",
+      "startFree": "Start free",
+      "bookDemo": "Book a demo",
+      "noCard": "No credit card required to try it."
+    },
+    "capabilities": {
+      "isolation": "Each agency's data fully isolated",
+      "currency": "Priced and shown in your currency",
+      "whatsapp": "WhatsApp-ready messaging",
+      "roles": "Role-based access for every team member"
+    },
+    "closingCta": {
+      "headline": "Give your team one place to run the pipeline",
+      "subhead": "Try Kaya free, or talk to us first — we'll walk your team through it over a call.",
+      "startFree": "Start free",
+      "bookDemo": "Book a demo"
+    }
+  }
+}

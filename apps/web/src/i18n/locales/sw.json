@@ -1,0 +1,77 @@
+{
+  "nav": {
+    "dashboard": "Dashibodi",
+    "leads": "Wateja Watarajiwa",
+    "clients": "Wateja",
+    "properties": "Mali",
+    "owners": "Wamiliki",
+    "viewings": "Ukaguzi",
+    "followUps": "Ufuatiliaji",
+    "tasks": "Majukumu",
+    "deals": "Mikataba",
+    "commissions": "Kamisheni",
+    "calendar": "Kalenda",
+    "communications": "Mawasiliano",
+    "documents": "Nyaraka",
+    "reports": "Ripoti",
+    "analytics": "Uchambuzi",
+    "automation": "Otomatiki",
+    "auditLog": "Kumbukumbu za Ukaguzi",
+    "team": "Timu",
+    "settings": "Mipangilio",
+    "logOut": "Toka"
+  },
+  "login": {
+    "eyebrow": "Nafasi ya Wakala",
+    "headline": "Kila kitu ambacho mkondo wako wa biashara unahitaji, mahali pamoja.",
+    "subhead": "Wateja watarajiwa, orodha za mali, ukaguzi, mikataba na kamisheni — imeundwa kulingana na jinsi mawakala wanavyofanya kazi kwa kweli, kuanzia dondoo la kwanza hadi mkataba kukamilika.",
+    "welcomeBack": "Karibu tena",
+    "signInSubtitle": "Ingia kwenye nafasi ya wakala wako",
+    "email": "Barua pepe",
+    "password": "Nenosiri",
+    "signIn": "Ingia",
+    "signingIn": "Inaingia…",
+    "demoHint": "Onyesho: wanjiru@savannaridge.co.ke / Kaya!Demo2026",
+    "newToKaya": "Mgeni kwenye Kaya?",
+    "createWorkspace": "Unda nafasi ya wakala wako"
+  },
+  "signup": {
+    "eyebrow": "Anza Bure",
+    "headline": "Sanidi nafasi ya wakala wako kwa chini ya dakika moja.",
+    "subhead": "Hakuna simu ya mauzo, hakuna ada ya kusanidi — chagua sarafu yako, alika timu yako, na anza kuendesha mkondo wako wa biashara leo.",
+    "title": "Unda nafasi ya wakala wako",
+    "subtitle": "Sanidi Kaya kwa wakala wako kwa chini ya dakika moja — hakuna simu ya mauzo inayohitajika.",
+    "agencyName": "Jina la wakala",
+    "yourName": "Jina lako",
+    "workEmail": "Barua pepe ya kazi",
+    "password": "Nenosiri",
+    "currency": "Sarafu",
+    "submit": "Unda nafasi",
+    "submitting": "Inaunda nafasi yako…",
+    "planHint": "Unaanza na mpango wa Starter, bure kujaribu — boresha wakati wowote kutoka kwa Mipangilio.",
+    "alreadyHaveWorkspace": "Je, tayari una nafasi?",
+    "signIn": "Ingia"
+  },
+  "landing": {
+    "nav": { "features": "Vipengele", "pricing": "Bei", "faq": "Maswali", "signIn": "Ingia", "startFree": "Anza Bure" },
+    "hero": {
+      "headline": "CRM iliyoundwa kwa jinsi mawakala wa Kenya wanavyouza mali kwa kweli.",
+      "subhead": "Wateja watarajiwa, orodha za mali, ukaguzi, mikataba na kamisheni mahali pamoja — imeundwa kwa ajili ya ufuatiliaji wa WhatsApp, bei katika sarafu yako mwenyewe, na ya kweli kuhusu kile inachofanya kiotomatiki na kisichofanya.",
+      "startFree": "Anza Bure",
+      "bookDemo": "Weka Miadi ya Onyesho",
+      "noCard": "Hakuna kadi ya benki inayohitajika kujaribu."
+    },
+    "capabilities": {
+      "isolation": "Data za kila wakala zimetengwa kikamilifu",
+      "currency": "Bei na onyesho katika sarafu yako",
+      "whatsapp": "Ujumbe tayari kwa WhatsApp",
+      "roles": "Ufikiaji kulingana na majukumu kwa kila mwanatimu"
+    },
+    "closingCta": {
+      "headline": "Ipe timu yako mahali pamoja pa kuendesha mkondo wa biashara",
+      "subhead": "Jaribu Kaya bure, au zungumza nasi kwanza — tutaongoza timu yako kupitia simu.",
+      "startFree": "Anza Bure",
+      "bookDemo": "Weka Miadi ya Onyesho"
+    }
+  }
+}

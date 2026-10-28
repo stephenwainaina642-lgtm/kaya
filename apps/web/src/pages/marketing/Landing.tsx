@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Menu, X, Check, Plus, Minus } from 'lucide-react';
+import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 
 const NAV_LINKS = [
-  { href: '#features', label: 'Features' },
-  { href: '#pricing', label: 'Pricing' },
-  { href: '#faq', label: 'FAQ' },
+  { href: '#features', labelKey: 'landing.nav.features' },
+  { href: '#pricing', labelKey: 'landing.nav.pricing' },
+  { href: '#faq', labelKey: 'landing.nav.faq' },
 ];
 
 const WORKFLOW = [
@@ -43,12 +45,7 @@ const FEATURES = [
   },
 ];
 
-const CAPABILITIES = [
-  'Each agency’s data fully isolated',
-  'Priced and shown in your currency',
-  'WhatsApp-ready messaging',
-  'Role-based access for every team member',
-];
+const CAPABILITIES = ['isolation', 'currency', 'whatsapp', 'roles'] as const;
 
 const PLANS = [
   {
@@ -173,6 +170,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 
 export function Landing() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { t } = useTranslation();
 
   return (
     <div className="bg-surface">
@@ -182,13 +180,14 @@ export function Landing() {
           <Logo />
           <nav className="hidden items-center gap-8 md:flex">
             {NAV_LINKS.map((l) => (
-              <a key={l.href} href={l.href} className="text-sm font-medium text-muted hover:text-ink">{l.label}</a>
+              <a key={l.href} href={l.href} className="text-sm font-medium text-muted hover:text-ink">{t(l.labelKey)}</a>
             ))}
           </nav>
           <div className="hidden items-center gap-3 md:flex">
-            <Link to="/login" className="text-sm font-medium text-muted hover:text-ink">Sign in</Link>
+            <LanguageSwitcher />
+            <Link to="/login" className="text-sm font-medium text-muted hover:text-ink">{t('landing.nav.signIn')}</Link>
             <Link to="/signup" className="rounded-control bg-cypress-600 px-4 py-2 text-sm font-medium text-white hover:bg-cypress-700">
-              Start free
+              {t('landing.nav.startFree')}
             </Link>
           </div>
           <button onClick={() => setMenuOpen((v) => !v)} className="p-1.5 text-ink md:hidden">
@@ -199,10 +198,13 @@ export function Landing() {
           <div className="border-t border-line px-5 pb-5 md:hidden">
             <nav className="flex flex-col gap-4 pt-4">
               {NAV_LINKS.map((l) => (
-                <a key={l.href} href={l.href} onClick={() => setMenuOpen(false)} className="text-sm font-medium text-ink">{l.label}</a>
+                <a key={l.href} href={l.href} onClick={() => setMenuOpen(false)} className="text-sm font-medium text-ink">{t(l.labelKey)}</a>
               ))}
-              <Link to="/login" className="text-sm font-medium text-ink">Sign in</Link>
-              <Link to="/signup" className="rounded-control bg-cypress-600 px-4 py-2 text-center text-sm font-medium text-white">Start free</Link>
+              <Link to="/login" className="text-sm font-medium text-ink">{t('landing.nav.signIn')}</Link>
+              <Link to="/signup" className="rounded-control bg-cypress-600 px-4 py-2 text-center text-sm font-medium text-white">{t('landing.nav.startFree')}</Link>
+              <div className="pt-1">
+                <LanguageSwitcher />
+              </div>
             </nav>
           </div>
         )}
@@ -213,20 +215,20 @@ export function Landing() {
         <div className="grid items-center gap-14 md:grid-cols-[1.1fr_0.9fr]">
           <div>
             <h1 className="max-w-lg font-display text-4xl font-semibold leading-[1.1] text-ink md:text-5xl">
-              The CRM built for how Kenyan agencies actually sell property.
+              {t('landing.hero.headline')}
             </h1>
             <p className="mt-5 max-w-md text-base leading-relaxed text-muted">
-              Leads, listings, viewings, deals and commissions in one place — built for WhatsApp follow-ups, priced in your own currency, and honest about what it automates and what it doesn’t.
+              {t('landing.hero.subhead')}
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link to="/signup" className="rounded-control bg-cypress-600 px-5 py-3 text-sm font-medium text-white hover:bg-cypress-700">
-                Start free
+                {t('landing.hero.startFree')}
               </Link>
               <a href="#contact" className="rounded-control border border-line px-5 py-3 text-sm font-medium text-ink hover:bg-sunk">
-                Book a demo
+                {t('landing.hero.bookDemo')}
               </a>
             </div>
-            <p className="mt-4 text-xs text-faint">No credit card required to try it.</p>
+            <p className="mt-4 text-xs text-faint">{t('landing.hero.noCard')}</p>
           </div>
           <PipelineMock />
         </div>
@@ -238,7 +240,7 @@ export function Landing() {
           {CAPABILITIES.map((c) => (
             <div key={c} className="flex items-center gap-2">
               <Check size={15} className="shrink-0 text-cypress-600" />
-              <span>{c}</span>
+              <span>{t(`landing.capabilities.${c}`)}</span>
             </div>
           ))}
         </div>
@@ -334,19 +336,19 @@ export function Landing() {
       {/* Final CTA */}
       <section id="contact" className="bg-[#1d2a22]">
         <div className="mx-auto max-w-3xl px-5 py-20 text-center md:py-28">
-          <h2 className="font-display text-3xl font-semibold text-white md:text-4xl">Give your team one place to run the pipeline</h2>
+          <h2 className="font-display text-3xl font-semibold text-white md:text-4xl">{t('landing.closingCta.headline')}</h2>
           <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-cypress-100">
-            Try Kaya free, or talk to us first — we’ll walk your team through it over a call.
+            {t('landing.closingCta.subhead')}
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link to="/signup" className="rounded-control bg-white px-5 py-3 text-sm font-medium text-ink hover:bg-cypress-50">
-              Start free
+              {t('landing.closingCta.startFree')}
             </Link>
             <a
               href="mailto:hello@kaya.co.ke?subject=Book%20a%20Kaya%20demo"
               className="rounded-control border border-white/30 px-5 py-3 text-sm font-medium text-white hover:bg-white/10"
             >
-              Book a demo
+              {t('landing.closingCta.bookDemo')}
             </a>
           </div>
         </div>
@@ -358,7 +360,7 @@ export function Landing() {
           <Logo />
           <nav className="flex items-center gap-6">
             {NAV_LINKS.map((l) => (
-              <a key={l.href} href={l.href} className="hover:text-muted">{l.label}</a>
+              <a key={l.href} href={l.href} className="hover:text-muted">{t(l.labelKey)}</a>
             ))}
             <a href="mailto:hello@kaya.co.ke" className="hover:text-muted">hello@kaya.co.ke</a>
           </nav>
