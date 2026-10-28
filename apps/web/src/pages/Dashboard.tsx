@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { formatMoney } from '@kaya/shared';
 import type { DashboardData, AttentionItem } from '@kaya/shared';
 import { Link } from 'react-router-dom';
-import { CalendarClock } from 'lucide-react';
+import { CalendarClock, Users, UserCircle, Handshake } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../auth/AuthContext';
 import { PageHeader } from '../components/PageHeader';
@@ -19,11 +19,16 @@ const ATTENTION_ACCENT: Record<AttentionItem['kind'], string> = {
   UNASSIGNED_LEAD: 'border-l-cypress-500',
 };
 
-function SecondaryStat({ label, value }: { label: string; value: string }) {
+function SecondaryStat({ label, value, icon: Icon }: { label: string; value: string; icon: typeof Users }) {
   return (
-    <div className="flex-1 px-5 py-4 first:pl-0 last:pr-0">
-      <p className="font-display text-2xl font-semibold text-ink">{value}</p>
-      <p className="mt-0.5 text-sm text-muted">{label}</p>
+    <div className="flex flex-1 items-center gap-3 px-5 py-4 first:pl-0 last:pr-0">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-cypress-50 text-cypress-700">
+        <Icon size={17} strokeWidth={2} />
+      </div>
+      <div>
+        <p className="font-display text-2xl font-semibold text-ink">{value}</p>
+        <p className="mt-0.5 text-sm text-muted">{label}</p>
+      </div>
     </div>
   );
 }
@@ -59,9 +64,9 @@ export function Dashboard() {
             <p className="mt-1 font-display text-4xl font-semibold text-white">{formatMoney(kpis.pipelineValue, currency, { compact: true })}</p>
           </div>
           <Card className="flex divide-x divide-line p-0 lg:col-span-2">
-            <SecondaryStat label="Active leads" value={String(kpis.activeLeads)} />
-            <SecondaryStat label="Active clients" value={String(kpis.activeClients)} />
-            <SecondaryStat label="Deals in progress" value={String(kpis.dealsInProgress)} />
+            <SecondaryStat label="Active leads" value={String(kpis.activeLeads)} icon={Users} />
+            <SecondaryStat label="Active clients" value={String(kpis.activeClients)} icon={UserCircle} />
+            <SecondaryStat label="Deals in progress" value={String(kpis.dealsInProgress)} icon={Handshake} />
           </Card>
         </div>
 
