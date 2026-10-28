@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 import { ApiError } from '../lib/api';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { AuthShell } from '../components/AuthShell';
 
 export function Login() {
   const { user, login } = useAuth();
@@ -37,40 +38,42 @@ export function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-ground px-4">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 flex flex-col items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-control bg-cypress-600 font-display text-xl font-semibold text-white">
-            K
-          </div>
-          <h1 className="font-display text-2xl font-semibold text-ink">Kaya</h1>
-          <p className="text-sm text-muted">Sign in to your agency workspace</p>
+    <AuthShell
+      eyebrow="Agency workspace"
+      headline="Everything your pipeline needs, in one place."
+      subhead="Leads, listings, viewings, deals and commissions — built for how agencies actually work, from first enquiry to closed deal."
+    >
+      <div className="mb-8 flex flex-col items-center gap-3 lg:items-start">
+        <div className="flex h-12 w-12 items-center justify-center rounded-control bg-cypress-600 font-display text-xl font-semibold text-white lg:hidden">
+          K
         </div>
-        <form onSubmit={onSubmit} className="rounded-panel border border-line bg-surface p-6 shadow-card">
-          <label className="mb-1 block text-sm font-medium text-ink">Email</label>
-          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="mb-4" />
-          <label className="mb-1 block text-sm font-medium text-ink">Password</label>
-          <Input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            placeholder="Kaya!Demo2026"
-            className="mb-4"
-          />
-          {error && <p className="mb-4 text-sm text-danger">{error}</p>}
-          <Button type="submit" disabled={busy} className="w-full">
-            {busy ? 'Signing in…' : 'Sign in'}
-          </Button>
-        </form>
-        <p className="mt-4 text-center text-xs text-faint">Demo: wanjiru@savannaridge.co.ke / Kaya!Demo2026</p>
-        <p className="mt-4 text-center text-sm text-muted">
-          New to Kaya?{' '}
-          <Link to="/signup" className="font-medium text-cypress-700 hover:underline">
-            Create your agency workspace
-          </Link>
-        </p>
+        <h1 className="font-display text-2xl font-semibold text-ink">Welcome back</h1>
+        <p className="text-sm text-muted">Sign in to your agency workspace</p>
       </div>
-    </div>
+      <form onSubmit={onSubmit} className="rounded-panel border border-line bg-surface p-6 shadow-card">
+        <label className="mb-1 block text-sm font-medium text-ink">Email</label>
+        <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="mb-4" />
+        <label className="mb-1 block text-sm font-medium text-ink">Password</label>
+        <Input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          placeholder="Kaya!Demo2026"
+          className="mb-4"
+        />
+        {error && <p className="mb-4 text-sm text-danger">{error}</p>}
+        <Button type="submit" disabled={busy} className="w-full">
+          {busy ? 'Signing in…' : 'Sign in'}
+        </Button>
+      </form>
+      <p className="mt-4 text-center text-xs text-faint lg:text-left">Demo: wanjiru@savannaridge.co.ke / Kaya!Demo2026</p>
+      <p className="mt-4 text-center text-sm text-muted lg:text-left">
+        New to Kaya?{' '}
+        <Link to="/signup" className="font-medium text-cypress-700 hover:underline">
+          Create your agency workspace
+        </Link>
+      </p>
+    </AuthShell>
   );
 }
