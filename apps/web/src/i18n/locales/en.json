@@ -53,7 +53,13 @@
     "signIn": "Sign in"
   },
   "landing": {
-    "nav": { "features": "Features", "pricing": "Pricing", "faq": "FAQ", "signIn": "Sign in", "startFree": "Start free" },
+    "nav": {
+      "features": "Features",
+      "pricing": "Pricing",
+      "faq": "FAQ",
+      "signIn": "Sign in",
+      "startFree": "Start free"
+    },
     "hero": {
       "headline": "The CRM built for how Kenyan agencies actually sell property.",
       "subhead": "Leads, listings, viewings, deals and commissions in one place — built for WhatsApp follow-ups, priced in your own currency, and honest about what it automates and what it doesn't.",
@@ -73,5 +79,30 @@
       "startFree": "Start free",
       "bookDemo": "Book a demo"
     }
+  },
+  "forgot": {
+    "eyebrow": "Account recovery",
+    "headline": "Locked out? We'll get you back in.",
+    "subhead": "Enter your work email and we'll send a link to choose a new password.",
+    "title": "Forgot your password?",
+    "subtitle": "We'll email you a reset link.",
+    "submit": "Send reset link",
+    "sending": "Sending…",
+    "sent": "If an account exists for {{email}}, a reset link is on its way. It expires in 1 hour.",
+    "error": "Something went wrong. Try again.",
+    "backToSignIn": "Back to sign in",
+    "link": "Forgot password?"
+  },
+  "reset": {
+    "title": "Choose a new password",
+    "subtitle": "Use at least 8 characters.",
+    "newPassword": "New password",
+    "confirm": "Confirm password",
+    "submit": "Reset password",
+    "saving": "Saving…",
+    "mismatch": "The passwords don't match.",
+    "done": "Your password has been reset. You can now sign in.",
+    "missingToken": "This reset link is incomplete.",
+    "requestNew": "Request a new link"
   }
 }

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { login, refresh, logout, me, updateProfile, changePassword, register } from './auth.service';
+import { login, refresh, logout, me, updateProfile, changePassword, register, requestPasswordReset, resetPassword } from './auth.service';
 import { authenticate, ctx } from '../../middleware/auth';
 import { createLoginLimiter } from '../../middleware/rateLimit';
 
@@ -9,6 +9,13 @@ const loginLimiter = createLoginLimiter();
 const signupLimiter = createLoginLimiter({
   limit: 10,
   message: { error: { code: 'RATE_LIMITED', message: 'Too many signup attempts. Try again later.' } },
+});
+
+// Each forgot request sends an email, so cap them per IP.
+const resetLimiter = createLoginLimiter({
+  limit: 10,
+  skip: () => process.env.NODE_ENV === 'test', // the suite makes many calls from one IP
+  message: { error: { code: 'RATE_LIMITED', message: 'Too many reset attempts. Try again later.' } },
 });
 
 export const authRouter = Router();
@@ -90,6 +97,24 @@ authRouter.post('/change-password', authenticate, async (req, res, next) => {
     const a = ctx(req);
     await changePassword(a.organizationId, a.userId, req.body);
     res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+});
+
+authRouter.post('/forgot-password', resetLimiter, async (req, res, next) => {
+  try {
+    await requestPasswordReset(req.body);
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+authRouter.post('/reset-password', resetLimiter, async (req, res, next) => {
+  try {
+    await resetPassword(req.body);
+    res.json({ ok: true });
   } catch (err) {
     next(err);
   }

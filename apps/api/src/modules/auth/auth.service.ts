@@ -1,10 +1,10 @@
-import { eq, and, gt } from 'drizzle-orm';
+import { eq, and, gt, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Plan } from '@kaya/shared';
 import { CURRENCIES } from '@kaya/shared';
 import { systemDb } from '../../db/system';
 import { withTenant } from '../../db/client';
-import { users, refreshTokens, organizations } from '../../db/schema';
+import { users, refreshTokens, organizations, passwordResetTokens } from '../../db/schema';
 import { verifyPassword, hashPassword } from '../../lib/password';
 import { signAccessToken, newRefreshToken, hashRefreshToken } from '../../lib/tokens';
 import { unauthorized, invalid, forbidden, locked, conflict } from '../../lib/errors';
@@ -12,6 +12,8 @@ import { parse } from '../../lib/validate';
 import { isLocked, recordFailedAttempt, clearLockout } from '../../lib/lockout';
 import { uniqueSlug } from '../../lib/slug';
 import { toPublicLogoUrl } from '../../lib/branding';
+import { sendMail, passwordResetEmail } from '../../lib/mailer';
+import { appUrl } from '../../config/env';
 
 export const loginInput = z.object({
   email: z.string().email(),
@@ -253,5 +255,67 @@ export async function changePassword(organizationId: string, userId: string, bod
     const passwordHash = await hashPassword(input.newPassword);
     await tx.update(users).set({ passwordHash }).where(eq(users.id, userId));
     await tx.delete(refreshTokens).where(eq(refreshTokens.userId, userId));
+  });
+}
+
+const RESET_TTL_MS = 60 * 60 * 1000;
+
+export const forgotPasswordInput = z.object({ email: z.string().trim().toLowerCase().email() });
+
+/**
+ * Starts a password reset. Always resolves the same way whether or not the
+ * email belongs to an account, so this endpoint can't be used to find out
+ * who has one. A new request replaces any earlier outstanding link.
+ * Suspended workspaces get no email (they couldn't log in anyway).
+ */
+export async function requestPasswordReset(body: unknown): Promise<void> {
+  const input = parse(forgotPasswordInput, body);
+  const [user] = await systemDb.select().from(users).where(eq(users.email, input.email));
+  if (!user) return;
+  const [org] = await systemDb.select({ suspendedAt: organizations.suspendedAt }).from(organizations).where(eq(organizations.id, user.organizationId));
+  if (!org || org.suspendedAt) return;
+
+  const token = newRefreshToken();
+  await systemDb.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, user.id));
+  await systemDb.insert(passwordResetTokens).values({
+    userId: user.id,
+    tokenHash: hashRefreshToken(token),
+    expiresAt: new Date(Date.now() + RESET_TTL_MS),
+  });
+  const link = `${appUrl}/reset-password?token=${token}`;
+  await sendMail({ to: user.email, ...passwordResetEmail(user.name, link, RESET_TTL_MS / 60000) });
+}
+
+export const resetPasswordInput = z.object({
+  token: z.string().min(1),
+  newPassword: z.string().min(8).max(100),
+});
+
+/**
+ * Completes a reset: the token must exist, be unexpired and unused. On
+ * success the password changes, the link is spent, every existing session
+ * is signed out, and any lockout is cleared (the owner has just proven
+ * control of the mailbox).
+ */
+export async function resetPassword(body: unknown): Promise<void> {
+  const input = parse(resetPasswordInput, body);
+  const tokenHash = hashRefreshToken(input.token);
+  const [row] = await systemDb
+    .select()
+    .from(passwordResetTokens)
+    .where(and(eq(passwordResetTokens.tokenHash, tokenHash), gt(passwordResetTokens.expiresAt, new Date())));
+  if (!row || row.usedAt) throw invalid({ token: 'This reset link is invalid or has expired. Request a new one.' });
+
+  const passwordHash = await hashPassword(input.newPassword);
+  await systemDb.transaction(async (tx) => {
+    // Claim the token atomically so two concurrent requests can't both succeed.
+    const claimed = await tx
+      .update(passwordResetTokens)
+      .set({ usedAt: new Date() })
+      .where(and(eq(passwordResetTokens.id, row.id), isNull(passwordResetTokens.usedAt)))
+      .returning({ id: passwordResetTokens.id });
+    if (claimed.length === 0) throw invalid({ token: 'This reset link is invalid or has expired. Request a new one.' });
+    await tx.update(users).set({ passwordHash, ...clearLockout }).where(eq(users.id, row.userId));
+    await tx.delete(refreshTokens).where(eq(refreshTokens.userId, row.userId));
   });
 }

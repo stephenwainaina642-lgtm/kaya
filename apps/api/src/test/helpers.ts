@@ -9,7 +9,7 @@ const TENANT_TABLES = [
   'commissions', 'offers', 'viewing_feedback', 'viewings', 'deals', 'deal_stages',
   'shortlist_items', 'client_shortlists', 'client_property_matches', 'property_features',
   'property_images', 'properties', 'owners', 'documents', 'communications', 'activities',
-  'follow_ups', 'tasks', 'requirements', 'audit_logs', 'refresh_tokens', 'clients', 'leads',
+  'follow_ups', 'tasks', 'requirements', 'audit_logs', 'refresh_tokens', 'password_reset_tokens', 'clients', 'leads',
   'drip_enrollments', 'drip_sequence_steps', 'drip_sequences', 'automation_rules',
   'document_signatures', 'viewing_requests',
   'users', 'organizations', 'platform_admins',

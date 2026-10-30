@@ -31,3 +31,20 @@ export const refreshTokens = pgTable('refresh_tokens', {
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// No tenantColumns, same as refreshTokens above — looked up by tokenHash
+// alone via systemDb, since a password-reset request arrives before any
+// tenant/auth context exists. One row per outstanding reset request;
+// usedAt marks it spent so a link can't be replayed after a successful
+// reset, and a fresh "forgot password" request supersedes any earlier one
+// (see auth.service.ts, which deletes prior rows for the user first).
+export const passwordResetTokens = pgTable('password_reset_tokens', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  tokenHash: text('token_hash').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  usedAt: timestamp('used_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});

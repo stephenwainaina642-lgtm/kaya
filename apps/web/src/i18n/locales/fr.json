@@ -53,7 +53,13 @@
     "signIn": "Se connecter"
   },
   "landing": {
-    "nav": { "features": "Fonctionnalités", "pricing": "Tarifs", "faq": "FAQ", "signIn": "Se connecter", "startFree": "Essai gratuit" },
+    "nav": {
+      "features": "Fonctionnalités",
+      "pricing": "Tarifs",
+      "faq": "FAQ",
+      "signIn": "Se connecter",
+      "startFree": "Essai gratuit"
+    },
     "hero": {
       "headline": "Le CRM conçu pour la façon dont les agences kényanes vendent réellement des biens.",
       "subhead": "Prospects, biens, visites, transactions et commissions réunis en un seul endroit — conçu pour les relances WhatsApp, affiché dans votre propre devise, et honnête sur ce qu'il automatise et ce qu'il ne fait pas.",
@@ -73,5 +79,30 @@
       "startFree": "Essai gratuit",
       "bookDemo": "Réserver une démo"
     }
+  },
+  "forgot": {
+    "eyebrow": "Récupération du compte",
+    "headline": "Accès bloqué ? On vous aide à revenir.",
+    "subhead": "Saisissez votre e-mail professionnel et nous vous enverrons un lien pour choisir un nouveau mot de passe.",
+    "title": "Mot de passe oublié ?",
+    "subtitle": "Nous vous enverrons un lien de réinitialisation.",
+    "submit": "Envoyer le lien",
+    "sending": "Envoi…",
+    "sent": "Si un compte existe pour {{email}}, un lien de réinitialisation est en route. Il expire dans 1 heure.",
+    "error": "Une erreur est survenue. Réessayez.",
+    "backToSignIn": "Retour à la connexion",
+    "link": "Mot de passe oublié ?"
+  },
+  "reset": {
+    "title": "Choisissez un nouveau mot de passe",
+    "subtitle": "Au moins 8 caractères.",
+    "newPassword": "Nouveau mot de passe",
+    "confirm": "Confirmer le mot de passe",
+    "submit": "Réinitialiser",
+    "saving": "Enregistrement…",
+    "mismatch": "Les mots de passe ne correspondent pas.",
+    "done": "Votre mot de passe a été réinitialisé. Vous pouvez vous connecter.",
+    "missingToken": "Ce lien de réinitialisation est incomplet.",
+    "requestNew": "Demander un nouveau lien"
   }
 }

@@ -55,7 +55,10 @@ export function Login() {
       <form onSubmit={onSubmit} className="rounded-panel border border-line bg-surface p-6 shadow-card">
         <label className="mb-1 block text-sm font-medium text-ink">{t('login.email')}</label>
         <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="mb-4" />
-        <label className="mb-1 block text-sm font-medium text-ink">{t('login.password')}</label>
+        <div className="mb-1 flex items-center justify-between">
+          <label className="block text-sm font-medium text-ink">{t('login.password')}</label>
+          <Link to="/forgot-password" className="text-xs font-medium text-cypress-700 hover:underline">{t('forgot.link')}</Link>
+        </div>
         <Input
           type="password"
           value={password}

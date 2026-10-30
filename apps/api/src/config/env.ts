@@ -30,8 +30,19 @@ const schema = z.object({
   // gated off gracefully (see lib/ai.ts) when this isn't set, rather than
   // the server failing to start.
   ANTHROPIC_API_KEY: z.string().optional(),
+  // Optional — transactional email (password resets) goes out through
+  // Resend (https://resend.com) when this is set. Without it, emails are
+  // not delivered; see lib/mailer.ts.
+  RESEND_API_KEY: z.string().optional(),
+  // Resend's shared sandbox sender works for testing; set this to an
+  // address on a domain you've verified in Resend for real delivery.
+  MAIL_FROM: z.string().default('Kaya <onboarding@resend.dev>'),
+  // Public URL of the web app, used to build links inside emails.
+  APP_URL: z.string().optional(),
 });
 
 export const env = schema.parse(process.env);
+
+export const appUrl = (env.APP_URL ?? process.env.RENDER_EXTERNAL_URL ?? env.CORS_ORIGINS.split(',')[0] ?? 'http://localhost:5173').trim().replace(/\/$/, '');
 
 export const corsOrigins = env.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean);

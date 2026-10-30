@@ -4,6 +4,8 @@ import { AppLayout } from './components/AppLayout';
 import { Spinner } from './components/ui/Spinner';
 import { Login } from './pages/Login';
 import { SignUp } from './pages/SignUp';
+import { ForgotPassword } from './pages/ForgotPassword';
+import { ResetPassword } from './pages/ResetPassword';
 import { Dashboard } from './pages/Dashboard';
 import { LeadsList } from './pages/leads/LeadsList';
 import { LeadDetail } from './pages/leads/LeadDetail';
@@ -69,6 +71,8 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/share/:token" element={<PublicShortlist />} />
       <Route path="/inquire/:slug" element={<PublicInquiry />} />
       <Route

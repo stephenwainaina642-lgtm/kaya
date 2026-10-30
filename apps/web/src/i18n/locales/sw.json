@@ -53,7 +53,13 @@
     "signIn": "Ingia"
   },
   "landing": {
-    "nav": { "features": "Vipengele", "pricing": "Bei", "faq": "Maswali", "signIn": "Ingia", "startFree": "Anza Bure" },
+    "nav": {
+      "features": "Vipengele",
+      "pricing": "Bei",
+      "faq": "Maswali",
+      "signIn": "Ingia",
+      "startFree": "Anza Bure"
+    },
     "hero": {
       "headline": "CRM iliyoundwa kwa jinsi mawakala wa Kenya wanavyouza mali kwa kweli.",
       "subhead": "Wateja watarajiwa, orodha za mali, ukaguzi, mikataba na kamisheni mahali pamoja — imeundwa kwa ajili ya ufuatiliaji wa WhatsApp, bei katika sarafu yako mwenyewe, na ya kweli kuhusu kile inachofanya kiotomatiki na kisichofanya.",
@@ -73,5 +79,30 @@
       "startFree": "Anza Bure",
       "bookDemo": "Weka Miadi ya Onyesho"
     }
+  },
+  "forgot": {
+    "eyebrow": "Kurejesha akaunti",
+    "headline": "Umefungiwa nje? Tutakurudisha ndani.",
+    "subhead": "Weka barua pepe yako ya kazi nasi tutatuma kiungo cha kuchagua nenosiri jipya.",
+    "title": "Umesahau nenosiri?",
+    "subtitle": "Tutakutumia kiungo cha kuweka upya.",
+    "submit": "Tuma kiungo",
+    "sending": "Inatuma…",
+    "sent": "Ikiwa akaunti ipo kwa {{email}}, kiungo cha kuweka upya kinakuja. Kinaisha baada ya saa 1.",
+    "error": "Hitilafu imetokea. Jaribu tena.",
+    "backToSignIn": "Rudi kuingia",
+    "link": "Umesahau nenosiri?"
+  },
+  "reset": {
+    "title": "Chagua nenosiri jipya",
+    "subtitle": "Angalau herufi 8.",
+    "newPassword": "Nenosiri jipya",
+    "confirm": "Thibitisha nenosiri",
+    "submit": "Weka upya nenosiri",
+    "saving": "Inahifadhi…",
+    "mismatch": "Manenosiri hayalingani.",
+    "done": "Nenosiri lako limewekwa upya. Sasa unaweza kuingia.",
+    "missingToken": "Kiungo hiki cha kuweka upya hakijakamilika.",
+    "requestNew": "Omba kiungo kipya"
   }
 }
