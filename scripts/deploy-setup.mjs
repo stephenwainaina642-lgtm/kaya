@@ -111,6 +111,25 @@ async function main() {
         END IF;
       END $$;
     `);
+    // Added later than the lockout columns; same silent-drop risk, same fix.
+    await c.query(`
+      DO $$
+      BEGIN
+        IF to_regclass('organizations') IS NOT NULL THEN
+          ALTER TABLE organizations ADD COLUMN IF NOT EXISTS onboarding_dismissed_at timestamptz;
+        END IF;
+        IF to_regclass('users') IS NOT NULL THEN
+          CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            token_hash text NOT NULL,
+            expires_at timestamptz NOT NULL,
+            used_at timestamptz,
+            created_at timestamptz NOT NULL DEFAULT now()
+          );
+        END IF;
+      END $$;
+    `);
     for (const table of ['users', 'platform_admins']) {
       await c.query(`
         DO $$
@@ -169,6 +188,12 @@ async function main() {
     SELECT 'platform_admins.failed_login_attempts' WHERE NOT EXISTS (
       SELECT 1 FROM information_schema.columns WHERE table_name = 'platform_admins' AND column_name = 'failed_login_attempts'
     )
+    UNION ALL
+    SELECT 'organizations.onboarding_dismissed_at' WHERE NOT EXISTS (
+      SELECT 1 FROM information_schema.columns WHERE table_name = 'organizations' AND column_name = 'onboarding_dismissed_at'
+    )
+    UNION ALL
+    SELECT 'password_reset_tokens' WHERE to_regclass('password_reset_tokens') IS NULL
     UNION ALL
     SELECT 'shortlist_items_pair_unique' WHERE NOT EXISTS (
       SELECT 1 FROM pg_constraint WHERE conname = 'shortlist_items_pair_unique'

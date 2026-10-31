@@ -15,6 +15,8 @@ export const organizations = pgTable('organizations', {
   // Kaya's default cypress/brass palette.
   brandColor: text('brand_color'),
   phone: text('phone'),
+  // Set when an org admin dismisses the dashboard's getting-started checklist.
+  onboardingDismissedAt: timestamp('onboarding_dismissed_at', { withTimezone: true }),
   // Set by a platform admin to lock an agency out of signing in without
   // deleting its data. Null means active.
   suspendedAt: timestamp('suspended_at', { withTimezone: true }),

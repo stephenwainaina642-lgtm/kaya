@@ -15,3 +15,4 @@ export * from './portal';
 export * from './whatsapp';
 export * from './platform';
 export * from './public-inquiry';
+export * from './onboarding';

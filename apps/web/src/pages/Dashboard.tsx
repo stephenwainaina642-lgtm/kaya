@@ -11,6 +11,7 @@ import { Spinner } from '../components/ui/Spinner';
 import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { NextActionsWidget } from '../components/ai/NextActionsWidget';
+import { OnboardingChecklist } from '../components/OnboardingChecklist';
 
 const ATTENTION_ACCENT: Record<AttentionItem['kind'], string> = {
   STALLED_DEAL: 'border-l-brass',
@@ -57,6 +58,7 @@ export function Dashboard() {
     <>
       <PageHeader title="Dashboard" subtitle="Your agency at a glance" />
       <div className="space-y-6 p-8">
+        <OnboardingChecklist />
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <div className="rounded-panel bg-ink p-6 text-white lg:col-span-1">
             <span className="block h-[3px] w-6 bg-brass" />
