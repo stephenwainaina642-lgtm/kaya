@@ -42,10 +42,10 @@ documentsRouter.get('/:id/download', requirePermission('documents:view'), async 
   try {
     const a = ctx(req);
     const row = await readDocumentFile(a, uuidField.parse(req.params.id));
-    const { readFile } = await import('../../lib/storage');
+    const { sendFile } = await import('../../lib/storage');
     res.setHeader('Content-Type', row.mimeType);
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(row.name)}"`);
-    readFile(row.storageKey).pipe(res);
+    await sendFile(row.storageKey, res);
   } catch (err) {
     next(err);
   }

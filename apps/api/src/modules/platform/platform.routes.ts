@@ -3,7 +3,7 @@ import { getPublicShortlist } from '../shortlists/shortlists.service';
 import { createPublicViewingRequest, getPortalDocumentFile, signPortalDocument } from '../portal/portal.service';
 import { getPublicOrgInfo, submitPublicInquiry } from '../leads/public-inquiry.service';
 import { getLogoStorageKeyBySlug } from '../org-settings/org-settings.service';
-import { readFile } from '../../lib/storage';
+import { sendFile } from '../../lib/storage';
 import { notFound } from '../../lib/errors';
 
 /**
@@ -36,7 +36,7 @@ platformRouter.get('/shortlists/:token/documents/:documentId/file', async (req, 
     const doc = await getPortalDocumentFile(req.params.token!, req.params.documentId!);
     res.setHeader('Content-Type', doc.mimeType);
     res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(doc.name)}"`);
-    readFile(doc.storageKey).pipe(res);
+    await sendFile(doc.storageKey, res);
   } catch (err) {
     next(err);
   }
@@ -68,7 +68,7 @@ platformRouter.get('/organizations/:slug/logo', async (req, res, next) => {
     // No stored mime type for logos (unlike documents) — fine here since
     // the browser sniffs image content-type reliably, and upload already
     // restricted this file to a handful of known image types.
-    readFile(storageKey).pipe(res);
+    await sendFile(storageKey, res);
   } catch (err) {
     next(err);
   }

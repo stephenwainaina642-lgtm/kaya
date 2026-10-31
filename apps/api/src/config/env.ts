@@ -37,6 +37,14 @@ const schema = z.object({
   // Resend's shared sandbox sender works for testing; set this to an
   // address on a domain you've verified in Resend for real delivery.
   MAIL_FROM: z.string().default('Kaya <onboarding@resend.dev>'),
+  // Optional — durable file storage (logos, documents) in any S3-compatible
+  // bucket (Cloudflare R2, AWS S3, ...). Without these, files go to the
+  // server's local disk, which Render wipes on every deploy.
+  S3_BUCKET: z.string().optional(),
+  S3_ENDPOINT: z.string().optional(),
+  S3_REGION: z.string().default('auto'),
+  S3_ACCESS_KEY_ID: z.string().optional(),
+  S3_SECRET_ACCESS_KEY: z.string().optional(),
   // Public URL of the web app, used to build links inside emails.
   APP_URL: z.string().optional(),
 });

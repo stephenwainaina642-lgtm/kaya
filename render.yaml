@@ -52,3 +52,14 @@ services:
         sync: false # set in the Render dashboard — password-reset emails are not delivered without it
       - key: MAIL_FROM
         sync: false # optional; sender on a domain verified in Resend. Defaults to Resend's sandbox sender.
+      - key: S3_BUCKET
+        sync: false # bucket name (Cloudflare R2 or AWS S3) — without these, uploads are lost on every deploy
+
+      - key: S3_ENDPOINT
+        sync: false # R2: https://<account-id>.r2.cloudflarestorage.com (omit for AWS S3) — without these, uploads are lost on every deploy
+
+      - key: S3_ACCESS_KEY_ID
+        sync: false # set in the dashboard — without these, uploads are lost on every deploy
+
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false # set in the dashboard — without these, uploads are lost on every deploy
