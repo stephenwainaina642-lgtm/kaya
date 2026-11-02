@@ -100,7 +100,27 @@ async function main() {
   // no duplicate pair can exist through the app. The two lockout columns
   // are a plain NOT-NULL-with-default and a plain nullable column — adding
   // either can't lose data.
-  async function applyKnownFixups(c) {
+  const MISSING_SQL = `
+    SELECT 'users.failed_login_attempts' AS item WHERE NOT EXISTS (
+      SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'failed_login_attempts'
+    )
+    UNION ALL
+    SELECT 'platform_admins.failed_login_attempts' WHERE NOT EXISTS (
+      SELECT 1 FROM information_schema.columns WHERE table_name = 'platform_admins' AND column_name = 'failed_login_attempts'
+    )
+    UNION ALL
+    SELECT 'organizations.onboarding_dismissed_at' WHERE NOT EXISTS (
+      SELECT 1 FROM information_schema.columns WHERE table_name = 'organizations' AND column_name = 'onboarding_dismissed_at'
+    )
+    UNION ALL
+    SELECT 'password_reset_tokens' WHERE to_regclass('password_reset_tokens') IS NULL
+    UNION ALL
+    SELECT 'shortlist_items_pair_unique' WHERE NOT EXISTS (
+      SELECT 1 FROM pg_constraint WHERE conname = 'shortlist_items_pair_unique'
+    )
+  `;
+
+async function applyKnownFixups(c) {
     await c.query(`
       DO $$
       BEGIN
@@ -151,12 +171,25 @@ async function main() {
   console.log('[deploy-setup] Pushing schema');
   // Run up to 3 times — see the long comment above for why one run can
   // leave things incomplete even with --force.
+  // Normally one push is enough, and each one costs 20-60s of cold-start
+  // time on a free instance. Only repeat when verification shows something
+  // the push silently dropped.
   for (let attempt = 1; attempt <= 3; attempt++) {
     console.log(`[deploy-setup] drizzle-kit push attempt ${attempt}/3`);
     run('npx', ['drizzle-kit', 'push', '--force'], {
       cwd: path.join(ROOT, 'apps/api'),
       env: { ...process.env, DATABASE_ADMIN_URL: adminUrl },
     });
+    const probe = new Client({ connectionString: adminUrl });
+    await probe.connect();
+    await applyKnownFixups(probe);
+    const { rows: gaps } = await probe.query(MISSING_SQL);
+    await probe.end();
+    if (gaps.length === 0) {
+      console.log('[deploy-setup] Schema verified after push; no further attempts needed');
+      break;
+    }
+    console.warn(`[deploy-setup] Still missing after attempt ${attempt}: ${gaps.map((g) => g.item).join(', ')}`);
   }
 
   // Reconnect — drizzle-kit push can take a while and our earlier client
@@ -180,25 +213,7 @@ async function main() {
   // service come up silently broken the way it did today — log it as
   // unmissable so it's the first thing visible in the deploy log, without
   // crash-looping the whole service over it.
-  const { rows: missing } = await client2.query(`
-    SELECT 'users.failed_login_attempts' AS item WHERE NOT EXISTS (
-      SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'failed_login_attempts'
-    )
-    UNION ALL
-    SELECT 'platform_admins.failed_login_attempts' WHERE NOT EXISTS (
-      SELECT 1 FROM information_schema.columns WHERE table_name = 'platform_admins' AND column_name = 'failed_login_attempts'
-    )
-    UNION ALL
-    SELECT 'organizations.onboarding_dismissed_at' WHERE NOT EXISTS (
-      SELECT 1 FROM information_schema.columns WHERE table_name = 'organizations' AND column_name = 'onboarding_dismissed_at'
-    )
-    UNION ALL
-    SELECT 'password_reset_tokens' WHERE to_regclass('password_reset_tokens') IS NULL
-    UNION ALL
-    SELECT 'shortlist_items_pair_unique' WHERE NOT EXISTS (
-      SELECT 1 FROM pg_constraint WHERE conname = 'shortlist_items_pair_unique'
-    )
-  `);
+  const { rows: missing } = await client2.query(MISSING_SQL);
   if (missing.length > 0) {
     console.error(`[deploy-setup] *** STILL MISSING after push + fixups: ${missing.map((r) => r.item).join(', ')} ***`);
   } else {

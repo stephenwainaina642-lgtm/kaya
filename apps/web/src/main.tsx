@@ -7,6 +7,10 @@ import { AuthProvider } from './auth/AuthContext';
 import './i18n/config';
 import './styles/index.css';
 
+// Wake a sleeping server while the visitor is still reading the page, so the
+// first sign-in doesn't pay the cold-start cost.
+fetch('/health').catch(() => {});
+
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 15_000 } },
 });

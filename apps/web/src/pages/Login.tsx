@@ -16,6 +16,7 @@ export function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [slow, setSlow] = useState(false);
 
   if (user) {
     const from = (location.state as { from?: string } | null)?.from ?? '/';
@@ -26,6 +27,7 @@ export function Login() {
     e.preventDefault();
     setBusy(true);
     setError(null);
+    const slowTimer = setTimeout(() => setSlow(true), 6000);
     try {
       await login(email, password);
     } catch (err) {
@@ -34,8 +36,11 @@ export function Login() {
       // message worth showing. Anything else (401, wrong password) stays
       // generic so a bad guess doesn't learn whether the email exists.
       const showServerMessage = err instanceof ApiError && [403, 423, 429].includes(err.status);
-      setError(showServerMessage ? (err as ApiError).message : 'Invalid email or password.');
+      const unreachable = err instanceof ApiError && err.status === 0;
+      setError(showServerMessage || unreachable ? (err as ApiError).message : 'Invalid email or password.');
     } finally {
+      clearTimeout(slowTimer);
+      setSlow(false);
       setBusy(false);
     }
   }
@@ -68,6 +73,11 @@ export function Login() {
           className="mb-4"
         />
         {error && <p className="mb-4 text-sm text-danger">{error}</p>}
+        {slow && (
+          <p className="mb-3 text-sm text-muted" role="status">
+            Waking up the server. The first sign-in after a quiet spell can take up to a minute — no need to refresh.
+          </p>
+        )}
         <Button type="submit" disabled={busy} className="w-full">
           {busy ? t('login.signingIn') : t('login.signIn')}
         </Button>

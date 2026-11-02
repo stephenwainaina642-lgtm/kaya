@@ -44,12 +44,24 @@ async function request<T>(path: string, opts: RequestOpts = {}): Promise<T> {
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
   if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
 
-  const res = await fetch(url, {
-    method: opts.method ?? 'GET',
-    headers,
-    credentials: 'include',
-    body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
-  });
+  // A sleeping free-tier server can take a minute to wake; beyond ~90s
+  // something is genuinely wrong, so say so instead of spinning forever.
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 90_000);
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: opts.method ?? 'GET',
+      headers,
+      credentials: 'include',
+      body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+      signal: ctl.signal,
+    });
+  } catch {
+    throw new ApiError(0, 'The server is taking too long to respond. Please try again in a moment.', 'NETWORK');
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (res.status === 401 && onUnauthorized) {
     onUnauthorized();
