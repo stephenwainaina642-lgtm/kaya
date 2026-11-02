@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Copy, Check, ExternalLink, Upload, Trash2 } from 'lucide-react';
+import { Copy, Check, ExternalLink, Upload, Trash2, Download } from 'lucide-react';
 import type { InquiryLink, OrgBranding } from '@kaya/shared';
 import { useAuth } from '../../auth/AuthContext';
 import { api, ApiError } from '../../lib/api';
@@ -135,6 +135,50 @@ function BrandingCard() {
   );
 }
 
+const EXPORTS = [
+  { entity: 'leads', label: 'Leads' },
+  { entity: 'clients', label: 'Clients' },
+  { entity: 'owners', label: 'Owners' },
+  { entity: 'properties', label: 'Properties' },
+] as const;
+
+function ExportCard() {
+  const { user } = useAuth();
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  if (user?.role !== 'ORG_ADMIN') return null;
+
+  const run = async (entity: string) => {
+    setBusy(entity);
+    setError(null);
+    try {
+      await api.download(`/export/${entity}`, `kaya-${entity}.csv`);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Export failed');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <Card className="max-w-lg p-5">
+      <h2 className="font-display text-lg font-semibold text-ink">Export your data</h2>
+      <p className="mt-1 text-sm leading-relaxed text-muted">
+        Your data is yours. Download any list as a CSV that opens in Excel or Google Sheets. Exports are recorded in your audit log.
+      </p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {EXPORTS.map(({ entity, label }) => (
+          <Button key={entity} type="button" variant="secondary" disabled={busy !== null} onClick={() => run(entity)}>
+            <Download size={15} className="mr-1.5" />
+            {busy === entity ? 'Preparing…' : label}
+          </Button>
+        ))}
+      </div>
+      {error && <p className="mt-3 text-sm text-danger">{error}</p>}
+    </Card>
+  );
+}
+
 export function SettingsPage() {
   const { user, updateUser } = useAuth();
 
@@ -174,6 +218,7 @@ export function SettingsPage() {
       <div className="space-y-6 p-8">
         <InquiryLinkCard />
         <BrandingCard />
+        <ExportCard />
 
         <Card className="max-w-lg p-5">
           <h2 className="mb-4 font-display text-lg font-semibold text-ink">Your account</h2>

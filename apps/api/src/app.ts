@@ -24,6 +24,7 @@ import { tasksRouter } from './modules/tasks/tasks.routes';
 import { teamRouter } from './modules/team/team.routes';
 import { dashboardRouter } from './modules/dashboard/dashboard.routes';
 import { onboardingRouter } from './modules/onboarding/onboarding.routes';
+import { exportRouter } from './modules/export/export.routes';
 import { ownersRouter } from './modules/owners/owners.routes';
 import { propertiesRouter } from './modules/properties/properties.routes';
 import { matchingRouter } from './modules/matching/matching.routes';
@@ -105,6 +106,7 @@ export function createApp(): Express {
   app.use('/api/team', teamRouter);
   app.use('/api/dashboard', dashboardRouter);
   app.use('/api/onboarding', onboardingRouter);
+  app.use('/api/export', exportRouter);
   app.use('/api/owners', ownersRouter);
   app.use('/api/properties', propertiesRouter);
   app.use('/api/matching', matchingRouter);

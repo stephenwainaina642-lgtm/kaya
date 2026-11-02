@@ -111,7 +111,31 @@ async function postForm<T>(path: string, form: FormData): Promise<T> {
   return JSON.parse(text) as T;
 }
 
+// Fetches a file (e.g. a CSV export) with the auth header and hands it to the
+// browser as a download. A plain <a href> can't send the bearer token.
+async function download(path: string, fallbackName: string): Promise<void> {
+  const headers: Record<string, string> = {};
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  const res = await fetch(`${BASE}${path}`, { headers, credentials: 'include' });
+  if (res.status === 401 && onUnauthorized) onUnauthorized();
+  if (!res.ok) {
+    let payload: any = null;
+    try { payload = await res.json(); } catch { /* ignore */ }
+    throw new ApiError(res.status, payload?.error?.message ?? res.statusText, payload?.error?.code);
+  }
+  const match = /filename="?([^";]+)"?/.exec(res.headers.get('Content-Disposition') ?? '');
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = match?.[1] ?? fallbackName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 export const api = {
+  download,
   get: <T>(path: string, query?: RequestOpts['query']) => request<T>(path, { query }),
   post: <T>(path: string, body?: unknown) => request<T>(path, { method: 'POST', body }),
   postForm: <T>(path: string, form: FormData) => postForm<T>(path, form),
