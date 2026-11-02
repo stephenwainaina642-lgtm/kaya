@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { MulterError } from 'multer';
 import { AppError } from '../lib/errors';
+import { captureError } from '../lib/monitoring';
 
 export function notFoundHandler(_req: Request, res: Response): void {
   res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Route not found' } });
@@ -16,5 +17,6 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     return;
   }
   req.log?.error({ err }, 'unhandled error');
+  captureError(err, { method: req.method, path: req.path });
   res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Something went wrong' } });
 }

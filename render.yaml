@@ -26,6 +26,7 @@ services:
     # that as a signal to skip devDependencies — which would silently drop
     # vite, typescript and the @types/* packages the web build needs.
     buildCommand: npm install --include=dev && npm run build -w @kaya/web
+    healthCheckPath: /health/ready
     startCommand: node scripts/deploy-setup.mjs && cd apps/api && npx tsx src/server.ts
     envVars:
       - key: NODE_ENV
@@ -63,3 +64,5 @@ services:
 
       - key: S3_SECRET_ACCESS_KEY
         sync: false # set in the dashboard — without these, uploads are lost on every deploy
+      - key: SENTRY_DSN
+        sync: false # optional — error reporting via Sentry (sentry.io)

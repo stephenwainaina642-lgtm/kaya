@@ -191,3 +191,18 @@ describe('self-serve signup', () => {
     expect(new Set(slugs).size).toBe(slugs.length);
   });
 });
+
+describe('health', () => {
+  it('reports readiness when the database is reachable', async () => {
+    const res = await request(app).get('/health/ready');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true, db: 'up' });
+  });
+
+  it('sends security headers', async () => {
+    const res = await request(app).get('/health');
+    expect(res.headers['content-security-policy']).toContain("default-src 'self'");
+    expect(res.headers['x-content-type-options']).toBe('nosniff');
+    expect(res.headers['x-powered-by']).toBeUndefined();
+  });
+});

@@ -45,6 +45,8 @@ const schema = z.object({
   S3_REGION: z.string().default('auto'),
   S3_ACCESS_KEY_ID: z.string().optional(),
   S3_SECRET_ACCESS_KEY: z.string().optional(),
+  // Optional — send unhandled server errors to Sentry (https://sentry.io).
+  SENTRY_DSN: z.string().optional(),
   // Public URL of the web app, used to build links inside emails.
   APP_URL: z.string().optional(),
 });

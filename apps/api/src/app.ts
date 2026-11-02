@@ -2,6 +2,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
+import helmet from 'helmet';
+import { sql } from 'drizzle-orm';
+import { systemDb } from './db/system';
 import express, { type Express } from 'express';
 import pinoHttp from 'pino-http';
 import { corsOrigins, env } from './config/env';
@@ -55,12 +58,44 @@ export function createApp(): Express {
       autoLogging: process.env.NODE_ENV !== 'test',
     }),
   );
+  // Security headers. The CSP is tight but allows what the app actually
+  // loads: its own bundle, Google Fonts, and data:/blob: images (logos,
+  // previews). Inline styles are needed by the component library.
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+          fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+          imgSrc: ["'self'", 'data:', 'blob:'],
+          connectSrc: ["'self'"],
+          objectSrc: ["'none'"],
+          frameAncestors: ["'none'"],
+          baseUri: ["'self'"],
+          formAction: ["'self'"],
+        },
+      },
+      crossOriginEmbedderPolicy: false,
+    }),
+  );
   app.use(cors({ origin: corsOrigins, credentials: true }));
   app.use(cookieParser());
   app.use(express.json({ limit: '2mb' }));
   app.use('/api', apiLimiter);
 
   app.get('/health', (_req, res) => res.json({ ok: true }));
+  // Readiness: proves the database is reachable, for uptime monitors and
+  // the host's health check. 503 (not 500) so monitors read it as "down".
+  app.get('/health/ready', async (_req, res) => {
+    try {
+      await systemDb.execute(sql`select 1`);
+      res.json({ ok: true, db: 'up' });
+    } catch {
+      res.status(503).json({ ok: false, db: 'down' });
+    }
+  });
 
   app.use('/api/auth', authRouter);
   app.use('/api/leads', leadsRouter);
