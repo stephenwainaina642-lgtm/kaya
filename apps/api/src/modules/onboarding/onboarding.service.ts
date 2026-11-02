@@ -1,8 +1,9 @@
-import { count, eq } from 'drizzle-orm';
+import { count, eq, sql as dsql, type SQL } from 'drizzle-orm';
 import type { OnboardingStatus } from '@kaya/shared';
 import { systemDb } from '../../db/system';
 import { withTenant } from '../../db/client';
 import { organizations, properties, leads, users, viewings } from '../../db/schema';
+import { getSampleStatus, isSampleLead, isSampleProperty } from './sample-data.service';
 import { notFound } from '../../lib/errors';
 import { type Auth } from '../crm/common';
 
@@ -17,11 +18,19 @@ export async function getOnboarding(a: Auth): Promise<OnboardingStatus> {
   if (!org) throw notFound('Organization');
 
   const counts = await withTenant(a.organizationId, async (tx) => {
-    const n = async (table: typeof properties | typeof leads | typeof users | typeof viewings) => {
-      const [row] = await tx.select({ c: count() }).from(table);
+    // Demo records never count towards a step: it should tick on the
+    // agency's own work, not on what Kaya put there for exploring.
+    const n = async (table: typeof properties | typeof leads | typeof users | typeof viewings, not?: SQL) => {
+      const q = tx.select({ c: count() }).from(table);
+      const [row] = await (not ? q.where(dsql`NOT (${not})`) : q);
       return row?.c ?? 0;
     };
-    return { properties: await n(properties), leads: await n(leads), users: await n(users), viewings: await n(viewings) };
+    return {
+      properties: await n(properties, isSampleProperty),
+      leads: await n(leads, isSampleLead),
+      users: await n(users),
+      viewings: await n(viewings),
+    };
   });
 
   const steps = [
@@ -36,6 +45,7 @@ export async function getOnboarding(a: Auth): Promise<OnboardingStatus> {
     steps,
     completed: steps.filter((s) => s.done).length,
     total: steps.length,
+    sampleLoaded: (await getSampleStatus(a)).loaded,
   };
 }
 

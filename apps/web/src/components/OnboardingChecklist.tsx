@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Check, X } from 'lucide-react';
+import { Check, X, Sparkles } from 'lucide-react';
 import type { OnboardingStatus, OnboardingStepKey } from '@kaya/shared';
-import { api } from '../lib/api';
+import { api, ApiError } from '../lib/api';
 import { useAuth } from '../auth/AuthContext';
 import { Card } from './ui/Card';
 
@@ -29,9 +29,43 @@ export function OnboardingChecklist() {
     onSuccess: (next) => qc.setQueryData(['onboarding'], next),
   });
 
-  if (!isAdmin || !data || data.dismissed || data.completed === data.total) return null;
+  const sample = useMutation({
+    mutationFn: (load: boolean) =>
+      load ? api.post<OnboardingStatus>('/onboarding/sample-data') : api.del<OnboardingStatus>('/onboarding/sample-data'),
+    onSuccess: (next) => {
+      qc.setQueryData(['onboarding'], next);
+      // Lists everywhere may now contain or lack the demo records.
+      qc.invalidateQueries({ predicate: (q) => q.queryKey[0] !== 'onboarding' });
+    },
+  });
+  const sampleError = sample.error instanceof ApiError ? sample.error.message : sample.error ? 'Something went wrong' : null;
+
+  if (!isAdmin || !data) return null;
+
+  const banner = data.sampleLoaded && (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-panel border border-line bg-sunk px-4 py-3 text-sm">
+      <span className="flex items-center gap-2 text-ink">
+        <Sparkles size={15} className="text-brass" />
+        You're looking at sample data. Explore freely, then clear it when you're ready to add your own.
+      </span>
+      <span className="flex items-center gap-3">
+        {sampleError && <span className="text-danger">{sampleError}</span>}
+        <button
+          onClick={() => sample.mutate(false)}
+          disabled={sample.isPending}
+          className="font-medium text-cypress-700 hover:underline disabled:opacity-50"
+        >
+          {sample.isPending ? 'Removing…' : 'Remove sample data'}
+        </button>
+      </span>
+    </div>
+  );
+
+  if (data.dismissed || data.completed === data.total) return banner || null;
 
   return (
+    <>
+    {banner}
     <Card className="relative p-6">
       <button
         onClick={() => dismiss.mutate()}
@@ -70,6 +104,20 @@ export function OnboardingChecklist() {
           );
         })}
       </ul>
+      {!data.sampleLoaded && (
+        <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-line pt-3 text-sm">
+          <span className="text-muted">Just exploring?</span>
+          <button
+            onClick={() => sample.mutate(true)}
+            disabled={sample.isPending}
+            className="font-medium text-cypress-700 hover:underline disabled:opacity-50"
+          >
+            {sample.isPending ? 'Loading…' : 'Load sample data'}
+          </button>
+          {sampleError && <span className="text-danger">{sampleError}</span>}
+        </div>
+      )}
     </Card>
+    </>
   );
 }

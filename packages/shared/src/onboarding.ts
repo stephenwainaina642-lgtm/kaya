@@ -7,6 +7,12 @@ export interface OnboardingStatus {
   steps: { key: OnboardingStepKey; done: boolean }[];
   completed: number;
   total: number;
+  /** True while the demo records are present. */
+  sampleLoaded: boolean;
+}
+
+export interface SampleDataStatus {
+  loaded: boolean;
 }
 
 export interface LeadImportResult {
