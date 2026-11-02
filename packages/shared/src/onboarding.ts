@@ -8,3 +8,9 @@ export interface OnboardingStatus {
   completed: number;
   total: number;
 }
+
+export interface LeadImportResult {
+  created: number;
+  duplicates: number;
+  invalid: { row: number; reason: string }[];
+}

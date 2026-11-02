@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, Upload } from 'lucide-react';
 import type { LeadListItem, Page } from '@kaya/shared';
 import { api } from '../../lib/api';
 import { PageHeader } from '../../components/PageHeader';
@@ -13,6 +13,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Modal } from '../../components/ui/Modal';
 import { NewLeadForm } from '../../forms/NewLeadForm';
+import { ImportLeadsForm } from '../../forms/ImportLeadsForm';
 
 const TEMP_TONE: Record<string, 'danger' | 'warn' | 'neutral'> = { HOT: 'danger', WARM: 'warn', COLD: 'neutral' };
 const STATUS_TONE: Record<string, 'ok' | 'warn' | 'danger' | 'neutral' | 'accent'> = {
@@ -22,6 +23,7 @@ const STATUS_TONE: Record<string, 'ok' | 'warn' | 'danger' | 'neutral' | 'accent
 export function LeadsList() {
   const [q, setQ] = useState('');
   const [showNew, setShowNew] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ['leads', q],
     queryFn: () => api.get<Page<LeadListItem>>('/leads', { search: q, pageSize: 50 }),
@@ -33,11 +35,19 @@ export function LeadsList() {
         title="Leads"
         subtitle={data ? `${data.total} total` : undefined}
         actions={
-          <Button onClick={() => setShowNew(true)}>
-            <Plus size={16} /> New lead
-          </Button>
+          <>
+            <Button variant="secondary" onClick={() => setShowImport(true)}>
+              <Upload size={16} /> Import CSV
+            </Button>
+            <Button onClick={() => setShowNew(true)}>
+              <Plus size={16} /> New lead
+            </Button>
+          </>
         }
       />
+      <Modal open={showImport} onClose={() => setShowImport(false)} title="Import leads from CSV">
+        <ImportLeadsForm onDone={() => setShowImport(false)} />
+      </Modal>
       <Modal open={showNew} onClose={() => setShowNew(false)} title="New lead">
         <NewLeadForm onDone={() => setShowNew(false)} />
       </Modal>
