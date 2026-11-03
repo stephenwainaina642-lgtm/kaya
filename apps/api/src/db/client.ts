@@ -4,7 +4,7 @@ import { sql } from 'drizzle-orm';
 import { env } from '../config/env';
 import * as schema from './schema';
 
-const pool = new Pool({ connectionString: env.DATABASE_URL, max: 10 });
+const pool = new Pool({ connectionString: env.DATABASE_URL, max: env.DB_POOL_MAX });
 
 export const appDb = drizzle(pool, { schema });
 

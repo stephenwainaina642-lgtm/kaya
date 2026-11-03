@@ -9,7 +9,11 @@ import { z } from 'zod';
 if (!process.env.DATABASE_URL && process.env.DATABASE_ADMIN_URL && process.env.APP_DB_PASSWORD) {
   try {
     const url = new URL(process.env.DATABASE_ADMIN_URL);
-    url.username = 'kaya_app';
+    // Supabase's pooler tells tenants apart by a suffix on the username
+    // ("postgres.<project-ref>"), and the app role needs the same suffix
+    // ("kaya_app.<project-ref>"). Plain Postgres has no dot, so this is a no-op there.
+    const dot = url.username.indexOf('.');
+    url.username = dot > 0 ? `kaya_app${url.username.slice(dot)}` : 'kaya_app';
     url.password = process.env.APP_DB_PASSWORD;
     process.env.DATABASE_URL = url.toString();
   } catch {
@@ -26,6 +30,10 @@ const schema = z.object({
   PLATFORM_JWT_SECRET: z.string().min(1),
   CORS_ORIGINS: z.string().default('http://localhost:5173'),
   LOG_LEVEL: z.string().default('info'),
+  // Connection pool sizes. Hosted Postgres plans cap total connections (Supabase
+  // free: ~15 through the pooler), so lower these there. See docs/SUPABASE.md.
+  DB_POOL_MAX: z.coerce.number().int().min(1).default(10),
+  DB_ADMIN_POOL_MAX: z.coerce.number().int().min(1).default(5),
   // Optional — AI features (lead scoring, drafted messages, summaries) are
   // gated off gracefully (see lib/ai.ts) when this isn't set, rather than
   // the server failing to start.

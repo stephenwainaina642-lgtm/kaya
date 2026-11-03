@@ -8,7 +8,7 @@ import * as schema from './schema';
  * genuinely cannot apply yet — resolving a public share-link token to its
  * organization, migrations, and seeding.
  */
-const pool = new Pool({ connectionString: env.DATABASE_ADMIN_URL, max: 5 });
+const pool = new Pool({ connectionString: env.DATABASE_ADMIN_URL, max: env.DB_ADMIN_POOL_MAX });
 
 export const systemDb = drizzle(pool, { schema });
 

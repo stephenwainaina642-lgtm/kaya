@@ -224,6 +224,30 @@ async function applyKnownFixups(c) {
   console.log('[deploy-setup] Re-applying known schema fixups (safety net in case push dropped them again)');
   await applyKnownFixups(client2);
 
+  // Supabase publishes everything in the public schema through its own REST
+  // API to the built-in `anon` and `authenticated` roles, and anyone holding
+  // the project's public anon key can use it. Kaya never uses that API, and
+  // several of our tables (users, refresh tokens, platform admins...) carry
+  // no row-level security, so close it off. A no-op on plain Postgres, where
+  // those roles don't exist.
+  console.log('[deploy-setup] Closing off any Supabase public-API roles');
+  await client2.query(`
+    DO $$
+    DECLARE r text;
+    BEGIN
+      FOREACH r IN ARRAY ARRAY['anon', 'authenticated'] LOOP
+        IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = r) THEN
+          EXECUTE format('REVOKE ALL ON ALL TABLES IN SCHEMA public FROM %I', r);
+          EXECUTE format('REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM %I', r);
+          EXECUTE format('REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM %I', r);
+          EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM %I', r);
+          EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON SEQUENCES FROM %I', r);
+          EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON FUNCTIONS FROM %I', r);
+        END IF;
+      END LOOP;
+    END $$;
+  `);
+
   console.log('[deploy-setup] Granting kaya_app access to tables created by the schema push');
   await client2.query('GRANT ALL ON ALL TABLES IN SCHEMA public TO kaya_app');
   await client2.query('GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO kaya_app');
