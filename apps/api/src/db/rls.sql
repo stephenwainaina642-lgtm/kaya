@@ -21,7 +21,7 @@ BEGIN
       'documents', 'follow_ups', 'tasks', 'audit_logs', 'owners', 'properties',
       'client_property_matches', 'client_shortlists', 'deal_stages', 'deals', 'viewings',
       'automation_rules', 'drip_sequences', 'drip_enrollments',
-      'viewing_requests', 'document_signatures'
+      'viewing_requests', 'document_signatures', 'billing_payments'
     ])
   LOOP
     -- Guard against a table this script expects but that the schema push

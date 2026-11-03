@@ -36,8 +36,16 @@ export function Login() {
       // message worth showing. Anything else (401, wrong password) stays
       // generic so a bad guess doesn't learn whether the email exists.
       const showServerMessage = err instanceof ApiError && [403, 423, 429].includes(err.status);
-      const unreachable = err instanceof ApiError && err.status === 0;
-      setError(showServerMessage || unreachable ? (err as ApiError).message : 'Invalid email or password.');
+      // Only a genuine 401 means the credentials were wrong. A 5xx (server
+      // restarting, database trouble) used to be shown as "Invalid email or
+      // password", sending people to reset passwords that were fine.
+      if (showServerMessage || (err instanceof ApiError && err.status === 0)) {
+        setError((err as ApiError).message);
+      } else if (err instanceof ApiError && err.status >= 500) {
+        setError(`The server hit a problem (error ${err.status}). Your password is fine. Wait a minute and try again.`);
+      } else {
+        setError('Invalid email or password.');
+      }
     } finally {
       clearTimeout(slowTimer);
       setSlow(false);

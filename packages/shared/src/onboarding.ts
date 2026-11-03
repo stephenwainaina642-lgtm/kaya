@@ -20,3 +20,17 @@ export interface LeadImportResult {
   duplicates: number;
   invalid: { row: number; reason: string }[];
 }
+
+export interface SearchHit {
+  type: 'lead' | 'client' | 'property' | 'owner';
+  id: string;
+  title: string;
+  subtitle: string;
+  /** In-app route to open the record. */
+  to: string;
+}
+
+export interface SearchResults {
+  query: string;
+  hits: SearchHit[];
+}

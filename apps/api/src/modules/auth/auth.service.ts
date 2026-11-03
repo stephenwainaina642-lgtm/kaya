@@ -1,7 +1,7 @@
 import { eq, and, gt, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Plan } from '@kaya/shared';
-import { CURRENCIES } from '@kaya/shared';
+import { CURRENCIES, effectivePlan } from '@kaya/shared';
 import { systemDb } from '../../db/system';
 import { withTenant } from '../../db/client';
 import { users, refreshTokens, organizations, passwordResetTokens } from '../../db/schema';
@@ -16,7 +16,7 @@ import { sendMail, passwordResetEmail } from '../../lib/mailer';
 import { appUrl } from '../../config/env';
 
 export const loginInput = z.object({
-  email: z.string().email(),
+  email: z.string().trim().email(),
   password: z.string().min(1),
 });
 
@@ -48,7 +48,7 @@ function toUserDto(user: typeof users.$inferSelect, org: typeof organizations.$i
     email: user.email,
     role: user.role,
     organizationId: user.organizationId,
-    plan: org.plan,
+    plan: effectivePlan(org.plan, org.planExpiresAt),
     organizationName: org.name,
     currency: org.currency,
     logoUrl: toPublicLogoUrl(org.slug, org.logoUrl),
@@ -210,14 +210,14 @@ export async function me(organizationId: string, userId: string) {
   return withTenant(organizationId, async (tx) => {
     const [user] = await tx.select().from(users).where(eq(users.id, userId));
     if (!user) throw unauthorized();
-    const [org] = await tx.select({ plan: organizations.plan }).from(organizations).where(eq(organizations.id, organizationId));
+    const [org] = await tx.select({ plan: organizations.plan, planExpiresAt: organizations.planExpiresAt }).from(organizations).where(eq(organizations.id, organizationId));
     return {
       id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
       organizationId: user.organizationId,
-      plan: org?.plan ?? 'STARTER',
+      plan: org ? effectivePlan(org.plan, org.planExpiresAt) : 'STARTER',
       jobTitle: user.jobTitle,
       avatarUrl: user.avatarUrl,
     };

@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { count, eq } from 'drizzle-orm';
 import { Router } from 'express';
 import { z } from 'zod';
-import { PLAN_LABELS, ROLES, planUserLimit } from '@kaya/shared';
+import { PLAN_LABELS, ROLES, effectivePlan, planUserLimit } from '@kaya/shared';
 import type { TeamMember } from '@kaya/shared';
 import { withTenant } from '../../db/client';
 import { systemDb } from '../../db/system';
@@ -47,14 +47,15 @@ teamRouter.post('/members', requirePermission('team:create'), async (req, res, n
     const a = ctx(req);
     const input = parse(inviteInput, req.body);
 
-    const [org] = await systemDb.select({ plan: organizations.plan }).from(organizations).where(eq(organizations.id, a.organizationId));
+    const [org] = await systemDb.select({ plan: organizations.plan, planExpiresAt: organizations.planExpiresAt }).from(organizations).where(eq(organizations.id, a.organizationId));
     if (!org) throw unauthorized();
-    const userLimit = planUserLimit(org.plan);
+    const currentPlan = effectivePlan(org.plan, org.planExpiresAt);
+    const userLimit = planUserLimit(currentPlan);
     if (userLimit !== null) {
       const [memberCountRow] = await systemDb.select({ value: count() }).from(users).where(eq(users.organizationId, a.organizationId));
       if ((memberCountRow?.value ?? 0) >= userLimit) {
         throw planUpgradeRequired(
-          `Your ${PLAN_LABELS[org.plan]} plan allows up to ${userLimit} users. Upgrade to add more team members.`,
+          `Your ${PLAN_LABELS[currentPlan]} plan allows up to ${userLimit} users. Upgrade to add more team members.`,
           'GROWTH',
         );
       }

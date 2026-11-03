@@ -150,7 +150,9 @@ export async function updateOrganization(id: string, body: unknown): Promise<Pla
   if (!org) throw notFound('Organization');
 
   const patch: Partial<typeof organizations.$inferInsert> = {};
-  if (input.plan) patch.plan = input.plan;
+  // A plan set by hand is a comped plan: drop any paid-period expiry so a
+  // lapsed M-Pesa subscription can't silently undo the operator's decision.
+  if (input.plan) { patch.plan = input.plan; patch.planExpiresAt = null; }
   if (input.suspended !== undefined) patch.suspendedAt = input.suspended ? new Date() : null;
 
   if (Object.keys(patch).length > 0) {

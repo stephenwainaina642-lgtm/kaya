@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { eq } from 'drizzle-orm';
-import { PLAN_LABELS, type PlanModule, minPlanForModule, planHasModule } from '@kaya/shared';
+import { PLAN_LABELS, type PlanModule, effectivePlan, minPlanForModule, planHasModule } from '@kaya/shared';
 import { systemDb } from '../db/system';
 import { organizations } from '../db/schema';
 import { planUpgradeRequired, unauthorized } from '../lib/errors';
@@ -21,14 +21,14 @@ export function requirePlanModule(module: PlanModule) {
     }
     try {
       const [org] = await systemDb
-        .select({ plan: organizations.plan })
+        .select({ plan: organizations.plan, planExpiresAt: organizations.planExpiresAt })
         .from(organizations)
         .where(eq(organizations.id, a.organizationId));
       if (!org) {
         next(unauthorized());
         return;
       }
-      if (!planHasModule(org.plan, module)) {
+      if (!planHasModule(effectivePlan(org.plan, org.planExpiresAt), module)) {
         const required = minPlanForModule(module);
         next(
           planUpgradeRequired(

@@ -7,6 +7,9 @@ export const organizations = pgTable('organizations', {
   name: text('name').notNull(),
   slug: text('slug').notNull().unique(),
   plan: planEnum('plan').notNull().default('STARTER'),
+  // When the paid plan lapses. Null = never expires (platform-admin comped
+  // plans, demo orgs); STARTER ignores it. See effectivePlan() in @kaya/shared.
+  planExpiresAt: timestamp('plan_expires_at', { withTimezone: true }),
   timezone: text('timezone').notNull().default('Africa/Nairobi'),
   currency: text('currency').notNull().default('KES'),
   logoUrl: text('logo_url'),

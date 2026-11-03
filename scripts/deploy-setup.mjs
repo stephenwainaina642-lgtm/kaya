@@ -113,6 +113,12 @@ async function main() {
       SELECT 1 FROM information_schema.columns WHERE table_name = 'organizations' AND column_name = 'onboarding_dismissed_at'
     )
     UNION ALL
+    SELECT 'organizations.plan_expires_at' WHERE NOT EXISTS (
+      SELECT 1 FROM information_schema.columns WHERE table_name = 'organizations' AND column_name = 'plan_expires_at'
+    )
+    UNION ALL
+    SELECT 'billing_payments' WHERE to_regclass('billing_payments') IS NULL
+    UNION ALL
     SELECT 'password_reset_tokens' WHERE to_regclass('password_reset_tokens') IS NULL
     UNION ALL
     SELECT 'shortlist_items_pair_unique' WHERE NOT EXISTS (
@@ -137,6 +143,24 @@ async function applyKnownFixups(c) {
       BEGIN
         IF to_regclass('organizations') IS NOT NULL THEN
           ALTER TABLE organizations ADD COLUMN IF NOT EXISTS onboarding_dismissed_at timestamptz;
+          ALTER TABLE organizations ADD COLUMN IF NOT EXISTS plan_expires_at timestamptz;
+          CREATE TABLE IF NOT EXISTS billing_payments (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            organization_id uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+            plan plan NOT NULL,
+            months integer NOT NULL,
+            seats integer NOT NULL,
+            amount integer NOT NULL,
+            phone text NOT NULL,
+            status text NOT NULL DEFAULT 'PENDING',
+            merchant_request_id text,
+            checkout_request_id text UNIQUE,
+            mpesa_receipt text,
+            failure_reason text,
+            created_by_id uuid REFERENCES users(id) ON DELETE SET NULL,
+            created_at timestamptz NOT NULL DEFAULT now(),
+            paid_at timestamptz
+          );
         END IF;
         IF to_regclass('users') IS NOT NULL THEN
           CREATE TABLE IF NOT EXISTS password_reset_tokens (

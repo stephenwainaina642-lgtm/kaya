@@ -49,6 +49,16 @@ const schema = z.object({
   SENTRY_DSN: z.string().optional(),
   // Public URL of the web app, used to build links inside emails.
   APP_URL: z.string().optional(),
+  // Optional — M-Pesa (Safaricom Daraja) STK push for plan payments. All five
+  // must be set to enable online billing; see lib/mpesa.ts. MPESA_CALLBACK_SECRET
+  // is a long random string that becomes part of the callback URL, since
+  // Safaricom does not sign its callbacks.
+  MPESA_ENV: z.enum(['sandbox', 'production']).default('sandbox'),
+  MPESA_CONSUMER_KEY: z.string().optional(),
+  MPESA_CONSUMER_SECRET: z.string().optional(),
+  MPESA_SHORTCODE: z.string().optional(),
+  MPESA_PASSKEY: z.string().optional(),
+  MPESA_CALLBACK_SECRET: z.string().optional(),
 });
 
 export const env = schema.parse(process.env);

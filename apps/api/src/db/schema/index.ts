@@ -9,3 +9,4 @@ export * from './ops';
 export * from './automation';
 export * from './portal';
 export * from './platform';
+export * from './billing';
