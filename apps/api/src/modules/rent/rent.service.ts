@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { and, asc, eq, inArray, lt, ne, sql as dsql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, lt, lte, ne, sql as dsql } from 'drizzle-orm';
 import { RENT_PAYMENT_METHODS, effectivePlan, planHasModule } from '@kaya/shared';
 import type {
   ArrearsReport, ChargeStatus, GenerateRentResult, LeaseItem, OwnerStatement, RentChargeItem,
@@ -7,7 +7,7 @@ import type {
 } from '@kaya/shared';
 import { withTenant, type Tx } from '../../db/client';
 import { systemDb } from '../../db/system';
-import { clients, leases, organizations, owners, properties, rentCharges, rentPayments } from '../../db/schema';
+import { clients, followUps, leases, organizations, owners, properties, rentCharges, rentPayments } from '../../db/schema';
 import { AppError, conflict, notFound } from '../../lib/errors';
 import { parse } from '../../lib/validate';
 import { recordAudit } from '../../lib/audit';
@@ -27,6 +27,14 @@ export const leaseCreate = z.object({
   feeBps: z.number().int().min(0).max(5000).default(0),
   withholdingBps: z.number().int().min(0).max(5000).default(0),
 }).refine((v) => !v.endDate || v.endDate > v.startDate, { message: 'End date must be after the start date', path: ['endDate'] });
+
+const renewInput = z.object({
+  endDate: dateField,
+  rentAmount: z.number().int().min(1).max(100_000_000).optional(),
+});
+
+/** How far ahead of a lease ending the agent is alerted. */
+export const EXPIRY_ALERT_DAYS = 60;
 
 const paymentInput = z.object({
   amount: z.number().int().min(1).max(1_000_000_000),
@@ -104,6 +112,30 @@ export async function endLease(a: Auth, id: string, endDate?: string): Promise<L
     await tx.update(leases).set({ status: 'ENDED', endDate: end }).where(eq(leases.id, id));
     await recordAudit(tx, {
       organizationId: a.organizationId, actorId: a.userId, action: 'UPDATE', entityType: 'lease', entityId: id, summary: 'Ended lease',
+    });
+    const [item] = await leaseSelect(tx).where(eq(leases.id, id));
+    return item as LeaseItem;
+  });
+}
+
+export async function renewLease(a: Auth, id: string, body: unknown): Promise<LeaseItem> {
+  parse(uuidField, id);
+  const input = parse(renewInput, body);
+  return withTenant(a.organizationId, async (tx) => {
+    const [lease] = await tx.select().from(leases).where(eq(leases.id, id)).for('update');
+    if (!lease) throw notFound('Lease');
+    if (lease.status !== 'ACTIVE') throw conflict('Only an active lease can be renewed. Create a new lease instead.', 'LEASE_ENDED');
+    if (input.endDate <= lease.startDate || (lease.endDate && input.endDate <= lease.endDate)) {
+      throw new AppError(422, 'VALIDATION_FAILED', 'The new end date must be after the current one.', { fields: { endDate: 'Must be later than the current end date' } });
+    }
+    await tx.update(leases).set({
+      endDate: input.endDate,
+      rentAmount: input.rentAmount ?? lease.rentAmount,
+      expiryAlertSentAt: null, // the new term gets its own alert
+    }).where(eq(leases.id, id));
+    await recordAudit(tx, {
+      organizationId: a.organizationId, actorId: a.userId, action: 'UPDATE', entityType: 'lease', entityId: id,
+      summary: `Renewed lease to ${input.endDate}${input.rentAmount && input.rentAmount !== lease.rentAmount ? ` at KES ${input.rentAmount}/month` : ''}`,
     });
     const [item] = await leaseSelect(tx).where(eq(leases.id, id));
     return item as LeaseItem;
@@ -323,4 +355,62 @@ export async function ownerStatement(a: Auth, ownerId: string, periodInput?: str
       totals: { rentDue: sum('rentDue'), collected: sum('collected'), managementFee: sum('managementFee'), withholding: sum('withholding'), netToLandlord: sum('netToLandlord') },
     };
   });
+}
+
+const addDays = (d: Date, n: number) => new Date(d.getTime() + n * 86_400_000);
+
+/**
+ * Background job: when an active lease is within EXPIRY_ALERT_DAYS of its end
+ * date, raises one follow-up for the property's agent (or the tenant's agent)
+ * to discuss renewal. The alert is stamped on the lease so it fires once per
+ * term; renewing clears the stamp. Same eligibility rules as the rent sweep.
+ */
+export async function sweepLeaseExpiry(now: Date = new Date()): Promise<{ alerts: number }> {
+  const today = now.toISOString().slice(0, 10);
+  const horizon = addDays(now, EXPIRY_ALERT_DAYS).toISOString().slice(0, 10);
+  const due = await systemDb.select({ id: leases.id, organizationId: leases.organizationId })
+    .from(leases)
+    .where(and(eq(leases.status, 'ACTIVE'), isNull(leases.expiryAlertSentAt), lte(leases.endDate, horizon)));
+
+  const byOrg = new Map<string, string[]>();
+  for (const l of due) byOrg.set(l.organizationId, [...(byOrg.get(l.organizationId) ?? []), l.id]);
+
+  let alerts = 0;
+  for (const [orgId, leaseIds] of byOrg) {
+    try {
+      const [org] = await systemDb.select({ plan: organizations.plan, planExpiresAt: organizations.planExpiresAt, suspendedAt: organizations.suspendedAt })
+        .from(organizations).where(eq(organizations.id, orgId));
+      if (!org || org.suspendedAt || !planHasModule(effectivePlan(org.plan, org.planExpiresAt, now), 'rentManagement')) continue;
+      alerts += await withTenant(orgId, async (tx) => {
+        const rows = await tx.select({
+          id: leases.id, endDate: leases.endDate, rentAmount: leases.rentAmount, tenantId: leases.tenantId,
+          tenantName: clients.fullName, tenantAgent: clients.assignedAgentId,
+          propertyTitle: properties.title, propertyAgent: properties.assignedAgentId,
+        })
+          .from(leases)
+          .innerJoin(properties, eq(properties.id, leases.propertyId))
+          .innerJoin(clients, eq(clients.id, leases.tenantId))
+          .where(and(inArray(leases.id, leaseIds), isNull(leases.expiryAlertSentAt)));
+        for (const l of rows) {
+          const daysLeft = Math.round((Date.parse(l.endDate!) - Date.parse(today)) / 86_400_000);
+          await tx.insert(followUps).values({
+            organizationId: orgId,
+            title: `Lease renewal: ${l.tenantName}, ${l.propertyTitle}`,
+            notes: daysLeft >= 0
+              ? `This lease ends on ${l.endDate} (${daysLeft} day${daysLeft === 1 ? '' : 's'} left). Rent is KES ${l.rentAmount}/month. Agree a renewal or plan the handover.`
+              : `This lease ended on ${l.endDate} and is still marked active. Renew it or end it in the Rent section.`,
+            dueAt: now,
+            priority: daysLeft <= 14 ? 'HIGH' : 'MEDIUM',
+            clientId: l.tenantId,
+            assignedToId: l.propertyAgent ?? l.tenantAgent ?? null,
+          });
+          await tx.update(leases).set({ expiryAlertSentAt: now }).where(eq(leases.id, l.id));
+        }
+        return rows.length;
+      });
+    } catch (err) {
+      console.error(`[rent-scheduler] lease expiry alerts failed for organization ${orgId}`, err);
+    }
+  }
+  return { alerts };
 }

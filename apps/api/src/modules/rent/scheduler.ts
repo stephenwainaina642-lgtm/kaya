@@ -1,4 +1,4 @@
-import { sweepRentCharges } from './rent.service';
+import { sweepLeaseExpiry, sweepRentCharges } from './rent.service';
 
 const INTERVAL_MS = 60 * 60 * 1000; // hourly: rent is a monthly event, this only needs to be timely, not fast
 let timer: ReturnType<typeof setInterval> | null = null;
@@ -8,6 +8,7 @@ export function startRentScheduler(): void {
   if (timer) return;
   const run = () => {
     sweepRentCharges().catch((err) => console.error('[rent-scheduler] sweep failed:', err));
+    sweepLeaseExpiry().catch((err) => console.error('[rent-scheduler] expiry sweep failed:', err));
   };
   timer = setInterval(run, INTERVAL_MS);
   timer.unref?.();

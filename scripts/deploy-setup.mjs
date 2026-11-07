@@ -121,6 +121,10 @@ async function main() {
     UNION ALL
     SELECT 'leases' WHERE to_regclass('leases') IS NULL
     UNION ALL
+    SELECT 'leases.expiry_alert_sent_at' WHERE to_regclass('leases') IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM information_schema.columns WHERE table_name = 'leases' AND column_name = 'expiry_alert_sent_at'
+    )
+    UNION ALL
     SELECT 'rent_charges' WHERE to_regclass('rent_charges') IS NULL
     UNION ALL
     SELECT 'rent_payments' WHERE to_regclass('rent_payments') IS NULL
@@ -184,6 +188,7 @@ async function applyKnownFixups(c) {
             status text NOT NULL DEFAULT 'ACTIVE',
             created_at timestamptz NOT NULL DEFAULT now()
           );
+          ALTER TABLE leases ADD COLUMN IF NOT EXISTS expiry_alert_sent_at timestamptz;
           CREATE TABLE IF NOT EXISTS rent_charges (
             id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
             organization_id uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,

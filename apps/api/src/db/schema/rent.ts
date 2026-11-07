@@ -21,6 +21,9 @@ export const leases = pgTable('leases', {
   feeBps: integer('fee_bps').notNull().default(0),
   withholdingBps: integer('withholding_bps').notNull().default(0),
   status: text('status').notNull().default('ACTIVE'),
+  // Set once the "lease ending soon" follow-up has been raised, so it fires
+  // once per term; cleared again when the lease is renewed.
+  expiryAlertSentAt: timestamp('expiry_alert_sent_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

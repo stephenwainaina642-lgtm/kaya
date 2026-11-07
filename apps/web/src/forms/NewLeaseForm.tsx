@@ -15,6 +15,7 @@ export function NewLeaseForm({ onDone }: { onDone: () => void }) {
   const [depositAmount, setDepositAmount] = useState('');
   const [dueDay, setDueDay] = useState('1');
   const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
+  const [endDate, setEndDate] = useState('');
   const [feePct, setFeePct] = useState('10');
   const [withholdingPct, setWithholdingPct] = useState('0');
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +37,7 @@ export function NewLeaseForm({ onDone }: { onDone: () => void }) {
         depositAmount: Math.round(Number(depositAmount || 0)),
         dueDay: Number(dueDay),
         startDate,
+        endDate: endDate || null,
         feeBps: Math.round(Number(feePct || 0) * 100),
         withholdingBps: Math.round(Number(withholdingPct || 0) * 100),
       }),
@@ -72,6 +74,9 @@ export function NewLeaseForm({ onDone }: { onDone: () => void }) {
         </Field>
         <Field label="Lease start">
           <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
+        </Field>
+        <Field label="Lease end (optional)">
+          <Input type="date" value={endDate} min={startDate} onChange={(e) => setEndDate(e.target.value)} />
         </Field>
         <Field label="Your management fee (%)">
           <Input type="number" min={0} max={50} step="0.1" value={feePct} onChange={(e) => setFeePct(e.target.value)} />

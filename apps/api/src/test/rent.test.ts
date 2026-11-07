@@ -163,3 +163,69 @@ describe('automatic rent raising', () => {
     expect(next.created).toBe(1);
   });
 });
+
+describe('lease expiry alerts and renewal', () => {
+  beforeEach(async () => { await truncateAll(); });
+
+  it('raises one follow-up per lease term inside the 60-day window, and none outside it', async () => {
+    const { sweepLeaseExpiry } = await import('../modules/rent/rent.service');
+    const { followUps } = await import('../db/schema');
+    const soon = await setupTenant('ORG_ADMIN', 'GROWTH');
+    const far = await setupTenant('ORG_ADMIN', 'GROWTH');
+    const open = await setupTenant('ORG_ADMIN', 'GROWTH');
+    await seed(soon.authHeader, 50_000, { endDate: '2026-06-20' });
+    await seed(far.authHeader, 50_000, { endDate: '2026-12-31' });
+    await seed(open.authHeader);
+
+    const now = new Date('2026-05-01T08:00:00Z'); // 50 days before 20 June
+    expect(await sweepLeaseExpiry(now)).toEqual({ alerts: 1 });
+    const rows = await systemDb.select().from(followUps).where(eq(followUps.organizationId, soon.org.id));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ priority: 'MEDIUM', status: 'PENDING' });
+    expect(rows[0]!.title).toContain('Tenant Tom');
+    expect(rows[0]!.notes).toContain('2026-06-20');
+    expect(rows[0]!.clientId).toBeTruthy();
+    expect(await systemDb.select().from(followUps).where(eq(followUps.organizationId, far.org.id))).toHaveLength(0);
+    expect(await systemDb.select().from(followUps).where(eq(followUps.organizationId, open.org.id))).toHaveLength(0);
+
+    expect(await sweepLeaseExpiry(now)).toEqual({ alerts: 0 }); // hourly re-runs never repeat it
+  });
+
+  it('marks an alert urgent inside 14 days, and ignores ended leases', async () => {
+    const { sweepLeaseExpiry } = await import('../modules/rent/rent.service');
+    const { followUps } = await import('../db/schema');
+    const t = await setupTenant('ORG_ADMIN', 'GROWTH');
+    const { lease } = await seed(t.authHeader, 50_000, { endDate: '2026-06-20' });
+    await sweepLeaseExpiry(new Date('2026-06-10T08:00:00Z'));
+    expect((await systemDb.select().from(followUps).where(eq(followUps.organizationId, t.org.id)))[0]!.priority).toBe('HIGH');
+
+    const t2 = await setupTenant('ORG_ADMIN', 'GROWTH');
+    const second = await seed(t2.authHeader, 50_000, { endDate: '2026-06-20' });
+    await request(app).post(`/api/rent/leases/${second.lease.body.id}/end`).set(t2.authHeader).send({});
+    expect(await sweepLeaseExpiry(new Date('2026-06-10T08:00:00Z'))).toEqual({ alerts: 0 });
+    void lease;
+  });
+
+  it('renews a lease, validates the dates, and re-arms the alert for the new term', async () => {
+    const { sweepLeaseExpiry } = await import('../modules/rent/rent.service');
+    const { followUps } = await import('../db/schema');
+    const t = await setupTenant('ORG_ADMIN', 'GROWTH');
+    const { lease } = await seed(t.authHeader, 50_000, { endDate: '2026-06-20' });
+    await sweepLeaseExpiry(new Date('2026-05-01T08:00:00Z'));
+
+    const bad = await request(app).post(`/api/rent/leases/${lease.body.id}/renew`).set(t.authHeader).send({ endDate: '2026-06-01' });
+    expect(bad.status).toBe(422);
+    const ok = await request(app).post(`/api/rent/leases/${lease.body.id}/renew`).set(t.authHeader).send({ endDate: '2027-06-20', rentAmount: 55_000 });
+    expect(ok.status).toBe(200);
+    expect(ok.body).toMatchObject({ endDate: '2027-06-20', rentAmount: 55_000 });
+
+    expect(await sweepLeaseExpiry(new Date('2026-05-02T08:00:00Z'))).toEqual({ alerts: 0 }); // far away again
+    expect(await sweepLeaseExpiry(new Date('2027-05-01T08:00:00Z'))).toEqual({ alerts: 1 }); // next term alerts
+    expect(await systemDb.select().from(followUps).where(eq(followUps.organizationId, t.org.id))).toHaveLength(2);
+
+    await request(app).post(`/api/rent/leases/${lease.body.id}/end`).set(t.authHeader).send({});
+    expect((await request(app).post(`/api/rent/leases/${lease.body.id}/renew`).set(t.authHeader).send({ endDate: '2028-01-01' })).status).toBe(409);
+    const agent = await createUser(t.org.id, { role: 'AGENT' });
+    expect((await request(app).post(`/api/rent/leases/${lease.body.id}/renew`).set({ Authorization: `Bearer ${agent.token}` }).send({ endDate: '2028-01-01' })).status).toBe(403);
+  });
+});

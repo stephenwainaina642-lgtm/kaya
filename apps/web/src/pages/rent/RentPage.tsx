@@ -18,6 +18,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Modal } from '../../components/ui/Modal';
 import { NewLeaseForm } from '../../forms/NewLeaseForm';
+import { RenewLeaseForm } from '../../forms/RenewLeaseForm';
 import { RecordRentPaymentForm } from '../../forms/RecordRentPaymentForm';
 
 const kes = (n: number) => `KES ${n.toLocaleString('en-KE')}`;
@@ -176,8 +177,17 @@ function Receipts({ charge }: { charge: RentChargeItem }) {
   );
 }
 
+function endsIn(l: LeaseItem): { label: string; tone: 'danger' | 'warn' | 'neutral' } | null {
+  if (!l.endDate || l.status !== 'ACTIVE') return null;
+  const days = Math.round((Date.parse(l.endDate) - Date.parse(new Date().toISOString().slice(0, 10))) / 86_400_000);
+  if (days < 0) return { label: `Ended ${-days}d ago`, tone: 'danger' };
+  if (days <= 60) return { label: `${days}d left`, tone: days <= 14 ? 'danger' : 'warn' };
+  return null;
+}
+
 function Leases() {
   const qc = useQueryClient();
+  const [renewing, setRenewing] = useState<LeaseItem | null>(null);
   const { data, isLoading } = useQuery({ queryKey: ['rent', 'leases'], queryFn: () => api.get<LeaseItem[]>('/rent/leases') });
   const end = useMutation({
     mutationFn: (id: string) => api.post(`/rent/leases/${id}/end`, {}),
@@ -186,31 +196,45 @@ function Leases() {
   if (isLoading) return <Spinner />;
   if (!data?.length) return <EmptyState icon={<KeyRound size={22} />} title="No leases yet" body="Add a lease to start raising monthly rent." />;
   return (
+    <>
     <Card className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead><tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
           <th className="px-4 py-3">Property</th><th className="px-4 py-3">Tenant</th><th className="px-4 py-3">Landlord</th>
-          <th className="px-4 py-3 text-right">Rent</th><th className="px-4 py-3">Since</th><th className="px-4 py-3">Status</th><th className="px-4 py-3" />
+          <th className="px-4 py-3 text-right">Rent</th><th className="px-4 py-3">Since</th><th className="px-4 py-3">Ends</th><th className="px-4 py-3">Status</th><th className="px-4 py-3" />
         </tr></thead>
         <tbody>
-          {data.map((l) => (
+          {data.map((l) => {
+            const soon = endsIn(l);
+            return (
             <tr key={l.id} className="border-b border-line last:border-0">
               <td className="px-4 py-3 font-medium text-ink">{l.propertyTitle}</td>
               <td className="px-4 py-3">{l.tenantName}</td>
               <td className="px-4 py-3">{l.ownerName ?? '—'}</td>
-              <td className="px-4 py-3 text-right">{kes(l.rentAmount)}</td>
-              <td className="px-4 py-3">{l.startDate}</td>
+              <td className="whitespace-nowrap px-4 py-3 text-right">{kes(l.rentAmount)}</td>
+              <td className="whitespace-nowrap px-4 py-3">{l.startDate}</td>
+              <td className="whitespace-nowrap px-4 py-3">
+                {l.endDate ?? '—'} {soon && <Badge tone={soon.tone}>{soon.label}</Badge>}
+              </td>
               <td className="px-4 py-3"><Badge tone={l.status === 'ACTIVE' ? 'ok' : 'neutral'}>{l.status === 'ACTIVE' ? 'Active' : 'Ended'}</Badge></td>
               <td className="px-4 py-3 text-right">
                 {l.status === 'ACTIVE' && (
-                  <Button variant="ghost" disabled={end.isPending} onClick={() => { if (window.confirm('End this lease? No more rent will be raised for it.')) end.mutate(l.id); }}>End lease</Button>
+                  <div className="flex justify-end gap-1 whitespace-nowrap">
+                    <Button variant="secondary" onClick={() => setRenewing(l)}>Renew</Button>
+                    <Button variant="ghost" disabled={end.isPending} onClick={() => { if (window.confirm('End this lease? No more rent will be raised for it.')) end.mutate(l.id); }}>End lease</Button>
+                  </div>
                 )}
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </Card>
+    <Modal open={!!renewing} onClose={() => setRenewing(null)} title="Renew lease">
+      {renewing && <RenewLeaseForm lease={renewing} onDone={() => setRenewing(null)} />}
+    </Modal>
+    </>
   );
 }
 
