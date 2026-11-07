@@ -69,6 +69,7 @@ const PLANS = [
       'Team roles and permissions',
       'AI lead scoring, drafted messages and summaries',
       'Auto-assignment rules and drip follow-up sequences',
+      'Rent management: leases, monthly rent, arrears and landlord statements',
       'Priority support',
     ],
     highlight: true,

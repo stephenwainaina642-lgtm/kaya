@@ -92,10 +92,13 @@ function RentRoll() {
       <div className="flex flex-wrap items-end gap-3">
         <div className="w-44"><Input type="month" value={period} onChange={(e) => { setPeriod(e.target.value); setNote(null); }} /></div>
         <Button variant="secondary" onClick={() => generate.mutate()} disabled={generate.isPending}>
-          <RefreshCw size={15} /> {generate.isPending ? 'Raising…' : 'Raise this month\'s rent'}
+          <RefreshCw size={15} /> {generate.isPending ? 'Raising…' : 'Raise rent for this month'}
         </Button>
         {note && <span className="text-sm text-muted">{note}</span>}
       </div>
+      <p className="-mt-2 text-xs text-muted">
+        Rent is raised automatically each month for every active lease. Use the button to raise a past or future month.
+      </p>
       {o && (
         <div className="grid gap-4 sm:grid-cols-4">
           <Stat label="Expected" value={kes(o.expected)} sub={`${o.activeLeases} active lease${o.activeLeases === 1 ? '' : 's'}`} />

@@ -139,3 +139,27 @@ describe('rent management', () => {
     expect((await request(app).get('/api/rent/leases').set(a.authHeader)).status).toBe(403);
   });
 });
+
+describe('automatic rent raising', () => {
+  beforeEach(async () => { await truncateAll(); });
+
+  it('raises the current month for every eligible agency, once, and skips suspended or ineligible ones', async () => {
+    const { sweepRentCharges } = await import('../modules/rent/rent.service');
+    const a = await setupTenant('ORG_ADMIN', 'GROWTH');
+    const suspended = await setupTenant('ORG_ADMIN', 'GROWTH');
+    const starter = await setupTenant('ORG_ADMIN', 'GROWTH');
+    await seed(a.authHeader);
+    await seed(suspended.authHeader);
+    await seed(starter.authHeader);
+    await systemDb.update(organizations).set({ suspendedAt: new Date() }).where(eq(organizations.id, suspended.org.id));
+    await systemDb.update(organizations).set({ plan: 'STARTER' }).where(eq(organizations.id, starter.org.id));
+
+    const now = new Date('2026-04-15T10:00:00Z');
+    expect(await sweepRentCharges(now)).toEqual({ organizations: 1, created: 1 });
+    expect((await request(app).get('/api/rent/charges?period=2026-04').set(a.authHeader)).body).toHaveLength(1);
+    expect(await sweepRentCharges(now)).toEqual({ organizations: 0, created: 0 }); // hourly re-run is a no-op
+
+    const next = await sweepRentCharges(new Date('2026-05-01T00:30:00Z')); // a new month rolls over by itself
+    expect(next.created).toBe(1);
+  });
+});

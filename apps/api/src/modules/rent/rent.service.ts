@@ -1,12 +1,13 @@
 import { z } from 'zod';
 import { and, asc, eq, inArray, lt, ne, sql as dsql } from 'drizzle-orm';
-import { RENT_PAYMENT_METHODS } from '@kaya/shared';
+import { RENT_PAYMENT_METHODS, effectivePlan, planHasModule } from '@kaya/shared';
 import type {
   ArrearsReport, ChargeStatus, GenerateRentResult, LeaseItem, OwnerStatement, RentChargeItem,
   RentOverview, RentPaymentItem, StatementLine,
 } from '@kaya/shared';
 import { withTenant, type Tx } from '../../db/client';
-import { clients, leases, owners, properties, rentCharges, rentPayments } from '../../db/schema';
+import { systemDb } from '../../db/system';
+import { clients, leases, organizations, owners, properties, rentCharges, rentPayments } from '../../db/schema';
 import { AppError, conflict, notFound } from '../../lib/errors';
 import { parse } from '../../lib/validate';
 import { recordAudit } from '../../lib/audit';
@@ -115,29 +116,70 @@ export async function endLease(a: Auth, id: string, endDate?: string): Promise<L
  * or a monthly re-run never bills a tenant twice. The first month is charged
  * in full (no proration) — agencies adjust by recording what was actually agreed.
  */
-export async function generateCharges(a: Auth, body: unknown): Promise<GenerateRentResult> {
-  const { period } = parse(z.object({ period: periodField }), body);
+async function raiseCharges(tx: Tx, organizationId: string, period: string): Promise<{ created: number; alreadyExisted: number }> {
   const first = `${period}-01`;
   const last = lastDayOf(period);
+  const active = await tx.select().from(leases).where(and(eq(leases.status, 'ACTIVE'), dsql`${leases.startDate} <= ${last}`));
+  const due = active.filter((l) => !l.endDate || l.endDate >= first);
+  let created = 0;
+  for (const l of due) {
+    const inserted = await tx.insert(rentCharges).values({
+      organizationId, leaseId: l.id, period,
+      dueDate: `${period}-${pad(l.dueDay)}`, amount: l.rentAmount,
+    }).onConflictDoNothing({ target: [rentCharges.leaseId, rentCharges.period] }).returning({ id: rentCharges.id });
+    created += inserted.length;
+  }
+  return { created, alreadyExisted: due.length - created };
+}
+
+export async function generateCharges(a: Auth, body: unknown): Promise<GenerateRentResult> {
+  const { period } = parse(z.object({ period: periodField }), body);
   return withTenant(a.organizationId, async (tx) => {
-    const active = await tx.select().from(leases).where(and(eq(leases.status, 'ACTIVE'), dsql`${leases.startDate} <= ${last}`));
-    const due = active.filter((l) => !l.endDate || l.endDate >= first);
-    let created = 0;
-    for (const l of due) {
-      const inserted = await tx.insert(rentCharges).values({
-        organizationId: a.organizationId, leaseId: l.id, period,
-        dueDate: `${period}-${pad(l.dueDay)}`, amount: l.rentAmount,
-      }).onConflictDoNothing({ target: [rentCharges.leaseId, rentCharges.period] }).returning({ id: rentCharges.id });
-      created += inserted.length;
-    }
-    if (created) {
+    const r = await raiseCharges(tx, a.organizationId, period);
+    if (r.created) {
       await recordAudit(tx, {
         organizationId: a.organizationId, actorId: a.userId, action: 'CREATE', entityType: 'rent_charge', entityId: a.organizationId,
-        summary: `Generated ${created} rent charges for ${period}`,
+        summary: `Generated ${r.created} rent charges for ${period}`,
       });
     }
-    return { period, created, alreadyExisted: due.length - created };
+    return { period, ...r };
   });
+}
+
+/**
+ * Background job: raises the current month's rent for every agency that has
+ * active leases, so nobody has to remember to press the button. Safe to run
+ * as often as you like, and from several server instances at once, because
+ * the (lease, period) unique key makes repeats no-ops. Skips suspended
+ * agencies and plans without rent management.
+ */
+export async function sweepRentCharges(now: Date = new Date()): Promise<{ organizations: number; created: number }> {
+  const period = currentPeriod(now);
+  const orgRows = await systemDb.selectDistinct({ id: leases.organizationId }).from(leases).where(eq(leases.status, 'ACTIVE'));
+  let organizationsTouched = 0;
+  let total = 0;
+  for (const { id } of orgRows) {
+    try {
+      const [org] = await systemDb.select({ plan: organizations.plan, planExpiresAt: organizations.planExpiresAt, suspendedAt: organizations.suspendedAt })
+        .from(organizations).where(eq(organizations.id, id));
+      if (!org || org.suspendedAt || !planHasModule(effectivePlan(org.plan, org.planExpiresAt, now), 'rentManagement')) continue;
+      const created = await withTenant(id, async (tx) => {
+        const r = await raiseCharges(tx, id, period);
+        if (r.created) {
+          await recordAudit(tx, {
+            organizationId: id, actorId: null, action: 'CREATE', entityType: 'rent_charge', entityId: id,
+            summary: `Automatically raised ${r.created} rent charges for ${period}`,
+          });
+        }
+        return r.created;
+      });
+      if (created) { organizationsTouched++; total += created; }
+    } catch (err) {
+      // One agency's problem must not stop the others.
+      console.error(`[rent-scheduler] failed for organization ${id}`, err);
+    }
+  }
+  return { organizations: organizationsTouched, created: total };
 }
 
 function chargeSelect(tx: Tx) {

@@ -2,6 +2,7 @@ import { storageBackend } from './lib/storage';
 import { createApp } from './app';
 import { env } from './config/env';
 import { startDripScheduler } from './modules/automation/scheduler';
+import { startRentScheduler } from './modules/rent/scheduler';
 import { initMonitoring, captureError, flushMonitoring } from './lib/monitoring';
 import { closeSystemPool } from './db/system';
 
@@ -17,6 +18,7 @@ const server = app.listen(env.PORT, () => {
 });
 
 startDripScheduler();
+startRentScheduler();
 
 // A stray rejected promise must be reported, not silently ignored; and an
 // uncaught exception leaves the process in an unknown state, so report it
