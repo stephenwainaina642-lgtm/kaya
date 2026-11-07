@@ -9,6 +9,7 @@ export * from './money';
 export * from './permissions';
 export * from './plans';
 export * from './billing';
+export * from './rent';
 export * from './audit';
 export * from './analytics';
 export * from './automation';

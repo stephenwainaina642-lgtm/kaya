@@ -119,6 +119,12 @@ async function main() {
     UNION ALL
     SELECT 'billing_payments' WHERE to_regclass('billing_payments') IS NULL
     UNION ALL
+    SELECT 'leases' WHERE to_regclass('leases') IS NULL
+    UNION ALL
+    SELECT 'rent_charges' WHERE to_regclass('rent_charges') IS NULL
+    UNION ALL
+    SELECT 'rent_payments' WHERE to_regclass('rent_payments') IS NULL
+    UNION ALL
     SELECT 'password_reset_tokens' WHERE to_regclass('password_reset_tokens') IS NULL
     UNION ALL
     SELECT 'shortlist_items_pair_unique' WHERE NOT EXISTS (
@@ -160,6 +166,46 @@ async function applyKnownFixups(c) {
             created_by_id uuid REFERENCES users(id) ON DELETE SET NULL,
             created_at timestamptz NOT NULL DEFAULT now(),
             paid_at timestamptz
+          );
+        END IF;
+        IF to_regclass('properties') IS NOT NULL AND to_regclass('clients') IS NOT NULL THEN
+          CREATE TABLE IF NOT EXISTS leases (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            organization_id uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+            property_id uuid NOT NULL REFERENCES properties(id) ON DELETE RESTRICT,
+            tenant_id uuid NOT NULL REFERENCES clients(id) ON DELETE RESTRICT,
+            rent_amount integer NOT NULL,
+            deposit_amount integer NOT NULL DEFAULT 0,
+            due_day integer NOT NULL DEFAULT 1,
+            start_date date NOT NULL,
+            end_date date,
+            fee_bps integer NOT NULL DEFAULT 0,
+            withholding_bps integer NOT NULL DEFAULT 0,
+            status text NOT NULL DEFAULT 'ACTIVE',
+            created_at timestamptz NOT NULL DEFAULT now()
+          );
+          CREATE TABLE IF NOT EXISTS rent_charges (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            organization_id uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+            lease_id uuid NOT NULL REFERENCES leases(id) ON DELETE CASCADE,
+            period text NOT NULL,
+            due_date date NOT NULL,
+            amount integer NOT NULL,
+            paid_amount integer NOT NULL DEFAULT 0,
+            status text NOT NULL DEFAULT 'UNPAID',
+            created_at timestamptz NOT NULL DEFAULT now(),
+            CONSTRAINT rent_charges_lease_period_key UNIQUE (lease_id, period)
+          );
+          CREATE TABLE IF NOT EXISTS rent_payments (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            organization_id uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+            charge_id uuid NOT NULL REFERENCES rent_charges(id) ON DELETE CASCADE,
+            amount integer NOT NULL,
+            method text NOT NULL,
+            reference text,
+            paid_at timestamptz NOT NULL DEFAULT now(),
+            recorded_by_id uuid REFERENCES users(id) ON DELETE SET NULL,
+            created_at timestamptz NOT NULL DEFAULT now()
           );
         END IF;
         IF to_regclass('users') IS NOT NULL THEN

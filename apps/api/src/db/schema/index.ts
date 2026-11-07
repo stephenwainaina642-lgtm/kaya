@@ -10,3 +10,4 @@ export * from './automation';
 export * from './portal';
 export * from './platform';
 export * from './billing';
+export * from './rent';

@@ -3,9 +3,9 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, Users, UserCircle, Building2, Landmark, CalendarClock, ListChecks,
-  Handshake, Wallet, Calendar, MessageSquare, FileText, BarChart3, UsersRound, Settings, LogOut, Menu, X, ShieldCheck, LineChart, Workflow,
+  Handshake, Wallet, Calendar, MessageSquare, FileText, BarChart3, UsersRound, Settings, LogOut, Menu, X, ShieldCheck, LineChart, Workflow, KeyRound,
 } from 'lucide-react';
-import { planHasModule } from '@kaya/shared';
+import { can, planHasModule, type Permission } from '@kaya/shared';
 import { useAuth } from '../auth/AuthContext';
 import { Avatar } from './ui/Avatar';
 import { BrandMark } from './BrandMark';
@@ -21,6 +21,7 @@ const NAV = [
   { to: '/tasks', labelKey: 'nav.tasks', icon: ListChecks },
   { to: '/deals', labelKey: 'nav.deals', icon: Handshake, module: 'dealsPipeline' as const },
   { to: '/commissions', labelKey: 'nav.commissions', icon: Wallet, module: 'dealsPipeline' as const },
+  { to: '/rent', labelKey: 'nav.rent', icon: KeyRound, module: 'rentManagement' as const, permission: 'rent:view' as const },
   { to: '/calendar', labelKey: 'nav.calendar', icon: Calendar },
   { to: '/communications', labelKey: 'nav.communications', icon: MessageSquare },
   { to: '/documents', labelKey: 'nav.documents', icon: FileText },
@@ -35,7 +36,11 @@ const NAV = [
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { user, logout } = useAuth();
   const { t } = useTranslation();
-  const items = NAV.filter((item) => !item.module || !user || planHasModule(user.plan, item.module));
+  const items = NAV.filter(
+    (item) =>
+      (!item.module || !user || planHasModule(user.plan, item.module)) &&
+      (!(item as { permission?: Permission }).permission || !user || can(user.role, (item as { permission: Permission }).permission)),
+  );
   return (
     <>
       <div className="flex items-center gap-2 px-5 py-5">

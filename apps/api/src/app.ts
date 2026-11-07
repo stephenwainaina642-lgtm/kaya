@@ -16,6 +16,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_DIST = path.resolve(__dirname, '../../web/dist');
 import { notFoundHandler, errorHandler } from './middleware/error';
 import { apiLimiter } from './middleware/rateLimit';
+import { rentRouter } from './modules/rent/rent.routes';
 import { billingRouter } from './modules/billing/billing.routes';
 import { authRouter } from './modules/auth/auth.routes';
 import { leadsRouter } from './modules/leads/leads.routes';
@@ -110,6 +111,7 @@ export function createApp(): Express {
   app.use('/api/onboarding', onboardingRouter);
   app.use('/api/export', exportRouter);
   app.use('/api/billing', billingRouter);
+  app.use('/api/rent', rentRouter);
   app.use('/api/search', searchRouter);
   app.use('/api/owners', ownersRouter);
   app.use('/api/properties', propertiesRouter);
