@@ -28,6 +28,7 @@ rentRouter.get('/statements/:ownerId', requirePermission('rent:view'), wrap(asyn
   if (req.query.format !== 'csv') { res.json(st); return; }
   const rows = [
     ...st.lines.map((l) => ({ property: l.propertyTitle, tenant: l.tenantName, rent_due: l.rentDue, collected: l.collected, management_fee: l.managementFee, withholding: l.withholding, net_to_landlord: l.netToLandlord })),
+    ...st.deductions.map((d) => ({ property: d.propertyTitle, tenant: `Repair: ${d.title}`, rent_due: 0, collected: 0, management_fee: 0, withholding: 0, net_to_landlord: -d.amount })),
     { property: 'TOTAL', tenant: '', rent_due: st.totals.rentDue, collected: st.totals.collected, management_fee: st.totals.managementFee, withholding: st.totals.withholding, net_to_landlord: st.totals.netToLandlord },
   ];
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');

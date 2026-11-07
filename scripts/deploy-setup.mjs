@@ -125,6 +125,8 @@ async function main() {
       SELECT 1 FROM information_schema.columns WHERE table_name = 'leases' AND column_name = 'expiry_alert_sent_at'
     )
     UNION ALL
+    SELECT 'maintenance_requests' WHERE to_regclass('maintenance_requests') IS NULL
+    UNION ALL
     SELECT 'rent_charges' WHERE to_regclass('rent_charges') IS NULL
     UNION ALL
     SELECT 'rent_payments' WHERE to_regclass('rent_payments') IS NULL
@@ -189,6 +191,27 @@ async function applyKnownFixups(c) {
             created_at timestamptz NOT NULL DEFAULT now()
           );
           ALTER TABLE leases ADD COLUMN IF NOT EXISTS expiry_alert_sent_at timestamptz;
+          CREATE TABLE IF NOT EXISTS maintenance_requests (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            organization_id uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+            property_id uuid NOT NULL REFERENCES properties(id) ON DELETE RESTRICT,
+            tenant_id uuid REFERENCES clients(id) ON DELETE SET NULL,
+            title text NOT NULL,
+            description text,
+            category text NOT NULL DEFAULT 'OTHER',
+            priority text NOT NULL DEFAULT 'MEDIUM',
+            status text NOT NULL DEFAULT 'OPEN',
+            assigned_to_id uuid REFERENCES users(id) ON DELETE SET NULL,
+            vendor_name text,
+            vendor_phone text,
+            estimated_cost integer,
+            actual_cost integer,
+            charge_to_landlord boolean NOT NULL DEFAULT false,
+            resolved_at timestamptz,
+            created_by_id uuid REFERENCES users(id) ON DELETE SET NULL,
+            created_at timestamptz NOT NULL DEFAULT now(),
+            updated_at timestamptz NOT NULL DEFAULT now()
+          );
           CREATE TABLE IF NOT EXISTS rent_charges (
             id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
             organization_id uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,

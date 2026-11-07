@@ -80,12 +80,27 @@ export interface StatementLine {
   netToLandlord: number;
 }
 
+export interface StatementDeduction {
+  requestId: string;
+  propertyTitle: string;
+  title: string;
+  amount: number;
+}
+
 export interface OwnerStatement {
   ownerId: string;
   ownerName: string;
   period: string;
   lines: StatementLine[];
-  totals: { rentDue: number; collected: number; managementFee: number; withholding: number; netToLandlord: number };
+  /** Repairs finished this month that the agency is recharging to the landlord. */
+  deductions: StatementDeduction[];
+  totals: {
+    rentDue: number; collected: number; managementFee: number; withholding: number;
+    /** Sum of the deductions above. */
+    maintenance: number;
+    /** What the agency pays the landlord: rent after fee and tax, less repair costs. */
+    netToLandlord: number;
+  };
 }
 
 export interface RentOverview {

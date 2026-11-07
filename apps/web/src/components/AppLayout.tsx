@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, Users, UserCircle, Building2, Landmark, CalendarClock, ListChecks,
-  Handshake, Wallet, Calendar, MessageSquare, FileText, BarChart3, UsersRound, Settings, LogOut, Menu, X, ShieldCheck, LineChart, Workflow, KeyRound,
+  Handshake, Wallet, Calendar, MessageSquare, FileText, BarChart3, UsersRound, Settings, LogOut, Menu, X, ShieldCheck, LineChart, Workflow, KeyRound, Wrench,
 } from 'lucide-react';
 import { can, planHasModule, type Permission } from '@kaya/shared';
 import { useAuth } from '../auth/AuthContext';
@@ -22,6 +22,7 @@ const NAV = [
   { to: '/deals', labelKey: 'nav.deals', icon: Handshake, module: 'dealsPipeline' as const },
   { to: '/commissions', labelKey: 'nav.commissions', icon: Wallet, module: 'dealsPipeline' as const },
   { to: '/rent', labelKey: 'nav.rent', icon: KeyRound, module: 'rentManagement' as const, permission: 'rent:view' as const },
+  { to: '/maintenance', labelKey: 'nav.maintenance', icon: Wrench, module: 'rentManagement' as const, permission: 'maintenance:view' as const },
   { to: '/calendar', labelKey: 'nav.calendar', icon: Calendar },
   { to: '/communications', labelKey: 'nav.communications', icon: MessageSquare },
   { to: '/documents', labelKey: 'nav.documents', icon: FileText },

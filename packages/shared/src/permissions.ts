@@ -3,7 +3,7 @@ import type { Role } from './enums';
 export const RESOURCES = [
   'dashboard', 'leads', 'clients', 'properties', 'owners', 'viewings', 'followups', 'tasks',
   'deals', 'commissions', 'calendar', 'communications', 'documents', 'reports', 'team',
-  'settings', 'billing', 'audit', 'automation', 'rent',
+  'settings', 'billing', 'audit', 'automation', 'rent', 'maintenance',
 ] as const;
 export type Resource = (typeof RESOURCES)[number];
 
@@ -23,6 +23,8 @@ const RESOURCE_MIN_ROLE: Partial<Record<Resource, Record<'view' | 'create' | 'ed
   automation: { view: 'MANAGER', create: 'MANAGER', edit: 'MANAGER', delete: 'ORG_ADMIN' },
   // Rent ledgers hold tenants' and landlords' money: managers and admins only.
   rent: { view: 'MANAGER', create: 'MANAGER', edit: 'MANAGER', delete: 'ORG_ADMIN' },
+  // Agents log and chase repairs; removing a request is a manager call.
+  maintenance: { view: 'AGENT', create: 'AGENT', edit: 'AGENT', delete: 'MANAGER' },
   reports: { view: 'AGENT', create: 'MANAGER', edit: 'MANAGER', delete: 'MANAGER' },
 };
 
@@ -37,7 +39,7 @@ export function can(role: Role, permission: Permission): boolean {
 /** 'own' = user may only act on records assigned to them; 'organization' = scoped to the whole org. */
 export function dataScope(role: Role, resource: Resource): 'own' | 'organization' {
   if (role === 'ORG_ADMIN' || role === 'MANAGER') return 'organization';
-  if (resource === 'team' || resource === 'settings' || resource === 'billing' || resource === 'reports' || resource === 'automation' || resource === 'rent') {
+  if (resource === 'team' || resource === 'settings' || resource === 'billing' || resource === 'reports' || resource === 'automation' || resource === 'rent' || resource === 'maintenance') {
     return 'organization';
   }
   return 'own';

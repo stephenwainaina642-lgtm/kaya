@@ -15,6 +15,7 @@ import { PropertiesList } from './pages/properties/PropertiesList';
 import { PropertyDetail } from './pages/properties/PropertyDetail';
 import { OwnersList } from './pages/owners/OwnersList';
 import { OwnerDetail } from './pages/owners/OwnerDetail';
+import { MaintenancePage } from './pages/maintenance/MaintenancePage';
 import { RentPage } from './pages/rent/RentPage';
 import { ViewingsList } from './pages/viewings/ViewingsList';
 import { FollowUpsList } from './pages/followups/FollowUpsList';
@@ -123,6 +124,7 @@ export default function App() {
         <Route path="deals/:id" element={<DealDetail />} />
         <Route path="commissions" element={<CommissionsList />} />
         <Route path="rent" element={<RentPage />} />
+        <Route path="maintenance" element={<MaintenancePage />} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="communications" element={<CommunicationsList />} />
         <Route path="documents" element={<DocumentsList />} />

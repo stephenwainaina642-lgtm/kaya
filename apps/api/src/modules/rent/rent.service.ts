@@ -1,13 +1,13 @@
 import { z } from 'zod';
-import { and, asc, eq, inArray, isNull, lt, lte, ne, sql as dsql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, isNull, lt, lte, ne, sql as dsql } from 'drizzle-orm';
 import { RENT_PAYMENT_METHODS, effectivePlan, planHasModule } from '@kaya/shared';
 import type {
   ArrearsReport, ChargeStatus, GenerateRentResult, LeaseItem, OwnerStatement, RentChargeItem,
-  RentOverview, RentPaymentItem, StatementLine,
+  RentOverview, RentPaymentItem, StatementDeduction, StatementLine,
 } from '@kaya/shared';
 import { withTenant, type Tx } from '../../db/client';
 import { systemDb } from '../../db/system';
-import { clients, followUps, leases, organizations, owners, properties, rentCharges, rentPayments } from '../../db/schema';
+import { clients, followUps, leases, maintenanceRequests, organizations, owners, properties, rentCharges, rentPayments } from '../../db/schema';
 import { AppError, conflict, notFound } from '../../lib/errors';
 import { parse } from '../../lib/validate';
 import { recordAudit } from '../../lib/audit';
@@ -349,10 +349,33 @@ export async function ownerStatement(a: Auth, ownerId: string, periodInput?: str
         rentDue: r.amount, collected: r.paid, managementFee, withholding, netToLandlord: r.paid - managementFee - withholding,
       };
     });
+
+    // Repairs finished this month that the agency is recharging to the landlord.
+    const monthStart = new Date(`${period}-01T00:00:00Z`);
+    const monthEnd = new Date(Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth() + 1, 1));
+    const repairs = props.length === 0 ? [] : await tx.select({
+      requestId: maintenanceRequests.id, propertyTitle: properties.title, title: maintenanceRequests.title, amount: maintenanceRequests.actualCost,
+    })
+      .from(maintenanceRequests)
+      .innerJoin(properties, eq(properties.id, maintenanceRequests.propertyId))
+      .where(and(
+        inArray(maintenanceRequests.propertyId, props.map((p) => p.id)),
+        eq(maintenanceRequests.status, 'DONE'), eq(maintenanceRequests.chargeToLandlord, true),
+        gte(maintenanceRequests.resolvedAt, monthStart), lt(maintenanceRequests.resolvedAt, monthEnd),
+      ))
+      .orderBy(asc(maintenanceRequests.resolvedAt));
+    const deductions: StatementDeduction[] = repairs.filter((r) => (r.amount ?? 0) > 0).map((r) => ({
+      requestId: r.requestId, propertyTitle: r.propertyTitle, title: r.title, amount: r.amount!,
+    }));
+    const maintenance = deductions.reduce((s, d) => s + d.amount, 0);
+
     const sum = (k: keyof StatementLine) => lines.reduce((s, l) => s + (l[k] as number), 0);
     return {
-      ownerId, ownerName: owner.fullName ?? 'Owner', period, lines,
-      totals: { rentDue: sum('rentDue'), collected: sum('collected'), managementFee: sum('managementFee'), withholding: sum('withholding'), netToLandlord: sum('netToLandlord') },
+      ownerId, ownerName: owner.fullName ?? 'Owner', period, lines, deductions,
+      totals: {
+        rentDue: sum('rentDue'), collected: sum('collected'), managementFee: sum('managementFee'), withholding: sum('withholding'),
+        maintenance, netToLandlord: sum('netToLandlord') - maintenance,
+      },
     };
   });
 }

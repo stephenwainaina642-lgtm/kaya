@@ -331,6 +331,12 @@ function Statements() {
                   <td className="px-4 py-3 text-right font-medium text-ink">{kes(l.netToLandlord)}</td>
                 </tr>
               ))}
+              {s.deductions.map((d) => (
+                <tr key={d.requestId} className="border-b border-line text-muted">
+                  <td className="px-4 py-3" colSpan={6}>Repair charged to landlord: {d.title} ({d.propertyTitle})</td>
+                  <td className="px-4 py-3 text-right">− {kes(d.amount)}</td>
+                </tr>
+              ))}
               <tr className="bg-ground font-medium text-ink">
                 <td className="px-4 py-3" colSpan={2}>Total</td>
                 <td className="px-4 py-3 text-right">{kes(s.totals.rentDue)}</td><td className="px-4 py-3 text-right">{kes(s.totals.collected)}</td>
