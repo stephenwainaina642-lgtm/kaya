@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { KeyRound, Plus, RefreshCw, Download } from 'lucide-react';
+import { KeyRound, Plus, RefreshCw, Download, MessageCircle, Printer } from 'lucide-react';
+import { rentReminderMessage, whatsappLink } from '@kaya/shared';
 import type {
-  ArrearsReport, GenerateRentResult, LeaseItem, OwnerStatement, RentChargeItem, RentOverview, OwnerListItem, Page,
+  ArrearsReport, RentPaymentItem, GenerateRentResult, LeaseItem, OwnerStatement, RentChargeItem, RentOverview, OwnerListItem, Page,
 } from '@kaya/shared';
 import { api, ApiError } from '../../lib/api';
+import { useAuth } from '../../auth/AuthContext';
+import { printRentReceipt, receiptNumber } from '../../lib/rentReceipt';
 import { PageHeader } from '../../components/PageHeader';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
@@ -73,6 +76,7 @@ function RentRoll() {
   const qc = useQueryClient();
   const [period, setPeriod] = useState(thisMonth());
   const [paying, setPaying] = useState<RentChargeItem | null>(null);
+  const [receiptsFor, setReceiptsFor] = useState<RentChargeItem | null>(null);
   const [note, setNote] = useState<string | null>(null);
 
   const overview = useQuery({ queryKey: ['rent', 'overview', period], queryFn: () => api.get<RentOverview>('/rent/overview', { period }) });
@@ -126,7 +130,10 @@ function RentRoll() {
                   <td className="px-4 py-3 text-right">{kes(c.paidAmount)}</td>
                   <td className="px-4 py-3"><Badge tone={TONE[c.status]}>{c.status[0] + c.status.slice(1).toLowerCase()}</Badge></td>
                   <td className="px-4 py-3 text-right">
-                    {c.status !== 'PAID' && <Button variant="secondary" onClick={() => setPaying(c)}>Record payment</Button>}
+                    <div className="flex justify-end gap-2">
+                      {c.paidAmount > 0 && <Button variant="ghost" onClick={() => setReceiptsFor(c)}>Receipts</Button>}
+                      {c.status !== 'PAID' && <Button variant="secondary" onClick={() => setPaying(c)}>Record payment</Button>}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -134,9 +141,37 @@ function RentRoll() {
           </table>
         </Card>
       )}
+      <Modal open={!!receiptsFor} onClose={() => setReceiptsFor(null)} title="Payments & receipts">
+        {receiptsFor && <Receipts charge={receiptsFor} />}
+      </Modal>
       <Modal open={!!paying} onClose={() => setPaying(null)} title="Record rent payment">
         {paying && <RecordRentPaymentForm charge={paying} onDone={() => setPaying(null)} />}
       </Modal>
+    </div>
+  );
+}
+
+function Receipts({ charge }: { charge: RentChargeItem }) {
+  const { user } = useAuth();
+  const { data, isLoading } = useQuery({
+    queryKey: ['rent', 'payments', charge.id],
+    queryFn: () => api.get<RentPaymentItem[]>(`/rent/charges/${charge.id}/payments`),
+  });
+  if (isLoading) return <Spinner />;
+  return (
+    <div className="space-y-2">
+      <p className="mb-3 text-sm text-muted">{charge.tenantName} · {charge.propertyTitle} · {charge.period}</p>
+      {data?.map((p) => (
+        <div key={p.id} className="flex items-center justify-between rounded-md border border-line px-3 py-2.5 text-sm">
+          <div>
+            <p className="font-medium text-ink">{kes(p.amount)} <span className="font-normal text-muted">· {p.method === 'MPESA' ? 'M-Pesa' : p.method[0] + p.method.slice(1).toLowerCase()}{p.reference ? ` ${p.reference}` : ''}</span></p>
+            <p className="text-xs text-muted">{new Date(p.paidAt).toLocaleDateString('en-KE')} · {receiptNumber(p.id)}</p>
+          </div>
+          <Button variant="secondary" onClick={() => printRentReceipt(user?.organizationName ?? 'Receipt', charge, p)}>
+            <Printer size={15} /> Print
+          </Button>
+        </div>
+      ))}
     </div>
   );
 }
@@ -180,6 +215,7 @@ function Leases() {
 }
 
 function Arrears() {
+  const { user } = useAuth();
   const { data, isLoading } = useQuery({ queryKey: ['rent', 'arrears'], queryFn: () => api.get<ArrearsReport>('/rent/arrears') });
   if (isLoading) return <Spinner />;
   if (!data?.rows.length) return <EmptyState icon={<KeyRound size={22} />} title="No overdue rent" body="Nothing is past its due date and unpaid." />;
@@ -190,7 +226,7 @@ function Arrears() {
         <table className="w-full text-sm">
           <thead><tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
             <th className="px-4 py-3">Tenant</th><th className="px-4 py-3">Property</th><th className="px-4 py-3">Month</th>
-            <th className="px-4 py-3 text-right">Owed</th><th className="px-4 py-3 text-right">Days late</th><th className="px-4 py-3">Phone</th>
+            <th className="px-4 py-3 text-right">Owed</th><th className="px-4 py-3 text-right">Days late</th><th className="px-4 py-3">Phone</th><th className="px-4 py-3" />
           </tr></thead>
           <tbody>
             {data.rows.map((r) => (
@@ -201,6 +237,20 @@ function Arrears() {
                 <td className="px-4 py-3 text-right">{kes(r.balance)}</td>
                 <td className="px-4 py-3 text-right"><Badge tone={r.daysOverdue > 30 ? 'danger' : 'warn'}>{r.daysOverdue}</Badge></td>
                 <td className="px-4 py-3">{r.tenantPhone ?? '—'}</td>
+                <td className="px-4 py-3 text-right">
+                  {r.tenantPhone && (
+                    <a
+                      className="inline-flex items-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-sm font-medium text-cypress-700 hover:bg-sunk"
+                      target="_blank" rel="noreferrer"
+                      href={whatsappLink(r.tenantPhone, rentReminderMessage({
+                        tenantName: r.tenantName, propertyTitle: r.propertyTitle, period: r.period, dueDate: r.dueDate,
+                        balance: r.balance, daysOverdue: r.daysOverdue, agencyName: user?.organizationName ?? '',
+                      }))}
+                    >
+                      <MessageCircle size={14} /> Remind
+                    </a>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

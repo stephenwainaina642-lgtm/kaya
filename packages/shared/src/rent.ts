@@ -96,3 +96,37 @@ export interface RentOverview {
   collectionRate: number; // 0..1
   activeLeases: number;
 }
+
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+/** "2026-03" -> "March 2026". */
+export function periodLabel(period: string): string {
+  const [y, m] = period.split('-');
+  const name = MONTHS[Number(m) - 1];
+  return name ? `${name} ${y}` : period;
+}
+
+export interface RentReminderInput {
+  tenantName: string;
+  propertyTitle: string;
+  period: string;
+  dueDate: string;
+  balance: number;
+  daysOverdue: number;
+  agencyName: string;
+}
+
+/**
+ * A polite WhatsApp message for overdue rent. Tone steps up with lateness
+ * (friendly, then firm after a month) but never threatens anything: legal
+ * wording belongs to the agent, not a template.
+ */
+export function rentReminderMessage(i: RentReminderInput): string {
+  const first = i.tenantName.trim().split(/\s+/)[0] || 'there';
+  const amount = `KES ${i.balance.toLocaleString('en-KE')}`;
+  const what = `${amount} for ${i.propertyTitle} (${periodLabel(i.period)} rent, due ${i.dueDate})`;
+  const body = i.daysOverdue > 30
+    ? `Our records show ${what} is still unpaid, now ${i.daysOverdue} days overdue. Please settle it as soon as you can, or contact us today so we can agree a way forward.`
+    : `This is a friendly reminder that ${what} is still outstanding. Kindly send the payment when you can and share the M-Pesa code so we can update your account.`;
+  return `Hello ${first}, ${body} If you have already paid, please ignore this message. Thank you. ${i.agencyName}`;
+}

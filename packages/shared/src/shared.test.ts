@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { formatKes, formatMoney } from './money';
 import { whatsappLink, buildWhatsAppMessage } from './whatsapp';
+import { periodLabel, rentReminderMessage } from './rent';
 
 describe('formatKes', () => {
   it('formats a plain amount', () => {
@@ -66,5 +67,26 @@ describe('buildWhatsAppMessage', () => {
     });
     expect(msg).toContain('Dennis');
     expect(msg).toContain('https://kaya.app/s/abc123');
+  });
+});
+
+describe('rent reminders', () => {
+  const base = { tenantName: 'Tenant Tom Mwangi', propertyTitle: 'Kilimani 2BR', period: '2026-03', dueDate: '2026-03-05', balance: 50000, daysOverdue: 10, agencyName: 'Savanna Ridge Realty' };
+  it('formats the month and greets by first name', () => {
+    expect(periodLabel('2026-03')).toBe('March 2026');
+    const m = rentReminderMessage(base);
+    expect(m).toContain('Hello Tenant,');
+    expect(m).toContain('KES 50,000');
+    expect(m).toContain('March 2026 rent, due 2026-03-05');
+    expect(m).toContain('friendly reminder');
+    expect(m.endsWith('Savanna Ridge Realty')).toBe(true);
+  });
+  it('is firmer past 30 days but makes no threats', () => {
+    const m = rentReminderMessage({ ...base, daysOverdue: 45 });
+    expect(m).toContain('45 days overdue');
+    expect(m).not.toMatch(/evict|legal|court|police/i);
+  });
+  it('survives a blank name', () => {
+    expect(rentReminderMessage({ ...base, tenantName: '  ' })).toContain('Hello there,');
   });
 });
