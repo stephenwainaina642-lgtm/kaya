@@ -19,6 +19,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Modal } from '../../components/ui/Modal';
 import { NewLeaseForm } from '../../forms/NewLeaseForm';
+import { AddChargeForm } from '../../forms/AddChargeForm';
 import { SettleDepositForm } from '../../forms/SettleDepositForm';
 import { RenewLeaseForm } from '../../forms/RenewLeaseForm';
 import { RecordRentPaymentForm } from '../../forms/RecordRentPaymentForm';
@@ -81,6 +82,7 @@ function RentRoll() {
   const [period, setPeriod] = useState(thisMonth());
   const [paying, setPaying] = useState<RentChargeItem | null>(null);
   const [receiptsFor, setReceiptsFor] = useState<RentChargeItem | null>(null);
+  const [extrasFor, setExtrasFor] = useState<RentChargeItem | null>(null);
   const [note, setNote] = useState<string | null>(null);
 
   const overview = useQuery({ queryKey: ['rent', 'overview', period], queryFn: () => api.get<RentOverview>('/rent/overview', { period }) });
@@ -130,11 +132,15 @@ function RentRoll() {
                   <td className="px-4 py-3 font-medium text-ink">{c.propertyTitle}</td>
                   <td className="px-4 py-3">{c.tenantName}</td>
                   <td className="px-4 py-3">{c.dueDate}</td>
-                  <td className="px-4 py-3 text-right">{kes(c.amount)}</td>
+                  <td className="px-4 py-3 text-right">
+                    {kes(c.amount)}
+                    {c.extras.length > 0 && <p className="text-xs text-muted">incl. {c.extras.map((x) => x.label).join(', ')}</p>}
+                  </td>
                   <td className="px-4 py-3 text-right">{kes(c.paidAmount)}</td>
                   <td className="px-4 py-3"><Badge tone={TONE[c.status]}>{c.status[0] + c.status.slice(1).toLowerCase()}</Badge></td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-2">
+                      <Button variant="ghost" onClick={() => setExtrasFor(c)}>+ Charge</Button>
                       {c.paidAmount > 0 && <Button variant="ghost" onClick={() => setReceiptsFor(c)}>Receipts</Button>}
                       {c.status !== 'PAID' && <Button variant="secondary" onClick={() => setPaying(c)}>Record payment</Button>}
                     </div>
@@ -145,6 +151,9 @@ function RentRoll() {
           </table>
         </Card>
       )}
+      <Modal open={!!extrasFor} onClose={() => setExtrasFor(null)} title="Extra charges this month">
+        {extrasFor && <AddChargeForm charge={extrasFor} onDone={() => setExtrasFor(null)} />}
+      </Modal>
       <Modal open={!!receiptsFor} onClose={() => setReceiptsFor(null)} title="Payments & receipts">
         {receiptsFor && <Receipts charge={receiptsFor} />}
       </Modal>

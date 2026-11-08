@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { and, asc, eq, gte, inArray, isNull, lt, lte, ne, sql as dsql } from 'drizzle-orm';
 import { RENT_PAYMENT_METHODS, effectivePlan, periodLabel, planHasModule } from '@kaya/shared';
@@ -251,7 +252,7 @@ function chargeSelect(tx: Tx) {
   return tx.select({
     id: rentCharges.id, leaseId: rentCharges.leaseId, propertyTitle: properties.title, tenantName: clients.fullName,
     period: rentCharges.period, dueDate: rentCharges.dueDate, amount: rentCharges.amount,
-    paidAmount: rentCharges.paidAmount, status: rentCharges.status,
+    paidAmount: rentCharges.paidAmount, status: rentCharges.status, extras: rentCharges.extras,
   })
     .from(rentCharges)
     .innerJoin(leases, eq(leases.id, rentCharges.leaseId))
@@ -266,6 +267,52 @@ export async function listCharges(a: Auth, query: { period?: string }): Promise<
   return withTenant(a.organizationId, async (tx) => {
     const rows = await chargeSelect(tx).where(eq(rentCharges.period, period)).orderBy(asc(rentCharges.dueDate), asc(properties.title));
     return rows.map((r) => toCharge(r as Omit<RentChargeItem, 'balance'>));
+  });
+}
+
+const extraInput = z.object({
+  label: z.string().trim().min(1).max(80),
+  amount: z.number().int().min(1).max(100_000_000),
+});
+
+/** Adds a one-off item (water, garbage, a late fee) to a month's charge. */
+export async function addChargeExtra(a: Auth, chargeId: string, body: unknown): Promise<RentChargeItem> {
+  parse(uuidField, chargeId);
+  const input = parse(extraInput, body);
+  return withTenant(a.organizationId, async (tx) => {
+    const [charge] = await tx.select().from(rentCharges).where(eq(rentCharges.id, chargeId)).for('update');
+    if (!charge) throw notFound('Rent charge');
+    const amount = charge.amount + input.amount;
+    await tx.update(rentCharges).set({
+      amount, extras: [...charge.extras, { id: randomUUID(), ...input }], status: chargeStatus(amount, charge.paidAmount),
+    }).where(eq(rentCharges.id, chargeId));
+    await recordAudit(tx, {
+      organizationId: a.organizationId, actorId: a.userId, action: 'UPDATE', entityType: 'rent_charge', entityId: chargeId,
+      summary: `Added ${input.label} KES ${input.amount} to rent charge`,
+    });
+    const [item] = await chargeSelect(tx).where(eq(rentCharges.id, chargeId));
+    return toCharge(item as Omit<RentChargeItem, 'balance'>);
+  });
+}
+
+export async function removeChargeExtra(a: Auth, chargeId: string, extraId: string): Promise<RentChargeItem> {
+  parse(uuidField, chargeId);
+  return withTenant(a.organizationId, async (tx) => {
+    const [charge] = await tx.select().from(rentCharges).where(eq(rentCharges.id, chargeId)).for('update');
+    if (!charge) throw notFound('Rent charge');
+    const extra = charge.extras.find((x) => x.id === extraId);
+    if (!extra) throw notFound('Charge item');
+    const amount = charge.amount - extra.amount;
+    if (charge.paidAmount > amount) throw conflict('Part of this has already been paid, so it can no longer be removed.', 'CHARGE_PAID');
+    await tx.update(rentCharges).set({
+      amount, extras: charge.extras.filter((x) => x.id !== extraId), status: chargeStatus(amount, charge.paidAmount),
+    }).where(eq(rentCharges.id, chargeId));
+    await recordAudit(tx, {
+      organizationId: a.organizationId, actorId: a.userId, action: 'UPDATE', entityType: 'rent_charge', entityId: chargeId,
+      summary: `Removed ${extra.label} KES ${extra.amount} from rent charge`,
+    });
+    const [item] = await chargeSelect(tx).where(eq(rentCharges.id, chargeId));
+    return toCharge(item as Omit<RentChargeItem, 'balance'>);
   });
 }
 
@@ -439,7 +486,7 @@ export async function ownerStatement(a: Auth, ownerId: string, periodInput?: str
     const props = await tx.select({ id: properties.id }).from(properties).where(eq(properties.ownerId, ownerId));
     const rows = props.length === 0 ? [] : await tx.select({
       leaseId: leases.id, propertyTitle: properties.title, tenantName: clients.fullName,
-      amount: rentCharges.amount, paid: rentCharges.paidAmount, feeBps: leases.feeBps, withholdingBps: leases.withholdingBps,
+      amount: rentCharges.amount, paid: rentCharges.paidAmount, extras: rentCharges.extras, feeBps: leases.feeBps, withholdingBps: leases.withholdingBps,
     })
       .from(rentCharges)
       .innerJoin(leases, eq(leases.id, rentCharges.leaseId))
@@ -448,12 +495,16 @@ export async function ownerStatement(a: Auth, ownerId: string, periodInput?: str
       .where(and(eq(rentCharges.period, period), inArray(leases.propertyId, props.map((p) => p.id))))
       .orderBy(asc(properties.title));
 
+    // Extras (water, garbage) belong to the utility providers, not the landlord, so only
+    // rent proper counts here. Payments are taken to clear rent before the extras.
     const lines: StatementLine[] = rows.map((r) => {
-      const managementFee = bps(r.paid, r.feeBps);
-      const withholding = bps(r.paid - managementFee, r.withholdingBps);
+      const rentDue = r.amount - r.extras.reduce((n, x) => n + x.amount, 0);
+      const collected = Math.min(r.paid, rentDue);
+      const managementFee = bps(collected, r.feeBps);
+      const withholding = bps(collected - managementFee, r.withholdingBps);
       return {
         leaseId: r.leaseId, propertyTitle: r.propertyTitle, tenantName: r.tenantName,
-        rentDue: r.amount, collected: r.paid, managementFee, withholding, netToLandlord: r.paid - managementFee - withholding,
+        rentDue, collected, managementFee, withholding, netToLandlord: collected - managementFee - withholding,
       };
     });
 

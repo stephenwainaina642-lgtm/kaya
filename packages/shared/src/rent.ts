@@ -31,6 +31,12 @@ export interface LeaseItem {
   depositSettledAt: string | null;
 }
 
+export interface RentChargeExtra {
+  id: string;
+  label: string;
+  amount: number;
+}
+
 export interface RentChargeItem {
   id: string;
   leaseId: string;
@@ -42,6 +48,8 @@ export interface RentChargeItem {
   paidAmount: number;
   balance: number;
   status: ChargeStatus;
+  /** Extra items such as water or garbage, already included in `amount`. */
+  extras: RentChargeExtra[];
 }
 
 export interface RentPaymentItem {

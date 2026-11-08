@@ -283,4 +283,26 @@ describe('lease expiry alerts and renewal', () => {
     expect(ok.body.depositSettledAt).toBeTruthy();
     expect((await request(app).post(url).set(h).send({ deduction: 0 })).status).toBe(409); // already settled
   });
+  it('adds water and garbage to a month without touching the landlord statement', async () => {
+    const t = await setupTenant('ORG_ADMIN', 'GROWTH');
+    const h = t.authHeader;
+    const { owner } = await seed(h, 50_000);
+    await request(app).post('/api/rent/charges/generate').set(h).send({ period: '2026-03' });
+    const charge = (await request(app).get('/api/rent/charges').set(h).query({ period: '2026-03' })).body[0];
+
+    const added = await request(app).post(`/api/rent/charges/${charge.id}/extras`).set(h).send({ label: 'Water', amount: 1_500 });
+    expect(added.status).toBe(201);
+    expect(added.body).toMatchObject({ amount: 51_500, balance: 51_500 });
+    expect(added.body.extras).toHaveLength(1);
+    expect((await request(app).post(`/api/rent/charges/${charge.id}/extras`).set(h).send({ label: '', amount: 5 })).status).toBe(422);
+
+    // Tenant pays everything: landlord statement still counts rent proper (50,000) only, fee 10%.
+    await request(app).post(`/api/rent/charges/${charge.id}/payments`).set(h).send({ amount: 51_500, method: 'CASH' });
+    const st = (await request(app).get(`/api/rent/statements/${owner.id}`).set(h).query({ period: '2026-03' })).body;
+    expect(st.lines[0]).toMatchObject({ rentDue: 50_000, collected: 50_000, managementFee: 5_000, netToLandlord: 45_000 });
+
+    // A fully paid extra cannot be removed.
+    const extraId = added.body.extras[0].id;
+    expect((await request(app).delete(`/api/rent/charges/${charge.id}/extras/${extraId}`).set(h)).status).toBe(409);
+  });
 });

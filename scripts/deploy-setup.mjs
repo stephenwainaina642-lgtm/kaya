@@ -137,6 +137,10 @@ async function main() {
       SELECT 1 FROM information_schema.columns WHERE table_name = 'leases' AND column_name = 'deposit_notes'
     )
     UNION ALL
+    SELECT 'rent_charges.extras' WHERE to_regclass('rent_charges') IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM information_schema.columns WHERE table_name = 'rent_charges' AND column_name = 'extras'
+    )
+    UNION ALL
     SELECT 'maintenance_requests' WHERE to_regclass('maintenance_requests') IS NULL
     UNION ALL
     SELECT 'rent_charges' WHERE to_regclass('rent_charges') IS NULL
@@ -239,6 +243,7 @@ async function applyKnownFixups(c) {
             created_at timestamptz NOT NULL DEFAULT now(),
             CONSTRAINT rent_charges_lease_period_key UNIQUE (lease_id, period)
           );
+          ALTER TABLE rent_charges ADD COLUMN IF NOT EXISTS extras jsonb NOT NULL DEFAULT '[]'::jsonb;
           CREATE TABLE IF NOT EXISTS rent_payments (
             id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
             organization_id uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,

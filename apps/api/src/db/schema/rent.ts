@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, integer, date, unique } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, integer, date, unique, jsonb } from 'drizzle-orm/pg-core';
 import { clients } from './crm';
 import { properties } from './properties';
 import { users } from './identity';
@@ -41,6 +41,8 @@ export const rentCharges = pgTable('rent_charges', {
   amount: integer('amount').notNull(),
   paidAmount: integer('paid_amount').notNull().default(0),
   status: text('status').notNull().default('UNPAID'),
+  // Extra items (water, garbage, ...) already included in `amount`. Rent proper is amount minus these.
+  extras: jsonb('extras').$type<{ id: string; label: string; amount: number }[]>().notNull().default([]),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({ onePerPeriod: unique('rent_charges_lease_period_key').on(t.leaseId, t.period) }));
 
