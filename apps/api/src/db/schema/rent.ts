@@ -23,6 +23,11 @@ export const leases = pgTable('leases', {
   status: text('status').notNull().default('ACTIVE'),
   // Set once the "lease ending soon" follow-up has been raised, so it fires
   // once per term; cleared again when the lease is renewed.
+  // Deposit settlement once the lease has ended: what is kept back for damage
+  // or arrears; the refund is deposit_amount - deposit_deduction.
+  depositDeduction: integer('deposit_deduction').notNull().default(0),
+  depositSettledAt: timestamp('deposit_settled_at', { withTimezone: true }),
+  depositNotes: text('deposit_notes'),
   expiryAlertSentAt: timestamp('expiry_alert_sent_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });

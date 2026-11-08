@@ -56,6 +56,9 @@ function chargeStatus(amount: number, paid: number): ChargeStatus {
   return paid <= 0 ? 'UNPAID' : paid >= amount ? 'PAID' : 'PARTIAL';
 }
 
+type LeaseRow = Omit<LeaseItem, 'status' | 'depositSettledAt'> & { status: string; depositSettledAt: Date | null };
+const toLease = (r: LeaseRow): LeaseItem => ({ ...r, status: r.status as LeaseItem['status'], depositSettledAt: r.depositSettledAt?.toISOString() ?? null });
+
 function leaseSelect(tx: Tx) {
   return tx.select({
     id: leases.id, propertyId: leases.propertyId, propertyTitle: properties.title,
@@ -64,6 +67,7 @@ function leaseSelect(tx: Tx) {
     rentAmount: leases.rentAmount, depositAmount: leases.depositAmount, dueDay: leases.dueDay,
     startDate: leases.startDate, endDate: leases.endDate,
     feeBps: leases.feeBps, withholdingBps: leases.withholdingBps, status: leases.status,
+    depositDeduction: leases.depositDeduction, depositNotes: leases.depositNotes, depositSettledAt: leases.depositSettledAt,
   })
     .from(leases)
     .innerJoin(properties, eq(properties.id, leases.propertyId))
@@ -75,7 +79,7 @@ export async function listLeases(a: Auth, status?: string): Promise<LeaseItem[]>
   return withTenant(a.organizationId, async (tx) => {
     const q = leaseSelect(tx);
     const rows = await (status === 'ACTIVE' || status === 'ENDED' ? q.where(eq(leases.status, status)) : q).orderBy(asc(properties.title));
-    return rows as LeaseItem[];
+    return rows.map(toLease);
   });
 }
 
@@ -99,7 +103,7 @@ export async function createLease(a: Auth, body: unknown): Promise<LeaseItem> {
       summary: `Created lease at KES ${input.rentAmount}/month`,
     });
     const [item] = await leaseSelect(tx).where(eq(leases.id, row!.id));
-    return item as LeaseItem;
+    return toLease(item!);
   });
 }
 
@@ -115,7 +119,35 @@ export async function endLease(a: Auth, id: string, endDate?: string): Promise<L
       organizationId: a.organizationId, actorId: a.userId, action: 'UPDATE', entityType: 'lease', entityId: id, summary: 'Ended lease',
     });
     const [item] = await leaseSelect(tx).where(eq(leases.id, id));
-    return item as LeaseItem;
+    return toLease(item!);
+  });
+}
+
+const depositInput = z.object({
+  deduction: z.number().int().min(0).max(1_000_000_000),
+  notes: z.string().trim().max(1000).nullable().optional(),
+});
+
+/** Settles the security deposit of an ended lease: records what is kept back and what is refunded. */
+export async function settleDeposit(a: Auth, id: string, body: unknown): Promise<LeaseItem> {
+  parse(uuidField, id);
+  const input = parse(depositInput, body);
+  return withTenant(a.organizationId, async (tx) => {
+    const [lease] = await tx.select().from(leases).where(eq(leases.id, id)).for('update');
+    if (!lease) throw notFound('Lease');
+    if (lease.status !== 'ENDED') throw conflict('End the lease before settling its deposit.', 'LEASE_ACTIVE');
+    if (lease.depositSettledAt) throw conflict('This deposit has already been settled.', 'DEPOSIT_SETTLED');
+    if (lease.depositAmount <= 0) throw conflict('This lease has no deposit to settle.', 'NO_DEPOSIT');
+    if (input.deduction > lease.depositAmount) {
+      throw new AppError(422, 'VALIDATION_FAILED', `Deductions cannot be more than the deposit of KES ${lease.depositAmount}.`, { fields: { deduction: `Maximum KES ${lease.depositAmount}` } });
+    }
+    await tx.update(leases).set({ depositDeduction: input.deduction, depositNotes: input.notes || null, depositSettledAt: new Date() }).where(eq(leases.id, id));
+    await recordAudit(tx, {
+      organizationId: a.organizationId, actorId: a.userId, action: 'UPDATE', entityType: 'lease', entityId: id,
+      summary: `Settled deposit: KES ${lease.depositAmount - input.deduction} refunded, KES ${input.deduction} kept`,
+    });
+    const [item] = await leaseSelect(tx).where(eq(leases.id, id));
+    return toLease(item!);
   });
 }
 
@@ -139,7 +171,7 @@ export async function renewLease(a: Auth, id: string, body: unknown): Promise<Le
       summary: `Renewed lease to ${input.endDate}${input.rentAmount && input.rentAmount !== lease.rentAmount ? ` at KES ${input.rentAmount}/month` : ''}`,
     });
     const [item] = await leaseSelect(tx).where(eq(leases.id, id));
-    return item as LeaseItem;
+    return toLease(item!);
   });
 }
 

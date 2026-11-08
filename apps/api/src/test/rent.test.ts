@@ -269,4 +269,18 @@ describe('lease expiry alerts and renewal', () => {
     const agent = await createUser(t.org.id, { role: 'AGENT' });
     expect((await request(app).get('/api/rent/vacancies').set({ Authorization: `Bearer ${agent.token}` })).status).toBe(403);
   });
+  it('settles a security deposit once, only after the lease ends, never beyond the deposit', async () => {
+    const t = await setupTenant('ORG_ADMIN', 'GROWTH');
+    const h = t.authHeader;
+    const { lease } = await seed(h, 50_000, { depositAmount: 100_000 });
+    const url = `/api/rent/leases/${lease.body.id}/settle-deposit`;
+    expect((await request(app).post(url).set(h).send({ deduction: 0 })).status).toBe(409); // still active
+    await request(app).post(`/api/rent/leases/${lease.body.id}/end`).set(h);
+    expect((await request(app).post(url).set(h).send({ deduction: 100_001 })).status).toBe(422);
+    const ok = await request(app).post(url).set(h).send({ deduction: 8_000, notes: 'Repainting' });
+    expect(ok.status).toBe(200);
+    expect(ok.body).toMatchObject({ depositDeduction: 8_000, depositNotes: 'Repainting' });
+    expect(ok.body.depositSettledAt).toBeTruthy();
+    expect((await request(app).post(url).set(h).send({ deduction: 0 })).status).toBe(409); // already settled
+  });
 });

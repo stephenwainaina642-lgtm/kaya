@@ -19,6 +19,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Modal } from '../../components/ui/Modal';
 import { NewLeaseForm } from '../../forms/NewLeaseForm';
+import { SettleDepositForm } from '../../forms/SettleDepositForm';
 import { RenewLeaseForm } from '../../forms/RenewLeaseForm';
 import { RecordRentPaymentForm } from '../../forms/RecordRentPaymentForm';
 
@@ -204,6 +205,7 @@ function endsIn(l: LeaseItem): { label: string; tone: 'danger' | 'warn' | 'neutr
 function Leases() {
   const qc = useQueryClient();
   const [renewing, setRenewing] = useState<LeaseItem | null>(null);
+  const [settling, setSettling] = useState<LeaseItem | null>(null);
   const { data, isLoading } = useQuery({ queryKey: ['rent', 'leases'], queryFn: () => api.get<LeaseItem[]>('/rent/leases') });
   const end = useMutation({
     mutationFn: (id: string) => api.post(`/rent/leases/${id}/end`, {}),
@@ -240,6 +242,9 @@ function Leases() {
                     <Button variant="ghost" disabled={end.isPending} onClick={() => { if (window.confirm('End this lease? No more rent will be raised for it.')) end.mutate(l.id); }}>End lease</Button>
                   </div>
                 )}
+                {l.status === 'ENDED' && l.depositAmount > 0 && (l.depositSettledAt
+                  ? <span className="whitespace-nowrap text-xs text-muted" title={l.depositNotes ?? undefined}>Deposit: {kes(l.depositAmount - l.depositDeduction)} refunded{l.depositDeduction > 0 ? `, ${kes(l.depositDeduction)} kept` : ''}</span>
+                  : <Button variant="secondary" onClick={() => setSettling(l)}>Settle deposit</Button>)}
               </td>
             </tr>
             );
@@ -249,6 +254,9 @@ function Leases() {
     </Card>
     <Modal open={!!renewing} onClose={() => setRenewing(null)} title="Renew lease">
       {renewing && <RenewLeaseForm lease={renewing} onDone={() => setRenewing(null)} />}
+    </Modal>
+    <Modal open={!!settling} onClose={() => setSettling(null)} title="Settle security deposit">
+      {settling && <SettleDepositForm lease={settling} onDone={() => setSettling(null)} />}
     </Modal>
     </>
   );

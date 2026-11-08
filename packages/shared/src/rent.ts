@@ -24,6 +24,11 @@ export interface LeaseItem {
   /** Tax withheld from the landlord's share, in basis points. Set by the agency; Kaya does not assume a rate. */
   withholdingBps: number;
   status: LeaseStatus;
+  /** Amount kept from the deposit for damage or arrears. Meaningful once settled. */
+  depositDeduction: number;
+  depositNotes: string | null;
+  /** Set once the deposit has been settled; null while it is still held. */
+  depositSettledAt: string | null;
 }
 
 export interface RentChargeItem {
