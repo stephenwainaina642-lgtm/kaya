@@ -147,6 +147,14 @@ async function main() {
     UNION ALL
     SELECT 'owners_portal_token_idx' WHERE to_regclass('owners') IS NOT NULL AND to_regclass('owners_portal_token_idx') IS NULL
     UNION ALL
+    SELECT 'organizations.statement_email_day' WHERE NOT EXISTS (
+      SELECT 1 FROM information_schema.columns WHERE table_name = 'organizations' AND column_name = 'statement_email_day'
+    )
+    UNION ALL
+    SELECT 'organizations.statement_email_last_period' WHERE NOT EXISTS (
+      SELECT 1 FROM information_schema.columns WHERE table_name = 'organizations' AND column_name = 'statement_email_last_period'
+    )
+    UNION ALL
     SELECT 'maintenance_requests' WHERE to_regclass('maintenance_requests') IS NULL
     UNION ALL
     SELECT 'rent_charges' WHERE to_regclass('rent_charges') IS NULL
@@ -178,6 +186,8 @@ async function applyKnownFixups(c) {
         IF to_regclass('organizations') IS NOT NULL THEN
           ALTER TABLE organizations ADD COLUMN IF NOT EXISTS onboarding_dismissed_at timestamptz;
           ALTER TABLE organizations ADD COLUMN IF NOT EXISTS plan_expires_at timestamptz;
+          ALTER TABLE organizations ADD COLUMN IF NOT EXISTS statement_email_day integer;
+          ALTER TABLE organizations ADD COLUMN IF NOT EXISTS statement_email_last_period text;
           CREATE TABLE IF NOT EXISTS billing_payments (
             id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
             organization_id uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,

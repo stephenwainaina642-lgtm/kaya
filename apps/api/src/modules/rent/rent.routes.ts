@@ -1,4 +1,4 @@
-import { emailAllStatements, emailOwnerStatement, getPortalLink, createPortalLink, revokePortalLink } from './portal.service';
+import { getStatementSchedule, setStatementSchedule, emailAllStatements, emailOwnerStatement, getPortalLink, createPortalLink, revokePortalLink } from './portal.service';
 import { importLeases } from './import.service';
 import { Router } from 'express';
 import { authenticate, ctx, requirePermission } from '../../middleware/auth';
@@ -32,6 +32,8 @@ rentRouter.post('/charges/:id/payments', requirePermission('rent:create'), wrap(
 rentRouter.get('/owners/:id/portal-link', requirePermission('rent:view'), wrap(async (req, res) => { res.json(await getPortalLink(ctx(req), req.params.id)); }));
 rentRouter.post('/owners/:id/portal-link', requirePermission('rent:edit'), wrap(async (req, res) => { res.json(await createPortalLink(ctx(req), req.params.id)); }));
 rentRouter.delete('/owners/:id/portal-link', requirePermission('rent:edit'), wrap(async (req, res) => { await revokePortalLink(ctx(req), req.params.id); res.status(204).end(); }));
+rentRouter.get('/statement-schedule', requirePermission('rent:view'), wrap(async (req, res) => { res.json(await getStatementSchedule(ctx(req))); }));
+rentRouter.put('/statement-schedule', requirePermission('rent:edit'), wrap(async (req, res) => { res.json(await setStatementSchedule(ctx(req), req.body)); }));
 rentRouter.get('/summary', requirePermission('rent:view'), wrap(async (req, res) => { res.json(await getSummary(ctx(req))); }));
 rentRouter.get('/vacancies', requirePermission('rent:view'), wrap(async (req, res) => { res.json(await getVacancies(ctx(req))); }));
 rentRouter.get('/arrears', requirePermission('rent:view'), wrap(async (req, res) => { res.json(await getArrears(ctx(req))); }));

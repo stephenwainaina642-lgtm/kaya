@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
-import { and, eq, inArray, notInArray } from 'drizzle-orm';
+import { and, eq, inArray, notInArray, sql } from 'drizzle-orm';
 import { effectivePlan, periodLabel, planHasModule, type PortalView } from '@kaya/shared';
 import { withTenant } from '../../db/client';
 import { systemDb } from '../../db/system';
@@ -134,4 +134,71 @@ export async function emailAllStatements(a: Auth, periodInput: string | undefine
     }
   }
   return out;
+}
+
+const scheduleInput = z.object({ day: z.number().int().min(1).max(28).nullable() });
+
+const previousPeriod = (now: Date) => {
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+};
+
+export async function getStatementSchedule(a: Auth): Promise<{ day: number | null; lastPeriod: string | null }> {
+  const [o] = await systemDb.select({ day: organizations.statementEmailDay, lastPeriod: organizations.statementEmailLastPeriod })
+    .from(organizations).where(eq(organizations.id, a.organizationId));
+  return { day: o?.day ?? null, lastPeriod: o?.lastPeriod ?? null };
+}
+
+/**
+ * Turns the automatic monthly landlord email on (for a day of the month) or off.
+ * Turning it on after that day has already passed this month starts next month,
+ * so enabling it never fires a surprise send; the manual buttons cover that.
+ */
+export async function setStatementSchedule(a: Auth, body: unknown, now: Date = new Date()) {
+  const { day } = parse(scheduleInput, body);
+  const skipThisMonth = day !== null && now.getUTCDate() >= day;
+  await systemDb.update(organizations).set({
+    statementEmailDay: day, statementEmailLastPeriod: skipThisMonth ? previousPeriod(now) : null,
+  }).where(eq(organizations.id, a.organizationId));
+  await withTenant(a.organizationId, (tx) => recordAudit(tx, {
+    organizationId: a.organizationId, actorId: a.userId, action: 'UPDATE', entityType: 'organization', entityId: a.organizationId,
+    summary: day === null ? 'Turned off automatic landlord statement emails' : `Automatic landlord statement emails set for day ${day} of each month`,
+  }));
+  return getStatementSchedule(a);
+}
+
+/**
+ * Sends last month's statements for every agency whose chosen day has arrived. The month is
+ * claimed with one conditional UPDATE before sending, so two instances (or two hourly runs)
+ * cannot both send. If nothing at all could be sent (email not set up), the claim is released
+ * and the next run tries again.
+ */
+export async function sweepStatementEmails(now: Date = new Date()): Promise<{ organizations: number; sent: number }> {
+  const period = previousPeriod(now);
+  const due = await systemDb.select({
+    id: organizations.id, day: organizations.statementEmailDay, plan: organizations.plan,
+    planExpiresAt: organizations.planExpiresAt, suspendedAt: organizations.suspendedAt, last: organizations.statementEmailLastPeriod,
+  }).from(organizations).where(sql`${organizations.statementEmailDay} IS NOT NULL`);
+  let orgs = 0;
+  let sentTotal = 0;
+  for (const o of due) {
+    try {
+      if (o.suspendedAt || o.last === period || now.getUTCDate() < (o.day ?? 99)) continue;
+      if (!planHasModule(effectivePlan(o.plan, o.planExpiresAt, now), 'rentManagement')) continue;
+      const claimed = await systemDb.update(organizations).set({ statementEmailLastPeriod: period })
+        .where(and(eq(organizations.id, o.id), sql`${organizations.statementEmailLastPeriod} IS DISTINCT FROM ${period}`))
+        .returning({ id: organizations.id });
+      if (!claimed.length) continue;
+      const result = await emailAllStatements({ organizationId: o.id, userId: null, role: 'ORG_ADMIN', name: 'Kaya' } as unknown as Auth, period);
+      if (result.sent === 0 && result.failed > 0) {
+        await systemDb.update(organizations).set({ statementEmailLastPeriod: o.last }).where(eq(organizations.id, o.id));
+        continue;
+      }
+      orgs++;
+      sentTotal += result.sent;
+    } catch (err) {
+      console.error(`[statement-emails] failed for organization ${o.id}`, err);
+    }
+  }
+  return { organizations: orgs, sent: sentTotal };
 }

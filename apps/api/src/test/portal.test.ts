@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../app';
 import { testOutbox } from '../lib/mailer';
+import { setStatementSchedule, sweepStatementEmails } from '../modules/rent/portal.service';
+import type { Auth } from '../modules/crm/common';
 import { setupTenant, truncateAll, createUser } from './helpers';
 
 const app = createApp();
@@ -103,5 +105,40 @@ describe('landlord portal', () => {
     // Agents cannot send.
     const agent = await createUser(t.org.id, { role: 'AGENT' });
     expect((await request(app).post('/api/rent/statements/email-all').set({ Authorization: `Bearer ${agent.token}` }).send({})).status).toBe(403);
+  });
+  it('sends last month\'s statements automatically once on the chosen day, and never on enabling', async () => {
+    const t = await setupTenant('ORG_ADMIN', 'GROWTH');
+    const h = t.authHeader;
+    const { owner } = await seed(h);
+    await request(app).patch(`/api/owners/${owner.id}`).set(h).send({ email: 'grace@example.com' });
+    await request(app).post('/api/rent/charges/generate').set(h).send({ period: '2026-03' });
+    const charge = (await request(app).get('/api/rent/charges').set(h).query({ period: '2026-03' })).body[0];
+    await request(app).post(`/api/rent/charges/${charge.id}/payments`).set(h).send({ amount: 50_000, method: 'CASH' });
+    const auth = { organizationId: t.org.id, userId: null, role: 'ORG_ADMIN', name: 'x' } as unknown as Auth;
+
+    expect((await request(app).put('/api/rent/statement-schedule').set(h).send({ day: 40 })).status).toBe(422);
+    testOutbox.length = 0;
+
+    // Off by default: nothing goes out.
+    expect((await sweepStatementEmails(new Date('2026-04-10T08:00:00Z'))).sent).toBe(0);
+
+    await setStatementSchedule(auth, { day: 5 }, new Date('2026-04-02T08:00:00Z'));
+    expect((await request(app).get('/api/rent/statement-schedule').set(h)).body.day).toBe(5);
+    expect((await sweepStatementEmails(new Date('2026-04-04T08:00:00Z'))).sent).toBe(0); // day not reached
+    expect(await sweepStatementEmails(new Date('2026-04-10T08:00:00Z'))).toEqual({ organizations: 1, sent: 1 });
+    expect(testOutbox).toHaveLength(1);
+    expect(testOutbox[0]!.subject).toContain('March 2026');
+    expect((await sweepStatementEmails(new Date('2026-04-11T08:00:00Z'))).sent).toBe(0); // once per month
+    expect(testOutbox).toHaveLength(1);
+
+    // Switching it on after the day has passed waits for next month instead of sending at once.
+    await setStatementSchedule(auth, { day: null });
+    await setStatementSchedule(auth, { day: 5 }, new Date('2026-05-20T08:00:00Z'));
+    testOutbox.length = 0;
+    expect((await sweepStatementEmails(new Date('2026-05-21T08:00:00Z'))).sent).toBe(0);
+
+    // Agents cannot change it.
+    const agent = await createUser(t.org.id, { role: 'AGENT' });
+    expect((await request(app).put('/api/rent/statement-schedule').set({ Authorization: `Bearer ${agent.token}` }).send({ day: 3 })).status).toBe(403);
   });
 });

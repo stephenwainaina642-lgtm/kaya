@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { planEnum } from './enums';
 import { timestamps } from './base';
 
@@ -10,6 +10,10 @@ export const organizations = pgTable('organizations', {
   // When the paid plan lapses. Null = never expires (platform-admin comped
   // plans, demo orgs); STARTER ignores it. See effectivePlan() in @kaya/shared.
   planExpiresAt: timestamp('plan_expires_at', { withTimezone: true }),
+  // Automatic monthly landlord statements: the day of the month (1-28) to send last month's
+  // statements, or null for off. The last period sent makes each month fire exactly once.
+  statementEmailDay: integer('statement_email_day'),
+  statementEmailLastPeriod: text('statement_email_last_period'),
   timezone: text('timezone').notNull().default('Africa/Nairobi'),
   currency: text('currency').notNull().default('KES'),
   logoUrl: text('logo_url'),

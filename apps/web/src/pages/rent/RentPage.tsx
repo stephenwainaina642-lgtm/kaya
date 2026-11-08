@@ -372,6 +372,33 @@ function Arrears() {
   );
 }
 
+function AutoSend() {
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ['rent', 'schedule'], queryFn: () => api.get<{ day: number | null }>('/rent/statement-schedule') });
+  const save = useMutation({
+    mutationFn: (day: number | null) => api.put('/rent/statement-schedule', { day }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['rent', 'schedule'] }),
+  });
+  if (q.isLoading) return null;
+  const day = q.data?.day ?? null;
+  return (
+    <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium text-ink">Send statements automatically</p>
+        <p className="mt-0.5 text-xs text-muted">
+          {day ? `On day ${day} of each month, every landlord with an email gets last month's statement and their private link.` : 'Off. Turn it on and landlords are emailed last month\'s statement on the day you choose. It never sends the moment you switch it on.'}
+        </p>
+      </div>
+      <div className="flex items-center gap-2">
+        <Select value={day ?? ''} onChange={(e) => save.mutate(e.target.value ? Number(e.target.value) : null)} disabled={save.isPending} aria-label="Day of the month">
+          <option value="">Off</option>
+          {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => <option key={d} value={d}>Day {d}</option>)}
+        </Select>
+      </div>
+    </Card>
+  );
+}
+
 function PortalLink({ ownerId }: { ownerId: string }) {
   const qc = useQueryClient();
   const [copied, setCopied] = useState(false);
@@ -451,6 +478,7 @@ function Statements() {
           </Button>
         )}
       </div>
+      <AutoSend />
       {notice && <p className={`text-sm ${notice.ok ? 'text-cypress-700' : 'text-danger'}`}>{notice.text}</p>}
       {ownerId && <PortalLink ownerId={ownerId} />}
       {!ownerId ? (
