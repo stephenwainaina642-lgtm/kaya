@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { KeyRound, Plus, RefreshCw, Download, MessageCircle, Printer, Mail, Upload } from 'lucide-react';
-import { rentReminderMessage, whatsappLink } from '@kaya/shared';
+import { periodLabel, rentReminderMessage, whatsappLink } from '@kaya/shared';
 import type {
   TenantStatement, VacancyReport,
   ArrearsReport, RentPaymentItem, GenerateRentResult, LeaseItem, OwnerStatement, RentChargeItem, RentOverview, OwnerListItem, Page,
@@ -410,6 +410,21 @@ function Statements() {
     enabled: !!ownerId,
   });
   const s = st.data;
+  const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
+  const fail = (err: unknown) => setNotice({ ok: false, text: err instanceof ApiError ? err.message : 'Could not send' });
+  const emailOne = useMutation({
+    mutationFn: () => api.post<{ to: string }>(`/rent/statements/${ownerId}/email`, { period }),
+    onSuccess: (r) => setNotice({ ok: true, text: `Statement and link sent to ${r.to}` }),
+    onError: fail,
+  });
+  const emailAll = useMutation({
+    mutationFn: () => api.post<{ sent: number; noEmail: number; nothingToSend: number; failed: number }>('/rent/statements/email-all', { period }),
+    onSuccess: (r) => setNotice({
+      ok: r.failed === 0,
+      text: `${r.sent} sent` + (r.noEmail ? `, ${r.noEmail} landlords have no email` : '') + (r.nothingToSend ? `, ${r.nothingToSend} had no rent this month` : '') + (r.failed ? `, ${r.failed} failed (is email set up?)` : ''),
+    }),
+    onError: fail,
+  });
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-end gap-3">
@@ -421,11 +436,22 @@ function Statements() {
         </div>
         <div className="w-44"><Input type="month" value={period} onChange={(e) => setPeriod(e.target.value)} /></div>
         {s && s.lines.length > 0 && (
+          <Button variant="secondary" disabled={emailOne.isPending} onClick={() => { setNotice(null); emailOne.mutate(); }}>
+            <Mail size={15} /> {emailOne.isPending ? 'Sending…' : 'Email landlord'}
+          </Button>
+        )}
+        <Button variant="secondary" disabled={emailAll.isPending} onClick={() => {
+          if (confirm(`Email every landlord their ${periodLabel(period)} statement, with their private link?`)) { setNotice(null); emailAll.mutate(); }
+        }}>
+          <Mail size={15} /> {emailAll.isPending ? 'Sending…' : 'Email all landlords'}
+        </Button>
+        {s && s.lines.length > 0 && (
           <Button variant="secondary" onClick={() => api.download(`/rent/statements/${ownerId}?period=${period}&format=csv`, 'statement.csv')}>
             <Download size={15} /> Download CSV
           </Button>
         )}
       </div>
+      {notice && <p className={`text-sm ${notice.ok ? 'text-cypress-700' : 'text-danger'}`}>{notice.text}</p>}
       {ownerId && <PortalLink ownerId={ownerId} />}
       {!ownerId ? (
         <EmptyState icon={<KeyRound size={22} />} title="Pick a landlord" body="See what was collected for their properties, less your fee and any tax withheld." />

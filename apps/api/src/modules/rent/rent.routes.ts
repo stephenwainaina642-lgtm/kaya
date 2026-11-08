@@ -1,4 +1,4 @@
-import { getPortalLink, createPortalLink, revokePortalLink } from './portal.service';
+import { emailAllStatements, emailOwnerStatement, getPortalLink, createPortalLink, revokePortalLink } from './portal.service';
 import { importLeases } from './import.service';
 import { Router } from 'express';
 import { authenticate, ctx, requirePermission } from '../../middleware/auth';
@@ -36,6 +36,8 @@ rentRouter.get('/summary', requirePermission('rent:view'), wrap(async (req, res)
 rentRouter.get('/vacancies', requirePermission('rent:view'), wrap(async (req, res) => { res.json(await getVacancies(ctx(req))); }));
 rentRouter.get('/arrears', requirePermission('rent:view'), wrap(async (req, res) => { res.json(await getArrears(ctx(req))); }));
 
+rentRouter.post('/statements/email-all', requirePermission('rent:create'), wrap(async (req, res) => { res.json(await emailAllStatements(ctx(req), req.body?.period)); }));
+rentRouter.post('/statements/:ownerId/email', requirePermission('rent:create'), wrap(async (req, res) => { res.json(await emailOwnerStatement(ctx(req), req.params.ownerId, req.body?.period, req.body?.includeLink !== false)); }));
 rentRouter.get('/statements/:ownerId', requirePermission('rent:view'), wrap(async (req, res) => {
   const st = await ownerStatement(ctx(req), req.params.ownerId, req.query.period as string | undefined);
   if (req.query.format !== 'csv') { res.json(st); return; }

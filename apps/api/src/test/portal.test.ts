@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../app';
+import { testOutbox } from '../lib/mailer';
 import { setupTenant, truncateAll, createUser } from './helpers';
 
 const app = createApp();
@@ -65,5 +66,42 @@ describe('landlord portal', () => {
     // Another agency cannot mint a link for this landlord.
     const other = await setupTenant('ORG_ADMIN', 'GROWTH');
     expect((await request(app).post(`/api/rent/owners/${owner.id}/portal-link`).set(other.authHeader)).status).toBe(404);
+  });
+  it('emails a landlord their statement with a private link, and one bad address never stops a bulk send', async () => {
+    const t = await setupTenant('ORG_ADMIN', 'GROWTH');
+    const h = t.authHeader;
+    const { owner } = await seed(h);
+    await request(app).post('/api/rent/charges/generate').set(h).send({ period: '2026-03' });
+    const charge = (await request(app).get('/api/rent/charges').set(h).query({ period: '2026-03' })).body[0];
+    await request(app).post(`/api/rent/charges/${charge.id}/payments`).set(h).send({ amount: 50_000, method: 'CASH' });
+
+    // No email on file yet.
+    expect((await request(app).post(`/api/rent/statements/${owner.id}/email`).set(h).send({ period: '2026-03' })).status).toBe(422);
+
+    await request(app).patch(`/api/owners/${owner.id}`).set(h).send({ email: 'grace@example.com' });
+    testOutbox.length = 0;
+    const ok = await request(app).post(`/api/rent/statements/${owner.id}/email`).set(h).send({ period: '2026-03' });
+    expect(ok.status).toBe(200);
+    expect(testOutbox).toHaveLength(1);
+    expect(testOutbox[0]!.to).toBe('grace@example.com');
+    expect(testOutbox[0]!.text).toContain('45,000');
+    const token = (await request(app).get(`/api/rent/owners/${owner.id}/portal-link`).set(h)).body.token;
+    expect(token).toBeTruthy();
+    expect(testOutbox[0]!.text).toContain(`/portal/${token}`);
+
+    // A month with no rent has nothing to send.
+    expect((await request(app).post(`/api/rent/statements/${owner.id}/email`).set(h).send({ period: '2025-01' })).status).toBe(409);
+
+    // Bulk: one landlord with rent, one without an email, one with no rent.
+    await request(app).post('/api/owners').set(h).send({ fullName: 'No Email Owner', phone: '+254700000077' });
+    await request(app).post('/api/owners').set(h).send({ fullName: 'Idle Owner', phone: '+254700000078', email: 'idle@example.com' });
+    testOutbox.length = 0;
+    const all = await request(app).post('/api/rent/statements/email-all').set(h).send({ period: '2026-03' });
+    expect(all.body).toEqual({ sent: 1, noEmail: 1, nothingToSend: 1, failed: 0 });
+    expect(testOutbox).toHaveLength(1);
+
+    // Agents cannot send.
+    const agent = await createUser(t.org.id, { role: 'AGENT' });
+    expect((await request(app).post('/api/rent/statements/email-all').set({ Authorization: `Bearer ${agent.token}` }).send({})).status).toBe(403);
   });
 });
