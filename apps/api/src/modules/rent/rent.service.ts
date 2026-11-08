@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { and, asc, eq, gte, inArray, isNull, lt, lte, ne, sql as dsql } from 'drizzle-orm';
 import { RENT_PAYMENT_METHODS, effectivePlan, periodLabel, planHasModule } from '@kaya/shared';
 import type {
-  ArrearsReport, ChargeStatus, GenerateRentResult, LeaseItem, OwnerStatement, RentChargeItem,
+  ArrearsReport, ChargeStatus, VacancyReport, GenerateRentResult, LeaseItem, OwnerStatement, RentChargeItem,
   RentOverview, RentPaymentItem, StatementDeduction, StatementLine,
 } from '@kaya/shared';
 import { withTenant, type Tx } from '../../db/client';
@@ -332,6 +332,42 @@ export async function getOverview(a: Auth, query: { period?: string }): Promise<
       period, expected, collected, outstanding: expected - collected,
       collectionRate: expected > 0 ? collected / expected : 0, activeLeases: active?.c ?? 0,
     };
+  });
+}
+
+/** Rental listings with no active lease (including ones still marked Let after the tenant left), longest-empty first. */
+export async function getVacancies(a: Auth): Promise<VacancyReport> {
+  return withTenant(a.organizationId, async (tx) => {
+    const empty = await tx.select({
+      id: properties.id, title: properties.title, location: properties.location, price: properties.price, createdAt: properties.createdAt,
+    }).from(properties)
+      .where(and(
+        eq(properties.listingType, 'RENT'), inArray(properties.status, ['AVAILABLE', 'LET', 'UNDER_OFFER']),
+        dsql`NOT EXISTS (SELECT 1 FROM leases l WHERE l.property_id = ${properties.id} AND l.status = 'ACTIVE')`,
+      ));
+    if (!empty.length) return { monthlyLoss: 0, rows: [] };
+
+    const past = await tx.select({
+      propertyId: leases.propertyId, endDate: leases.endDate, startDate: leases.startDate, tenantName: clients.fullName,
+    }).from(leases).innerJoin(clients, eq(clients.id, leases.tenantId))
+      .where(inArray(leases.propertyId, empty.map((e) => e.id)));
+    const last = new Map<string, { when: string; tenant: string }>();
+    for (const l of past) {
+      const when = l.endDate ?? l.startDate;
+      const cur = last.get(l.propertyId);
+      if (!cur || when > cur.when) last.set(l.propertyId, { when, tenant: l.tenantName });
+    }
+
+    const today = Date.parse(new Date().toISOString().slice(0, 10));
+    const rows = empty.map((e) => {
+      const prev = last.get(e.id);
+      const since = prev ? Date.parse(prev.when) : Date.parse(e.createdAt.toISOString().slice(0, 10));
+      return {
+        propertyId: e.id, propertyTitle: e.title, location: e.location, rent: Math.round(e.price),
+        daysVacant: Math.max(0, Math.round((today - since) / 86_400_000)), lastTenant: prev?.tenant ?? null,
+      };
+    }).sort((x, y) => y.daysVacant - x.daysVacant);
+    return { monthlyLoss: rows.reduce((n, r) => n + r.rent, 0), rows };
   });
 }
 

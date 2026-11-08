@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { KeyRound, Plus, RefreshCw, Download, MessageCircle, Printer, Mail } from 'lucide-react';
 import { rentReminderMessage, whatsappLink } from '@kaya/shared';
 import type {
+  VacancyReport,
   ArrearsReport, RentPaymentItem, GenerateRentResult, LeaseItem, OwnerStatement, RentChargeItem, RentOverview, OwnerListItem, Page,
 } from '@kaya/shared';
 import { api, ApiError } from '../../lib/api';
@@ -24,8 +25,8 @@ import { RecordRentPaymentForm } from '../../forms/RecordRentPaymentForm';
 const kes = (n: number) => `KES ${n.toLocaleString('en-KE')}`;
 const thisMonth = () => new Date().toISOString().slice(0, 7);
 const TONE = { UNPAID: 'danger', PARTIAL: 'warn', PAID: 'ok' } as const;
-type Tab = 'roll' | 'leases' | 'arrears' | 'statements';
-const TABS: [Tab, string][] = [['roll', 'Rent roll'], ['leases', 'Leases'], ['arrears', 'Arrears'], ['statements', 'Landlord statements']];
+type Tab = 'roll' | 'leases' | 'arrears' | 'vacancies' | 'statements';
+const TABS: [Tab, string][] = [['roll', 'Rent roll'], ['leases', 'Leases'], ['arrears', 'Arrears'], ['vacancies', 'Vacancies'], ['statements', 'Landlord statements']];
 
 export function RentPage() {
   const [tab, setTab] = useState<Tab>('roll');
@@ -57,6 +58,7 @@ export function RentPage() {
         {tab === 'roll' && <RentRoll />}
         {tab === 'leases' && <Leases />}
         {tab === 'arrears' && <Arrears />}
+        {tab === 'vacancies' && <Vacancies />}
         {tab === 'statements' && <Statements />}
       </div>
     </>
@@ -249,6 +251,36 @@ function Leases() {
       {renewing && <RenewLeaseForm lease={renewing} onDone={() => setRenewing(null)} />}
     </Modal>
     </>
+  );
+}
+
+function Vacancies() {
+  const { data, isLoading } = useQuery({ queryKey: ['rent', 'vacancies'], queryFn: () => api.get<VacancyReport>('/rent/vacancies') });
+  if (isLoading) return <Spinner />;
+  if (!data?.rows.length) return <EmptyState icon={<KeyRound size={22} />} title="No vacant units" body="Every rental listing that is on the market has an active lease." />;
+  return (
+    <div className="space-y-4">
+      <Stat label="Rent forgone each month" value={kes(data.monthlyLoss)} sub={`${data.rows.length} empty unit${data.rows.length === 1 ? '' : 's'}`} />
+      <Card className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead><tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
+            <th className="px-4 py-3">Property</th><th className="px-4 py-3">Location</th><th className="px-4 py-3 text-right">Asking rent</th>
+            <th className="px-4 py-3 text-right">Empty for</th><th className="px-4 py-3">Last tenant</th>
+          </tr></thead>
+          <tbody>
+            {data.rows.map((r) => (
+              <tr key={r.propertyId} className="border-b border-line last:border-0">
+                <td className="px-4 py-3 font-medium text-ink">{r.propertyTitle}</td>
+                <td className="px-4 py-3">{r.location}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-right">{kes(r.rent)}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-right"><Badge tone={r.daysVacant > 60 ? 'danger' : r.daysVacant > 30 ? 'warn' : 'neutral'}>{r.daysVacant} days</Badge></td>
+                <td className="px-4 py-3">{r.lastTenant ?? 'Never let'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+    </div>
   );
 }
 

@@ -145,3 +145,20 @@ export function rentReminderMessage(i: RentReminderInput): string {
     : `This is a friendly reminder that ${what} is still outstanding. Kindly send the payment when you can and share the M-Pesa code so we can update your account.`;
   return `Hello ${first}, ${body} If you have already paid, please ignore this message. Thank you. ${i.agencyName}`;
 }
+
+export interface VacancyRow {
+  propertyId: string;
+  propertyTitle: string;
+  location: string;
+  /** Asking rent per month, KES. */
+  rent: number;
+  /** Days since the last lease ended, or since the listing was added if it was never let. */
+  daysVacant: number;
+  lastTenant: string | null;
+}
+
+export interface VacancyReport {
+  /** Rent forgone per month while these units stand empty. */
+  monthlyLoss: number;
+  rows: VacancyRow[];
+}

@@ -4,7 +4,7 @@ import { requirePlanModule } from '../../middleware/plan';
 import { toCsv } from '../../lib/csv';
 import {
   listLeases, createLease, endLease, renewLease, generateCharges, listCharges, recordPayment, emailReceipt, listPayments,
-  getOverview, getArrears, ownerStatement,
+  getOverview, getArrears, getVacancies, ownerStatement,
 } from './rent.service';
 
 export const rentRouter = Router();
@@ -22,6 +22,7 @@ rentRouter.get('/charges', requirePermission('rent:view'), wrap(async (req, res)
 rentRouter.get('/charges/:id/payments', requirePermission('rent:view'), wrap(async (req, res) => { res.json(await listPayments(ctx(req), req.params.id)); }));
 rentRouter.post('/payments/:id/email-receipt', requirePermission('rent:create'), wrap(async (req, res) => { res.json(await emailReceipt(ctx(req), req.params.id)); }));
 rentRouter.post('/charges/:id/payments', requirePermission('rent:create'), wrap(async (req, res) => { res.status(201).json(await recordPayment(ctx(req), req.params.id, req.body)); }));
+rentRouter.get('/vacancies', requirePermission('rent:view'), wrap(async (req, res) => { res.json(await getVacancies(ctx(req))); }));
 rentRouter.get('/arrears', requirePermission('rent:view'), wrap(async (req, res) => { res.json(await getArrears(ctx(req))); }));
 
 rentRouter.get('/statements/:ownerId', requirePermission('rent:view'), wrap(async (req, res) => {

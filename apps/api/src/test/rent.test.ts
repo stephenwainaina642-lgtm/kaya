@@ -252,4 +252,21 @@ describe('lease expiry alerts and renewal', () => {
     expect(testOutbox[0]!.text).toContain('30,000');
     expect(lease.status).toBe(201);
   });
+  it('lists empty rental units with how long they have stood vacant and the rent forgone', async () => {
+    const t = await setupTenant('ORG_ADMIN', 'GROWTH');
+    const h = t.authHeader;
+    const { property, lease } = await seed(h, 60_000);
+    expect(lease.status).toBe(201);
+    // Let property is not vacant.
+    expect((await request(app).get('/api/rent/vacancies').set(h)).body.rows).toHaveLength(0);
+    // End the lease: it becomes vacant, priced at the asking rent.
+    await request(app).post(`/api/rent/leases/${lease.body.id}/end`).set(h);
+    const vac = (await request(app).get('/api/rent/vacancies').set(h)).body;
+    expect(vac.rows).toHaveLength(1);
+    expect(vac.rows[0]).toMatchObject({ propertyId: property.id, rent: 60_000, lastTenant: 'Tenant Tom' });
+    expect(vac.monthlyLoss).toBe(60_000);
+    // Managers only, like the rest of rent.
+    const agent = await createUser(t.org.id, { role: 'AGENT' });
+    expect((await request(app).get('/api/rent/vacancies').set({ Authorization: `Bearer ${agent.token}` })).status).toBe(403);
+  });
 });
