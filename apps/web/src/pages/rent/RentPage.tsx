@@ -20,6 +20,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { Modal } from '../../components/ui/Modal';
 import { NewLeaseForm } from '../../forms/NewLeaseForm';
 import { printTenantStatement } from '../../lib/tenantStatement';
+import { MatchMpesaForm } from '../../forms/MatchMpesaForm';
 import { ImportLeasesForm } from '../../forms/ImportLeasesForm';
 import { LeaseLetterForm } from '../../forms/LeaseLetterForm';
 import { AddChargeForm } from '../../forms/AddChargeForm';
@@ -37,6 +38,7 @@ export function RentPage() {
   const [tab, setTab] = useState<Tab>('roll');
   const [showLease, setShowLease] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showMatch, setShowMatch] = useState(false);
   return (
     <>
       <PageHeader
@@ -44,11 +46,15 @@ export function RentPage() {
         subtitle="Leases, monthly rent, arrears and landlord statements"
         actions={(
           <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setShowMatch(true)}>Match M-Pesa</Button>
             <Button variant="secondary" onClick={() => setShowImport(true)}><Upload size={16} /> Import</Button>
             <Button onClick={() => setShowLease(true)}><Plus size={16} /> New lease</Button>
           </div>
         )}
       />
+      <Modal open={showMatch} onClose={() => setShowMatch(false)} title="Match M-Pesa payments" width="max-w-2xl">
+        <MatchMpesaForm onDone={() => setShowMatch(false)} />
+      </Modal>
       <Modal open={showImport} onClose={() => setShowImport(false)} title="Import leases from CSV">
         <ImportLeasesForm onDone={() => setShowImport(false)} />
       </Modal>

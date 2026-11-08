@@ -248,3 +248,42 @@ export interface RentSummary {
   openRepairs: number;
   urgentRepairs: number;
 }
+
+export interface MpesaTransaction {
+  code: string;
+  amount: number;
+  /** Sender's name as Safaricom printed it. May be empty. */
+  name: string;
+  /** Digits, possibly masked with asterisks. May be empty. */
+  phone: string;
+  /** ISO timestamp, or null when the message carried no date. */
+  paidAt: string | null;
+}
+
+export interface MpesaMatch extends MpesaTransaction {
+  chargeId: string;
+  tenantName: string;
+  propertyTitle: string;
+  period: string;
+  /** What is still owed on that month before this payment. */
+  balance: number;
+  /** What would be recorded: the payment, capped at the balance. */
+  applyAmount: number;
+  /** Part of the payment that is more than the balance and needs handling by hand. */
+  leftover: number;
+  /** HIGH: the phone number matches. MEDIUM: only the name matches. */
+  confidence: 'HIGH' | 'MEDIUM';
+}
+
+export interface MpesaMatchResult {
+  found: number;
+  matches: MpesaMatch[];
+  /** Codes already recorded in Kaya. */
+  duplicates: MpesaTransaction[];
+  unmatched: (MpesaTransaction & { reason: string })[];
+}
+
+export interface MpesaApplyResult {
+  recorded: number;
+  failed: { code: string; error: string }[];
+}
