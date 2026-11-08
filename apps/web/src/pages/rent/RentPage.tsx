@@ -20,6 +20,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { Modal } from '../../components/ui/Modal';
 import { NewLeaseForm } from '../../forms/NewLeaseForm';
 import { printTenantStatement } from '../../lib/tenantStatement';
+import { LeaseLetterForm } from '../../forms/LeaseLetterForm';
 import { AddChargeForm } from '../../forms/AddChargeForm';
 import { SettleDepositForm } from '../../forms/SettleDepositForm';
 import { RenewLeaseForm } from '../../forms/RenewLeaseForm';
@@ -133,14 +134,14 @@ function RentRoll() {
                   <td className="px-4 py-3 font-medium text-ink">{c.propertyTitle}</td>
                   <td className="px-4 py-3">{c.tenantName}</td>
                   <td className="px-4 py-3">{c.dueDate}</td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="whitespace-nowrap px-4 py-3 text-right">
                     {kes(c.amount)}
                     {c.extras.length > 0 && <p className="text-xs text-muted">incl. {c.extras.map((x) => x.label).join(', ')}</p>}
                   </td>
-                  <td className="px-4 py-3 text-right">{kes(c.paidAmount)}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right">{kes(c.paidAmount)}</td>
                   <td className="px-4 py-3"><Badge tone={TONE[c.status]}>{c.status[0] + c.status.slice(1).toLowerCase()}</Badge></td>
                   <td className="px-4 py-3 text-right">
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-2 whitespace-nowrap">
                       <Button variant="ghost" onClick={() => setExtrasFor(c)}>+ Charge</Button>
                       {c.paidAmount > 0 && <Button variant="ghost" onClick={() => setReceiptsFor(c)}>Receipts</Button>}
                       {c.status !== 'PAID' && <Button variant="secondary" onClick={() => setPaying(c)}>Record payment</Button>}
@@ -216,6 +217,7 @@ function Leases() {
   const qc = useQueryClient();
   const [renewing, setRenewing] = useState<LeaseItem | null>(null);
   const [settling, setSettling] = useState<LeaseItem | null>(null);
+  const [lettering, setLettering] = useState<LeaseItem | null>(null);
   const { user } = useAuth();
   const openStatement = async (id: string) => {
     const st = await api.get<TenantStatement>(`/rent/leases/${id}/statement`);
@@ -251,16 +253,19 @@ function Leases() {
               </td>
               <td className="px-4 py-3"><Badge tone={l.status === 'ACTIVE' ? 'ok' : 'neutral'}>{l.status === 'ACTIVE' ? 'Active' : 'Ended'}</Badge></td>
               <td className="px-4 py-3 text-right">
+                <div className="flex max-w-[15rem] flex-wrap items-center justify-end gap-1">
                 {l.status === 'ACTIVE' && (
-                  <div className="flex justify-end gap-1 whitespace-nowrap">
+                  <>
+                    <Button variant="ghost" onClick={() => setLettering(l)}>Letter</Button>
                     <Button variant="secondary" onClick={() => setRenewing(l)}>Renew</Button>
                     <Button variant="ghost" disabled={end.isPending} onClick={() => { if (window.confirm('End this lease? No more rent will be raised for it.')) end.mutate(l.id); }}>End lease</Button>
-                  </div>
+                  </>
                 )}
                 <Button variant="ghost" onClick={() => openStatement(l.id)}>Statement</Button>
                 {l.status === 'ENDED' && l.depositAmount > 0 && (l.depositSettledAt
                   ? <span className="whitespace-nowrap text-xs text-muted" title={l.depositNotes ?? undefined}>Deposit: {kes(l.depositAmount - l.depositDeduction)} refunded{l.depositDeduction > 0 ? `, ${kes(l.depositDeduction)} kept` : ''}</span>
                   : <Button variant="secondary" onClick={() => setSettling(l)}>Settle deposit</Button>)}
+                </div>
               </td>
             </tr>
             );
@@ -270,6 +275,9 @@ function Leases() {
     </Card>
     <Modal open={!!renewing} onClose={() => setRenewing(null)} title="Renew lease">
       {renewing && <RenewLeaseForm lease={renewing} onDone={() => setRenewing(null)} />}
+    </Modal>
+    <Modal open={!!lettering} onClose={() => setLettering(null)} title="Letter to tenant">
+      {lettering && <LeaseLetterForm lease={lettering} onDone={() => setLettering(null)} />}
     </Modal>
     <Modal open={!!settling} onClose={() => setSettling(null)} title="Settle security deposit">
       {settling && <SettleDepositForm lease={settling} onDone={() => setSettling(null)} />}
