@@ -1,7 +1,7 @@
-import { useRef, useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useEffect, useRef, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, Check, ExternalLink, Upload, Trash2, Download } from 'lucide-react';
-import type { InquiryLink, OrgBranding } from '@kaya/shared';
+import { BILLING_MONTHS, PLAN_LABELS, PLAN_PRICE_KES, quoteKes, type BillingMonths, type BillingOverview, type BillingPayment, type InquiryLink, type OrgBranding, type Plan } from '@kaya/shared';
 import { useAuth } from '../../auth/AuthContext';
 import { api, ApiError } from '../../lib/api';
 import { PageHeader } from '../../components/PageHeader';
@@ -179,6 +179,98 @@ function ExportCard() {
   );
 }
 
+const PAID_PLANS: Plan[] = ['STARTER', 'GROWTH', 'PRO'];
+
+function BillingCard() {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const [plan, setPlan] = useState<Plan>('GROWTH');
+  const [months, setMonths] = useState<BillingMonths>(1);
+  const [phone, setPhone] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [paymentId, setPaymentId] = useState<string | null>(null);
+
+  const { data } = useQuery({ queryKey: ['billing'], queryFn: () => api.get<BillingOverview>('/billing'), enabled: user?.role === 'ORG_ADMIN' });
+  const { data: payment } = useQuery({
+    queryKey: ['billing-payment', paymentId],
+    queryFn: () => api.get<BillingPayment>(`/billing/payments/${paymentId}`),
+    enabled: !!paymentId,
+    refetchInterval: (q) => (q.state.data?.status === 'PENDING' ? 3000 : false),
+  });
+  const status = payment?.status;
+  useEffect(() => {
+    // Refresh plan and history once the result is known.
+    if (status === 'PAID' || status === 'FAILED') qc.invalidateQueries({ queryKey: ['billing'] });
+  }, [status, qc]);
+
+  const pay = useMutation({
+    mutationFn: () => api.post<BillingPayment>('/billing/checkout', { plan, months, phone }),
+    onSuccess: (p) => { setError(null); setPaymentId(p.id); },
+    onError: (err) => setError(err instanceof ApiError ? err.message : 'Something went wrong'),
+  });
+
+  if (user?.role !== 'ORG_ADMIN' || !data) return null;
+  const total = quoteKes(plan, data.seats, months);
+  const waiting = pay.isPending || payment?.status === 'PENDING';
+
+  return (
+    <Card className="max-w-lg p-5">
+      <h2 className="font-display text-lg font-semibold text-ink">Plan & billing</h2>
+      <p className="mt-1 text-sm text-muted">
+        You are on <strong className="text-ink">{PLAN_LABELS[data.effectivePlan]}</strong>
+        {data.expiresAt && data.plan !== 'STARTER' ? ` · ${data.effectivePlan === data.plan ? 'renews by' : 'lapsed on'} ${new Date(data.expiresAt).toLocaleDateString('en-KE')}` : ''}
+        {' · '}{data.seats} {data.seats === 1 ? 'agent' : 'agents'}
+      </p>
+      {!data.paymentsEnabled ? (
+        <p className="mt-4 rounded-control bg-sunk p-3 text-sm text-muted">Online payment isn't switched on for this workspace yet. Contact support to change plan.</p>
+      ) : (
+        <form className="mt-4" onSubmit={(e) => { e.preventDefault(); setError(null); setPaymentId(null); pay.mutate(); }}>
+          <div className="mb-3 grid grid-cols-3 gap-2">
+            {PAID_PLANS.map((p) => (
+              <button key={p} type="button" onClick={() => setPlan(p)}
+                className={`rounded-control border px-3 py-2 text-left text-sm transition ${plan === p ? 'border-cypress-600 bg-cypress-50 text-cypress-700' : 'border-line text-ink hover:bg-sunk'}`}>
+                <span className="block font-medium">{PLAN_LABELS[p]}</span>
+                <span className="text-xs text-muted">KES {PLAN_PRICE_KES[p].toLocaleString('en-KE')}/agent</span>
+              </button>
+            ))}
+          </div>
+          <div className="mb-3 flex gap-2">
+            {BILLING_MONTHS.map((m) => (
+              <button key={m} type="button" onClick={() => setMonths(m)}
+                className={`rounded-control border px-3 py-1.5 text-sm ${months === m ? 'border-cypress-600 bg-cypress-50 text-cypress-700' : 'border-line text-ink hover:bg-sunk'}`}>
+                {m === 1 ? 'Monthly' : 'Yearly · 2 months free'}
+              </button>
+            ))}
+          </div>
+          <Field label="M-Pesa number">
+            <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0712 345 678" inputMode="tel" required />
+          </Field>
+          <Button type="submit" disabled={waiting || phone.trim().length < 9}>
+            {waiting ? 'Check your phone…' : `Pay KES ${total.toLocaleString('en-KE')} with M-Pesa`}
+          </Button>
+          {payment?.status === 'PENDING' && <p className="mt-3 text-sm text-muted">Enter your M-Pesa PIN on the prompt we sent to your phone.</p>}
+          {payment?.status === 'PAID' && <p className="mt-3 text-sm text-cypress-700">Payment received{payment.mpesaReceipt ? ` (${payment.mpesaReceipt})` : ''}. Your plan is updated. Reload to unlock new features.</p>}
+          {payment?.status === 'FAILED' && <p className="mt-3 text-sm text-danger">{payment.failureReason ?? 'The payment did not go through.'} You have not been charged.</p>}
+          {error && <p className="mt-3 text-sm text-danger">{error}</p>}
+        </form>
+      )}
+      {data.payments.length > 0 && (
+        <div className="mt-5 border-t border-line pt-4">
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Payment history</p>
+          <ul className="space-y-1.5 text-sm">
+            {data.payments.slice(0, 6).map((p) => (
+              <li key={p.id} className="flex justify-between">
+                <span className="text-ink">{new Date(p.createdAt).toLocaleDateString('en-KE')} · {PLAN_LABELS[p.plan]} · {p.months === 12 ? 'yearly' : 'monthly'}</span>
+                <span className={p.status === 'PAID' ? 'text-cypress-700' : p.status === 'FAILED' ? 'text-danger' : 'text-muted'}>KES {p.amount.toLocaleString('en-KE')} · {p.status.toLowerCase()}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export function SettingsPage() {
   const { user, updateUser } = useAuth();
 
@@ -218,6 +310,7 @@ export function SettingsPage() {
       <div className="space-y-6 p-8">
         <InquiryLinkCard />
         <BrandingCard />
+        <BillingCard />
         <ExportCard />
 
         <Card className="max-w-lg p-5">
