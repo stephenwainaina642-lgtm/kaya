@@ -231,3 +231,20 @@ export interface PortalView {
   units: PortalUnit[];
   openRepairs: PortalRepair[];
 }
+
+/** The numbers an agency wants on the home screen each morning. */
+export interface RentSummary {
+  period: string;
+  expected: number;
+  collected: number;
+  collectionRate: number;
+  /** Everything tenants still owe, all months. */
+  overdueTotal: number;
+  overdueTenants: number;
+  vacantUnits: number;
+  monthlyLoss: number;
+  /** Active leases ending within 60 days. */
+  expiringSoon: number;
+  openRepairs: number;
+  urgentRepairs: number;
+}

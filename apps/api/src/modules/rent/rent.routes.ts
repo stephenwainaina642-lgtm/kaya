@@ -6,7 +6,7 @@ import { requirePlanModule } from '../../middleware/plan';
 import { toCsv } from '../../lib/csv';
 import {
   listLeases, createLease, endLease, renewLease, generateCharges, listCharges, recordPayment, emailReceipt, listPayments,
-  getOverview, getArrears, getVacancies, tenantStatement, addChargeExtra, removeChargeExtra, settleDeposit, ownerStatement,
+  getOverview, getArrears, getVacancies, getSummary, tenantStatement, addChargeExtra, removeChargeExtra, settleDeposit, ownerStatement,
 } from './rent.service';
 
 export const rentRouter = Router();
@@ -32,6 +32,7 @@ rentRouter.post('/charges/:id/payments', requirePermission('rent:create'), wrap(
 rentRouter.get('/owners/:id/portal-link', requirePermission('rent:view'), wrap(async (req, res) => { res.json(await getPortalLink(ctx(req), req.params.id)); }));
 rentRouter.post('/owners/:id/portal-link', requirePermission('rent:edit'), wrap(async (req, res) => { res.json(await createPortalLink(ctx(req), req.params.id)); }));
 rentRouter.delete('/owners/:id/portal-link', requirePermission('rent:edit'), wrap(async (req, res) => { await revokePortalLink(ctx(req), req.params.id); res.status(204).end(); }));
+rentRouter.get('/summary', requirePermission('rent:view'), wrap(async (req, res) => { res.json(await getSummary(ctx(req))); }));
 rentRouter.get('/vacancies', requirePermission('rent:view'), wrap(async (req, res) => { res.json(await getVacancies(ctx(req))); }));
 rentRouter.get('/arrears', requirePermission('rent:view'), wrap(async (req, res) => { res.json(await getArrears(ctx(req))); }));
 

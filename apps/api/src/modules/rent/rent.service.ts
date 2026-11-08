@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { and, asc, eq, gte, inArray, isNull, lt, lte, ne, sql as dsql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, isNull, lt, lte, ne, notInArray, sql as dsql } from 'drizzle-orm';
 import { RENT_PAYMENT_METHODS, effectivePlan, periodLabel, planHasModule } from '@kaya/shared';
 import type {
-  ArrearsReport, ChargeStatus, TenantStatement, VacancyReport, GenerateRentResult, LeaseItem, OwnerStatement, RentChargeItem,
+  ArrearsReport, ChargeStatus, RentSummary, TenantStatement, VacancyReport, GenerateRentResult, LeaseItem, OwnerStatement, RentChargeItem,
   RentOverview, RentPaymentItem, StatementDeduction, StatementLine,
 } from '@kaya/shared';
 import { withTenant, type Tx } from '../../db/client';
@@ -438,6 +438,29 @@ export async function getOverview(a: Auth, query: { period?: string }): Promise<
       collectionRate: expected > 0 ? collected / expected : 0, activeLeases: active?.c ?? 0,
     };
   });
+}
+
+/** One round trip for the home-screen rent card. */
+export async function getSummary(a: Auth): Promise<RentSummary> {
+  const [overview, arrears, vacancies, extra] = await Promise.all([
+    getOverview(a, {}), getArrears(a), getVacancies(a),
+    withTenant(a.organizationId, async (tx) => {
+      const horizon = new Date(Date.now() + 60 * 86_400_000).toISOString().slice(0, 10);
+      const [exp] = await tx.select({ c: dsql<number>`count(*)::int` }).from(leases)
+        .where(and(eq(leases.status, 'ACTIVE'), lte(leases.endDate, horizon)));
+      const [rep] = await tx.select({
+        open: dsql<number>`count(*)::int`,
+        urgent: dsql<number>`count(*) filter (where ${maintenanceRequests.priority} = 'URGENT')::int`,
+      }).from(maintenanceRequests).where(notInArray(maintenanceRequests.status, ['DONE', 'CANCELLED']));
+      return { expiring: exp?.c ?? 0, open: rep?.open ?? 0, urgent: rep?.urgent ?? 0 };
+    }),
+  ]);
+  return {
+    period: overview.period, expected: overview.expected, collected: overview.collected, collectionRate: overview.collectionRate,
+    overdueTotal: arrears.total, overdueTenants: arrears.rows.length,
+    vacantUnits: vacancies.rows.length, monthlyLoss: vacancies.monthlyLoss,
+    expiringSoon: extra.expiring, openRepairs: extra.open, urgentRepairs: extra.urgent,
+  };
 }
 
 /** Rental listings with no active lease (including ones still marked Let after the tenant left), longest-empty first. */

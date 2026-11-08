@@ -319,4 +319,22 @@ describe('lease expiry alerts and renewal', () => {
     expect(st.totals).toEqual({ charged: 80_000, paid: 25_000, balance: 55_000 });
     expect(st.rows[0].payments).toHaveLength(1);
   });
+  it('summarises rent, arrears, vacancies, expiries and repairs for the home screen', async () => {
+    const t = await setupTenant('ORG_ADMIN', 'GROWTH');
+    const h = t.authHeader;
+    const { property } = await seed(h, 50_000);
+    const empty = await request(app).get('/api/rent/summary').set(h);
+    expect(empty.status).toBe(200);
+    expect(empty.body).toMatchObject({ collected: 0, vacantUnits: 0, openRepairs: 0, expiringSoon: 0 });
+
+    const now = new Date();
+    const period = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+    await request(app).post('/api/rent/charges/generate').set(h).send({ period });
+    await request(app).post('/api/maintenance').set(h).send({ propertyId: property.id, title: 'Burst pipe', priority: 'URGENT' });
+    const sum = (await request(app).get('/api/rent/summary').set(h)).body;
+    expect(sum).toMatchObject({ period, expected: 50_000, collected: 0, collectionRate: 0, openRepairs: 1, urgentRepairs: 1 });
+
+    const agent = await createUser(t.org.id, { role: 'AGENT' });
+    expect((await request(app).get('/api/rent/summary').set({ Authorization: `Bearer ${agent.token}` })).status).toBe(403);
+  });
 });
