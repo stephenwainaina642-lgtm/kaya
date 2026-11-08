@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { KeyRound, Plus, RefreshCw, Download, MessageCircle, Printer, Mail } from 'lucide-react';
+import { KeyRound, Plus, RefreshCw, Download, MessageCircle, Printer, Mail, Upload } from 'lucide-react';
 import { rentReminderMessage, whatsappLink } from '@kaya/shared';
 import type {
   TenantStatement, VacancyReport,
@@ -20,6 +20,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { Modal } from '../../components/ui/Modal';
 import { NewLeaseForm } from '../../forms/NewLeaseForm';
 import { printTenantStatement } from '../../lib/tenantStatement';
+import { ImportLeasesForm } from '../../forms/ImportLeasesForm';
 import { LeaseLetterForm } from '../../forms/LeaseLetterForm';
 import { AddChargeForm } from '../../forms/AddChargeForm';
 import { SettleDepositForm } from '../../forms/SettleDepositForm';
@@ -35,13 +36,22 @@ const TABS: [Tab, string][] = [['roll', 'Rent roll'], ['leases', 'Leases'], ['ar
 export function RentPage() {
   const [tab, setTab] = useState<Tab>('roll');
   const [showLease, setShowLease] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   return (
     <>
       <PageHeader
         title="Rent"
         subtitle="Leases, monthly rent, arrears and landlord statements"
-        actions={<Button onClick={() => setShowLease(true)}><Plus size={16} /> New lease</Button>}
+        actions={(
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setShowImport(true)}><Upload size={16} /> Import</Button>
+            <Button onClick={() => setShowLease(true)}><Plus size={16} /> New lease</Button>
+          </div>
+        )}
       />
+      <Modal open={showImport} onClose={() => setShowImport(false)} title="Import leases from CSV">
+        <ImportLeasesForm onDone={() => setShowImport(false)} />
+      </Modal>
       <Modal open={showLease} onClose={() => setShowLease(false)} title="New lease">
         <NewLeaseForm onDone={() => setShowLease(false)} />
       </Modal>

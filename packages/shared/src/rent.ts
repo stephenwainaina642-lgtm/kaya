@@ -196,3 +196,12 @@ export interface TenantStatement {
   rows: TenantStatementRow[];
   totals: { charged: number; paid: number; balance: number };
 }
+
+export interface LeaseImportResult {
+  created: number;
+  /** Tenants that were not yet in Kaya and were added as clients. */
+  tenantsCreated: number;
+  /** Rows left out because the property already has an active lease. */
+  skipped: number;
+  invalid: { row: number; reason: string }[];
+}

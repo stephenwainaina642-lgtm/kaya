@@ -1,3 +1,4 @@
+import { importLeases } from './import.service';
 import { Router } from 'express';
 import { authenticate, ctx, requirePermission } from '../../middleware/auth';
 import { requirePlanModule } from '../../middleware/plan';
@@ -17,6 +18,7 @@ rentRouter.get('/leases', requirePermission('rent:view'), wrap(async (req, res) 
 rentRouter.post('/leases', requirePermission('rent:create'), wrap(async (req, res) => { res.status(201).json(await createLease(ctx(req), req.body)); }));
 rentRouter.get('/leases/:id/statement', requirePermission('rent:view'), wrap(async (req, res) => { res.json(await tenantStatement(ctx(req), req.params.id)); }));
 rentRouter.post('/leases/:id/end', requirePermission('rent:edit'), wrap(async (req, res) => { res.json(await endLease(ctx(req), req.params.id, req.body?.endDate)); }));
+rentRouter.post('/leases/import', requirePermission('rent:create'), wrap(async (req, res) => { res.status(201).json(await importLeases(ctx(req), req.body)); }));
 rentRouter.post('/leases/:id/settle-deposit', requirePermission('rent:edit'), wrap(async (req, res) => { res.json(await settleDeposit(ctx(req), req.params.id, req.body)); }));
 rentRouter.post('/leases/:id/renew', requirePermission('rent:edit'), wrap(async (req, res) => { res.json(await renewLease(ctx(req), req.params.id, req.body)); }));
 rentRouter.post('/charges/generate', requirePermission('rent:create'), wrap(async (req, res) => { res.status(201).json(await generateCharges(ctx(req), req.body)); }));

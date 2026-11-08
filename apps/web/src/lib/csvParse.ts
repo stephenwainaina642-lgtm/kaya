@@ -41,16 +41,33 @@ const ALIASES: Record<string, string[]> = {
   notes: ['notes', 'note', 'comments', 'remarks'],
 };
 
+export { LEASE_ALIASES };
 export const IMPORT_TEMPLATE =
   'name,phone,email,source,temperature,type,tags,notes\r\nAmina Yusuf,0722 000 000,amina@example.com,WHATSAPP,HOT,BUYER,vip;kilimani,Wants a 3BR in Kilimani\r\n';
 
+const LEASE_ALIASES: Record<string, string[]> = {
+  property: ['property', 'property name', 'unit', 'house', 'apartment', 'title'],
+  tenantName: ['tenant', 'tenant name', 'name', 'full name', 'fullname'],
+  tenantPhone: ['tenant phone', 'phone', 'phone number', 'mobile', 'tel', 'telephone', 'tenant mobile'],
+  tenantEmail: ['tenant email', 'email', 'e-mail', 'email address'],
+  rent: ['rent', 'monthly rent', 'rent amount', 'amount'],
+  deposit: ['deposit', 'security deposit', 'deposit amount'],
+  dueDay: ['due day', 'dueday', 'rent due day', 'due'],
+  startDate: ['start', 'start date', 'lease start', 'move in', 'move-in', 'since'],
+  endDate: ['end', 'end date', 'lease end', 'expiry', 'expires'],
+  feePercent: ['fee', 'fee %', 'management fee', 'commission', 'commission %', 'fee percent'],
+};
+
+export const LEASE_IMPORT_TEMPLATE =
+  'property,tenant name,tenant phone,tenant email,rent,deposit,due day,start date,end date,fee %\r\nKilimani 2BR,Amina Yusuf,0722 000 000,amina@example.com,85000,170000,5,01/01/2026,31/12/2026,10\r\n';
+
 // Maps whatever headers the agent's spreadsheet uses onto Kaya's fields.
-export function rowsFromCsv(text: string): Record<string, string>[] {
+export function rowsFromCsv(text: string, aliases: Record<string, string[]> = ALIASES): Record<string, string>[] {
   const [header, ...body] = parseCsv(text);
   if (!header) return [];
   const map = header.map((h) => {
     const k = h.trim().toLowerCase();
-    return Object.keys(ALIASES).find((field) => ALIASES[field]!.includes(k)) ?? null;
+    return Object.keys(aliases).find((field) => aliases[field]!.includes(k)) ?? null;
   });
   return body.map((cells) => {
     const out: Record<string, string> = {};
