@@ -372,6 +372,34 @@ function Arrears() {
   );
 }
 
+function PortalLink({ ownerId }: { ownerId: string }) {
+  const qc = useQueryClient();
+  const [copied, setCopied] = useState(false);
+  const link = useQuery({ queryKey: ['rent', 'portal', ownerId], queryFn: () => api.get<{ token: string | null }>(`/rent/owners/${ownerId}/portal-link`) });
+  const refresh = () => qc.invalidateQueries({ queryKey: ['rent', 'portal', ownerId] });
+  const create = useMutation({ mutationFn: () => api.post(`/rent/owners/${ownerId}/portal-link`), onSuccess: refresh });
+  const revoke = useMutation({ mutationFn: () => api.del(`/rent/owners/${ownerId}/portal-link`), onSuccess: refresh });
+  if (link.isLoading) return null;
+  const token = link.data?.token;
+  const url = token ? `${window.location.origin}/portal/${token}` : '';
+  return (
+    <Card className="p-4">
+      <p className="text-sm font-medium text-ink">Landlord link</p>
+      <p className="mt-0.5 text-xs text-muted">A private, read-only page where this landlord sees their statements, units and open repairs. No login. Anyone with the link can view it, so share it only with them.</p>
+      {token ? (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Input readOnly value={url} className="min-w-0 flex-1 bg-sunk text-muted" onFocus={(e) => e.target.select()} />
+          <Button variant="secondary" onClick={() => { navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1500); }}>{copied ? 'Copied' : 'Copy'}</Button>
+          <Button variant="secondary" disabled={create.isPending} onClick={() => { if (confirm('Make a new link? The old one will stop working.')) create.mutate(); }}>New link</Button>
+          <Button variant="ghost" disabled={revoke.isPending} onClick={() => { if (confirm('Turn off this landlord\'s link?')) revoke.mutate(); }}>Turn off</Button>
+        </div>
+      ) : (
+        <Button className="mt-3" variant="secondary" disabled={create.isPending} onClick={() => create.mutate()}>Create link</Button>
+      )}
+    </Card>
+  );
+}
+
 function Statements() {
   const [ownerId, setOwnerId] = useState('');
   const [period, setPeriod] = useState(thisMonth());
@@ -398,6 +426,7 @@ function Statements() {
           </Button>
         )}
       </div>
+      {ownerId && <PortalLink ownerId={ownerId} />}
       {!ownerId ? (
         <EmptyState icon={<KeyRound size={22} />} title="Pick a landlord" body="See what was collected for their properties, less your fee and any tax withheld." />
       ) : st.isLoading ? <Spinner /> : !s?.lines.length ? (

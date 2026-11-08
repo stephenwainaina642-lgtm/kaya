@@ -205,3 +205,29 @@ export interface LeaseImportResult {
   skipped: number;
   invalid: { row: number; reason: string }[];
 }
+
+export interface PortalUnit {
+  propertyTitle: string;
+  location: string;
+  /** The tenant's name while the unit is let; null when vacant. */
+  tenantName: string | null;
+  rent: number | null;
+}
+
+export interface PortalRepair {
+  title: string;
+  propertyTitle: string;
+  priority: string;
+  status: string;
+  createdAt: string;
+}
+
+/** What a landlord sees on their private, read-only link. */
+export interface PortalView {
+  agencyName: string;
+  ownerName: string;
+  period: string;
+  statement: OwnerStatement;
+  units: PortalUnit[];
+  openRepairs: PortalRepair[];
+}

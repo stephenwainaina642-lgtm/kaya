@@ -141,6 +141,12 @@ async function main() {
       SELECT 1 FROM information_schema.columns WHERE table_name = 'rent_charges' AND column_name = 'extras'
     )
     UNION ALL
+    SELECT 'owners.portal_token' WHERE to_regclass('owners') IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM information_schema.columns WHERE table_name = 'owners' AND column_name = 'portal_token'
+    )
+    UNION ALL
+    SELECT 'owners_portal_token_idx' WHERE to_regclass('owners') IS NOT NULL AND to_regclass('owners_portal_token_idx') IS NULL
+    UNION ALL
     SELECT 'maintenance_requests' WHERE to_regclass('maintenance_requests') IS NULL
     UNION ALL
     SELECT 'rent_charges' WHERE to_regclass('rent_charges') IS NULL
@@ -207,6 +213,8 @@ async function applyKnownFixups(c) {
             created_at timestamptz NOT NULL DEFAULT now()
           );
           ALTER TABLE leases ADD COLUMN IF NOT EXISTS expiry_alert_sent_at timestamptz;
+          ALTER TABLE owners ADD COLUMN IF NOT EXISTS portal_token text;
+          CREATE UNIQUE INDEX IF NOT EXISTS owners_portal_token_idx ON owners (portal_token);
           ALTER TABLE leases ADD COLUMN IF NOT EXISTS deposit_deduction integer NOT NULL DEFAULT 0;
           ALTER TABLE leases ADD COLUMN IF NOT EXISTS deposit_settled_at timestamptz;
           ALTER TABLE leases ADD COLUMN IF NOT EXISTS deposit_notes text;

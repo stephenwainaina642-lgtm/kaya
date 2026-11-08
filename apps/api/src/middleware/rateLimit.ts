@@ -53,3 +53,13 @@ export const repairReportLimiter = rateLimit({
   skip: skipInTest,
   message: { error: { code: 'RATE_LIMITED', message: 'Too many reports from this connection. Please try again later.' } },
 });
+
+/** The landlord portal is public and secret-keyed, so cap guessing attempts per IP. */
+export const portalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: skipInTest,
+  message: { error: { code: 'RATE_LIMITED', message: 'Too many requests. Please try again shortly.' } },
+});

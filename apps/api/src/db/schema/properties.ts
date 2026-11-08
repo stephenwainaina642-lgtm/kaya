@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, doublePrecision, integer, boolean, jsonb, unique } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, doublePrecision, integer, boolean, jsonb, unique, uniqueIndex } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import {
   listingTypeEnum, propertyTypeEnum, segmentEnum, furnishingEnum, propertyStatusEnum,
@@ -26,9 +26,13 @@ export const owners = pgTable('owners', {
   commissionFixedAmount: doublePrecision('commission_fixed_amount'),
   agreementNotes: text('agreement_notes'),
   notes: text('notes'),
+  // Secret in the landlord's read-only portal link. Null means no link; clearing or rotating it revokes the old one.
+  portalToken: text('portal_token'),
   ...auditColumns(),
   ...timestamps(),
-});
+}, (t) => ({
+  portalTokenIdx: uniqueIndex('owners_portal_token_idx').on(t.portalToken),
+}));
 
 export const properties = pgTable('properties', {
   id: uuid('id').primaryKey().defaultRandom(),
