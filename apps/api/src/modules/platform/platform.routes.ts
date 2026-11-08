@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { getPublicShortlist } from '../shortlists/shortlists.service';
 import { createPublicViewingRequest, getPortalDocumentFile, signPortalDocument } from '../portal/portal.service';
+import { repairReportLimiter } from '../../middleware/rateLimit';
+import { submitRepairReport } from '../maintenance/public-report.service';
 import { getPublicOrgInfo, submitPublicInquiry } from '../leads/public-inquiry.service';
 import { getLogoStorageKeyBySlug } from '../org-settings/org-settings.service';
 import { sendFile } from '../../lib/storage';
@@ -69,6 +71,15 @@ platformRouter.get('/organizations/:slug/logo', async (req, res, next) => {
     // the browser sniffs image content-type reliably, and upload already
     // restricted this file to a handful of known image types.
     await sendFile(storageKey, res);
+  } catch (err) {
+    next(err);
+  }
+});
+
+platformRouter.post('/organizations/:slug/repair-reports', repairReportLimiter, async (req, res, next) => {
+  try {
+    await submitRepairReport(req.params.slug!, req.body, req.ip ?? null);
+    res.status(201).end();
   } catch (err) {
     next(err);
   }

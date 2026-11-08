@@ -33,6 +33,7 @@ import { AutomationPage } from './pages/automation/AutomationPage';
 import { TeamPage } from './pages/team/TeamPage';
 import { SettingsPage } from './pages/settings/SettingsPage';
 import { PublicShortlist } from './pages/public/PublicShortlist';
+import { PublicRepair } from './pages/public/PublicRepair';
 import { PublicInquiry } from './pages/public/PublicInquiry';
 import { Landing } from './pages/marketing/Landing';
 import { NotFound } from './pages/NotFound';
@@ -77,6 +78,7 @@ export default function App() {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/share/:token" element={<PublicShortlist />} />
       <Route path="/inquire/:slug" element={<PublicInquiry />} />
+      <Route path="/report/:slug" element={<PublicRepair />} />
       <Route
         path="/platform/*"
         element={

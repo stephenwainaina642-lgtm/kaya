@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import { createApp } from '../app';
 import { systemDb } from '../db/system';
 import { organizations } from '../db/schema';
+import { testOutbox } from '../lib/mailer';
 import { truncateAll, setupTenant, createUser } from './helpers';
 
 const app = createApp();
@@ -227,5 +228,28 @@ describe('lease expiry alerts and renewal', () => {
     expect((await request(app).post(`/api/rent/leases/${lease.body.id}/renew`).set(t.authHeader).send({ endDate: '2028-01-01' })).status).toBe(409);
     const agent = await createUser(t.org.id, { role: 'AGENT' });
     expect((await request(app).post(`/api/rent/leases/${lease.body.id}/renew`).set({ Authorization: `Bearer ${agent.token}` }).send({ endDate: '2028-01-01' })).status).toBe(403);
+  });
+  it('emails a receipt to the tenant, and refuses when the tenant has no email', async () => {
+    const t = await setupTenant('ORG_ADMIN', 'GROWTH');
+    const h = t.authHeader;
+    const { lease, tenant } = await seed(h);
+    await request(app).post('/api/rent/charges/generate').set(h).send({ period: '2026-03' });
+    const charges = (await request(app).get('/api/rent/charges').set(h).query({ period: '2026-03' })).body;
+    const charge = (charges.items ?? charges)[0];
+    await request(app).post(`/api/rent/charges/${charge.id}/payments`).set(h).send({ amount: 20_000, method: 'MPESA', reference: 'abc123' });
+    const [pay] = (await request(app).get(`/api/rent/charges/${charge.id}/payments`).set(h)).body;
+
+    const noEmail = await request(app).post(`/api/rent/payments/${pay.id}/email-receipt`).set(h);
+    expect(noEmail.status).toBe(422);
+
+    await request(app).patch(`/api/clients/${tenant.id}`).set(h).send({ email: 'tom@example.com' });
+    testOutbox.length = 0;
+    const ok = await request(app).post(`/api/rent/payments/${pay.id}/email-receipt`).set(h);
+    expect(ok.status).toBe(200);
+    expect(ok.body.to).toBe('tom@example.com');
+    expect(testOutbox).toHaveLength(1);
+    expect(testOutbox[0]!.text).toContain('20,000');
+    expect(testOutbox[0]!.text).toContain('30,000');
+    expect(lease.status).toBe(201);
   });
 });

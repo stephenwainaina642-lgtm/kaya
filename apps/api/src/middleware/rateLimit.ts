@@ -43,3 +43,13 @@ export function createLoginLimiter(overrides: Partial<Options> = {}) {
     ...overrides,
   });
 }
+
+/** Tight cap on the public repair-report form: a handful of reports per IP per hour. */
+export const repairReportLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: skipInTest,
+  message: { error: { code: 'RATE_LIMITED', message: 'Too many reports from this connection. Please try again later.' } },
+});

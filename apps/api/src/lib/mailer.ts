@@ -56,3 +56,43 @@ export function passwordResetEmail(name: string, link: string, ttlMinutes: numbe
 <p style="color:#5b6a61;font-size:13px">If you didn't ask for this, ignore this email — your password won't change.</p></div>`;
   return { subject, text, html };
 }
+
+const escHtml = (v: string) => v.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+
+export interface RentReceiptData {
+  agencyName: string;
+  tenantName: string;
+  propertyTitle: string;
+  periodLabel: string;
+  receiptNo: string;
+  amount: number;
+  method: string;
+  reference: string | null;
+  paidOn: string;
+  rentAmount: number;
+  paidToDate: number;
+  balance: number;
+}
+
+export function rentReceiptEmail(d: RentReceiptData): Omit<Mail, 'to'> {
+  const kes = (n: number) => `KES ${n.toLocaleString('en-KE')}`;
+  const subject = `Rent receipt ${d.receiptNo} — ${d.periodLabel}`;
+  const rows: [string, string][] = [
+    ['Property', d.propertyTitle],
+    ['Rent for', d.periodLabel],
+    ['Method', d.method + (d.reference ? ` (${d.reference})` : '')],
+    ['Date received', d.paidOn],
+    ['Rent for the month', kes(d.rentAmount)],
+    ['Paid to date this month', kes(d.paidToDate)],
+    ['Balance remaining', kes(d.balance)],
+  ];
+  const text = `Hi ${d.tenantName},\n\n${d.agencyName} has received ${kes(d.amount)} (receipt ${d.receiptNo}).\n\n${rows.map(([k, v]) => `${k}: ${v}`).join('\n')}\n\nThank you.\n— ${d.agencyName}`;
+  const html = `<div style="font-family:Inter,Arial,sans-serif;max-width:480px;margin:auto;color:#1c2420">
+<h2 style="font-family:Georgia,serif;margin:0 0 4px">${escHtml(d.agencyName)}</h2>
+<p style="color:#5b6a61;font-size:13px;margin:0 0 20px">Rent receipt ${escHtml(d.receiptNo)}</p>
+<p>Hi ${escHtml(d.tenantName)}, we have received your payment of</p>
+<p style="font-family:Georgia,serif;font-size:30px;margin:4px 0 16px">${escHtml(kes(d.amount))}</p>
+<table style="width:100%;border-collapse:collapse;font-size:14px">${rows.map(([k, v]) => `<tr><td style="padding:8px 0;border-bottom:1px solid #e3e8e5;color:#5b6a61">${escHtml(k)}</td><td style="padding:8px 0;border-bottom:1px solid #e3e8e5;text-align:right">${escHtml(v)}</td></tr>`).join('')}</table>
+<p style="color:#5b6a61;font-size:13px;margin-top:20px">Thank you.</p></div>`;
+  return { subject, text, html };
+}

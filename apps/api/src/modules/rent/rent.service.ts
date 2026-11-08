@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { and, asc, eq, gte, inArray, isNull, lt, lte, ne, sql as dsql } from 'drizzle-orm';
-import { RENT_PAYMENT_METHODS, effectivePlan, planHasModule } from '@kaya/shared';
+import { RENT_PAYMENT_METHODS, effectivePlan, periodLabel, planHasModule } from '@kaya/shared';
 import type {
   ArrearsReport, ChargeStatus, GenerateRentResult, LeaseItem, OwnerStatement, RentChargeItem,
   RentOverview, RentPaymentItem, StatementDeduction, StatementLine,
@@ -11,6 +11,7 @@ import { clients, followUps, leases, maintenanceRequests, organizations, owners,
 import { AppError, conflict, notFound } from '../../lib/errors';
 import { parse } from '../../lib/validate';
 import { recordAudit } from '../../lib/audit';
+import { sendMail, rentReceiptEmail } from '../../lib/mailer';
 import { type Auth, uuidField } from '../crm/common';
 
 const periodField = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Use YYYY-MM');
@@ -277,6 +278,44 @@ export async function listPayments(a: Auth, chargeId: string): Promise<RentPayme
       id: r.id, amount: r.amount, method: r.method as RentPaymentItem['method'], reference: r.reference, paidAt: r.paidAt.toISOString(),
     }));
   });
+}
+
+/** Emails a rent receipt for one payment to the tenant's address on their client record. */
+export async function emailReceipt(a: Auth, paymentId: string): Promise<{ sent: boolean; to: string }> {
+  parse(uuidField, paymentId);
+  const row = await withTenant(a.organizationId, async (tx) => {
+    const [r] = await tx.select({
+      paymentId: rentPayments.id, amount: rentPayments.amount, method: rentPayments.method, reference: rentPayments.reference, paidAt: rentPayments.paidAt,
+      period: rentCharges.period, rentAmount: rentCharges.amount, paidToDate: rentCharges.paidAmount,
+      tenantName: clients.fullName, tenantEmail: clients.email, propertyTitle: properties.title,
+    }).from(rentPayments)
+      .innerJoin(rentCharges, eq(rentPayments.chargeId, rentCharges.id))
+      .innerJoin(leases, eq(rentCharges.leaseId, leases.id))
+      .innerJoin(clients, eq(leases.tenantId, clients.id))
+      .innerJoin(properties, eq(leases.propertyId, properties.id))
+      .where(eq(rentPayments.id, paymentId));
+    return r ?? null;
+  });
+  if (!row) throw notFound('Payment');
+  if (!row.tenantEmail) {
+    throw new AppError(422, 'VALIDATION_FAILED', 'This tenant has no email address. Add one to their client record first.');
+  }
+  const [org] = await systemDb.select({ name: organizations.name }).from(organizations).where(eq(organizations.id, a.organizationId));
+  const method = row.method === 'MPESA' ? 'M-Pesa' : row.method[0] + row.method.slice(1).toLowerCase();
+  const mail = rentReceiptEmail({
+    agencyName: org?.name ?? 'Your agent', tenantName: row.tenantName, propertyTitle: row.propertyTitle,
+    periodLabel: periodLabel(row.period), receiptNo: `RCT-${row.paymentId.replace(/-/g, '').slice(0, 8).toUpperCase()}`,
+    amount: row.amount, method, reference: row.reference,
+    paidOn: row.paidAt.toLocaleDateString('en-KE', { day: 'numeric', month: 'long', year: 'numeric' }),
+    rentAmount: row.rentAmount, paidToDate: row.paidToDate, balance: row.rentAmount - row.paidToDate,
+  });
+  const sent = await sendMail({ to: row.tenantEmail, ...mail });
+  if (!sent) throw new AppError(503, 'EMAIL_NOT_SENT', 'The email could not be sent right now. Check that email is set up, then try again.');
+  await withTenant(a.organizationId, (tx) => recordAudit(tx, {
+    organizationId: a.organizationId, actorId: a.userId, action: 'UPDATE', entityType: 'rent_payment', entityId: paymentId,
+    summary: `Emailed rent receipt to ${row.tenantName}`,
+  }));
+  return { sent: true, to: row.tenantEmail };
 }
 
 export async function getOverview(a: Auth, query: { period?: string }): Promise<RentOverview> {

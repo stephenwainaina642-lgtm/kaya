@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { KeyRound, Plus, RefreshCw, Download, MessageCircle, Printer } from 'lucide-react';
+import { KeyRound, Plus, RefreshCw, Download, MessageCircle, Printer, Mail } from 'lucide-react';
 import { rentReminderMessage, whatsappLink } from '@kaya/shared';
 import type {
   ArrearsReport, RentPaymentItem, GenerateRentResult, LeaseItem, OwnerStatement, RentChargeItem, RentOverview, OwnerListItem, Page,
@@ -158,19 +158,33 @@ function Receipts({ charge }: { charge: RentChargeItem }) {
     queryKey: ['rent', 'payments', charge.id],
     queryFn: () => api.get<RentPaymentItem[]>(`/rent/charges/${charge.id}/payments`),
   });
+  const [msg, setMsg] = useState<{ id: string; ok: boolean; text: string } | null>(null);
+  const email = useMutation({
+    mutationFn: (id: string) => api.post<{ sent: boolean; to: string }>(`/rent/payments/${id}/email-receipt`),
+    onSuccess: (r, id) => setMsg({ id, ok: true, text: `Sent to ${r.to}` }),
+    onError: (err, id) => setMsg({ id, ok: false, text: err instanceof ApiError ? err.message : 'Could not send' }),
+  });
   if (isLoading) return <Spinner />;
   return (
     <div className="space-y-2">
       <p className="mb-3 text-sm text-muted">{charge.tenantName} · {charge.propertyTitle} · {charge.period}</p>
       {data?.map((p) => (
-        <div key={p.id} className="flex items-center justify-between rounded-md border border-line px-3 py-2.5 text-sm">
+        <div key={p.id}>
+        <div className="flex items-center justify-between rounded-md border border-line px-3 py-2.5 text-sm">
           <div>
             <p className="font-medium text-ink">{kes(p.amount)} <span className="font-normal text-muted">· {p.method === 'MPESA' ? 'M-Pesa' : p.method[0] + p.method.slice(1).toLowerCase()}{p.reference ? ` ${p.reference}` : ''}</span></p>
             <p className="text-xs text-muted">{new Date(p.paidAt).toLocaleDateString('en-KE')} · {receiptNumber(p.id)}</p>
           </div>
-          <Button variant="secondary" onClick={() => printRentReceipt(user?.organizationName ?? 'Receipt', charge, p)}>
-            <Printer size={15} /> Print
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" disabled={email.isPending} onClick={() => { setMsg(null); email.mutate(p.id); }}>
+              <Mail size={15} /> {email.isPending && email.variables === p.id ? 'Sending…' : 'Email'}
+            </Button>
+            <Button variant="secondary" onClick={() => printRentReceipt(user?.organizationName ?? 'Receipt', charge, p)}>
+              <Printer size={15} /> Print
+            </Button>
+          </div>
+        </div>
+        {msg?.id === p.id && <p className={`px-1 pt-1 text-xs ${msg.ok ? 'text-cypress-700' : 'text-danger'}`}>{msg.text}</p>}
         </div>
       ))}
     </div>

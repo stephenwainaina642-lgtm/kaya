@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, Check, ExternalLink, Upload, Trash2, Download } from 'lucide-react';
-import { BILLING_MONTHS, PLAN_LABELS, PLAN_PRICE_KES, quoteKes, type BillingMonths, type BillingOverview, type BillingPayment, type InquiryLink, type OrgBranding, type Plan } from '@kaya/shared';
+import { planHasModule, BILLING_MONTHS, PLAN_LABELS, PLAN_PRICE_KES, quoteKes, type BillingMonths, type BillingOverview, type BillingPayment, type InquiryLink, type OrgBranding, type Plan } from '@kaya/shared';
 import { useAuth } from '../../auth/AuthContext';
 import { api, ApiError } from '../../lib/api';
 import { PageHeader } from '../../components/PageHeader';
@@ -40,6 +40,29 @@ function InquiryLinkCard() {
         <a href={url} target="_blank" rel="noreferrer">
           <Button type="button" variant="secondary"><ExternalLink size={15} /></Button>
         </a>
+      </div>
+    </Card>
+  );
+}
+
+function RepairLinkCard() {
+  const { user } = useAuth();
+  const { data } = useQuery({ queryKey: ['inquiry-link'], queryFn: () => api.get<InquiryLink>('/leads/inquiry-link') });
+  const [copied, setCopied] = useState(false);
+  if (!data || !user || !planHasModule(user.plan, 'rentManagement')) return null;
+  const url = `${window.location.origin}/report/${data.slug}`;
+  return (
+    <Card className="max-w-lg p-5">
+      <h2 className="font-display text-lg font-semibold text-ink">Tenant repair link</h2>
+      <p className="mt-1 text-sm leading-relaxed text-muted">
+        Send this to your tenants, for example in a WhatsApp group. They report a fault with the phone number on their lease, and it lands in Maintenance linked to their property, with a follow-up for the property's agent.
+      </p>
+      <div className="mt-4 flex items-center gap-2">
+        <Input readOnly value={url} className="bg-sunk text-muted" onFocus={(e) => e.target.select()} />
+        <Button type="button" variant="secondary" onClick={() => { navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1500); }}>
+          {copied ? <Check size={15} /> : <Copy size={15} />}
+        </Button>
+        <a href={url} target="_blank" rel="noreferrer"><Button type="button" variant="secondary"><ExternalLink size={15} /></Button></a>
       </div>
     </Card>
   );
@@ -309,6 +332,7 @@ export function SettingsPage() {
       <PageHeader title="Settings" />
       <div className="space-y-6 p-8">
         <InquiryLinkCard />
+        <RepairLinkCard />
         <BrandingCard />
         <BillingCard />
         <ExportCard />

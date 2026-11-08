@@ -108,4 +108,38 @@ describe('maintenance requests', () => {
     await systemDb.update(organizations).set({ plan: 'STARTER' }).where(eq(organizations.id, a.org.id));
     expect((await request(app).get('/api/maintenance').set(a.authHeader)).status).toBe(403);
   });
+  it('takes tenant repair reports on a public link, matching by phone and never leaking who rents what', async () => {
+    const t = await setupTenant('ORG_ADMIN', 'GROWTH');
+    const h = t.authHeader;
+    const { property } = await seedProperty(h);
+    const tenant = (await request(app).post('/api/clients').set(h).send({ fullName: 'Tenant Tom', phone: '+254733000009' })).body;
+    await request(app).post('/api/rent/leases').set(h).send({ propertyId: property.id, tenantId: tenant.id, rentAmount: 80_000, dueDay: 5, startDate: '2026-01-01' });
+    const url = `/api/public/organizations/${t.org.slug}/repair-reports`;
+
+    // A different number format for the same phone still matches.
+    const ok = await request(app).post(url).send({ fullName: 'Tom', phone: '0733 000 009', category: 'PLUMBING', urgent: true, message: 'Water is leaking under the kitchen sink' });
+    expect(ok.status).toBe(201);
+    const list = (await request(app).get('/api/maintenance').set(h)).body;
+    expect(list).toHaveLength(1);
+    expect(list[0]).toMatchObject({ propertyId: property.id, tenantId: tenant.id, category: 'PLUMBING', priority: 'URGENT', status: 'OPEN' });
+
+    // Unknown number: same reply, no repair created, but the agency gets a follow-up.
+    const stranger = await request(app).post(url).send({ fullName: 'Nobody', phone: '0799 111 222', message: 'Something is broken here' });
+    expect(stranger.status).toBe(201);
+    expect((await request(app).get('/api/maintenance').set(h)).body).toHaveLength(1);
+    const fu = await request(app).get('/api/follow-ups').set(h);
+    expect(JSON.stringify(fu.body)).toContain('Unmatched repair report');
+
+    // Honeypot creates nothing; bad input is rejected; unknown agency is a 404.
+    await request(app).post(url).send({ fullName: 'Bot', phone: '0733000009', message: 'spam spam spam', website: 'http://x' });
+    expect((await request(app).get('/api/maintenance').set(h)).body).toHaveLength(1);
+    expect((await request(app).post(url).send({ fullName: 'Tom', phone: '0733000009', message: 'x' })).status).toBe(422);
+    expect((await request(app).post('/api/public/organizations/nope-nope/repair-reports').send({ fullName: 'Tom', phone: '0733000009', message: 'Leaking roof' })).status).toBe(404);
+  });
+
+  it('does not accept repair reports for an agency without rent management', async () => {
+    const t = await setupTenant('ORG_ADMIN', 'STARTER');
+    const res = await request(app).post(`/api/public/organizations/${t.org.slug}/repair-reports`).send({ fullName: 'Tom', phone: '0733000009', message: 'Leaking roof' });
+    expect(res.status).toBe(404);
+  });
 });
