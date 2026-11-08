@@ -1,3 +1,4 @@
+import { importProperties } from './import.service';
 import { Router } from 'express';
 import { authenticate, ctx, requirePermission } from '../../middleware/auth';
 import {
@@ -14,6 +15,10 @@ propertiesRouter.get('/', requirePermission('properties:view'), async (req, res,
 
 propertiesRouter.post('/', requirePermission('properties:create'), async (req, res, next) => {
   try { res.status(201).json(await createProperty(ctx(req), req.body)); } catch (err) { next(err); }
+});
+
+propertiesRouter.post('/import', requirePermission('properties:create'), async (req, res, next) => {
+  try { res.status(201).json(await importProperties(ctx(req), req.body)); } catch (err) { next(err); }
 });
 
 propertiesRouter.get('/:id', requirePermission('properties:view'), async (req, res, next) => {

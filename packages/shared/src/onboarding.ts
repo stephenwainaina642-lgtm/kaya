@@ -34,3 +34,12 @@ export interface SearchResults {
   query: string;
   hits: SearchHit[];
 }
+
+export interface PropertyImportResult {
+  created: number;
+  /** Landlords that were not yet in Kaya and were added as owners. */
+  ownersCreated: number;
+  /** Rows left out because that property is already in Kaya. */
+  duplicates: number;
+  invalid: { row: number; reason: string }[];
+}

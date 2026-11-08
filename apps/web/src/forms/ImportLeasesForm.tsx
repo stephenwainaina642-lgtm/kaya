@@ -68,7 +68,7 @@ export function ImportLeasesForm({ onDone }: { onDone: () => void }) {
         Move your existing tenancies in from a spreadsheet. Each row needs the property (exactly as it is named in Kaya), the tenant's name and phone, the monthly rent and the start date. Deposit, due day, end date and management fee % are optional. Dates can be DD/MM/YYYY.
       </p>
       <p className="text-sm leading-relaxed text-muted">
-        Add your properties first, because they hold the landlord. Tenants are matched by phone number and added to Clients if they are new.
+        Add your properties first (the Properties page has an Import CSV button), because they hold the landlord. Tenants are matched by phone number and added to Clients if they are new.
       </p>
       <input ref={input} type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} />
       <div className="flex flex-wrap items-center gap-2">

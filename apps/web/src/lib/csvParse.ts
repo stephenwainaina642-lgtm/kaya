@@ -41,7 +41,26 @@ const ALIASES: Record<string, string[]> = {
   notes: ['notes', 'note', 'comments', 'remarks'],
 };
 
-export { LEASE_ALIASES };
+const PROPERTY_ALIASES: Record<string, string[]> = {
+  title: ['property', 'property name', 'title', 'name', 'unit', 'house'],
+  reference: ['reference', 'ref', 'code', 'property code'],
+  listingType: ['listing', 'listing type', 'for', 'sale/rent', 'sale or rent'],
+  propertyType: ['type', 'property type', 'category'],
+  price: ['price', 'rent', 'monthly rent', 'asking price', 'amount'],
+  location: ['location', 'area', 'address'],
+  neighborhood: ['neighborhood', 'neighbourhood', 'estate'],
+  city: ['city', 'town'],
+  bedrooms: ['bedrooms', 'beds', 'bedroom', 'br'],
+  bathrooms: ['bathrooms', 'baths', 'bathroom'],
+  ownerName: ['landlord', 'landlord name', 'owner', 'owner name'],
+  ownerPhone: ['landlord phone', 'owner phone', 'landlord mobile', 'owner mobile', 'landlord number'],
+  ownerEmail: ['landlord email', 'owner email'],
+};
+
+export const PROPERTY_IMPORT_TEMPLATE =
+  'property,listing,type,price,location,neighborhood,city,bedrooms,bathrooms,landlord,landlord phone,landlord email\r\nKilimani 2BR,RENT,APARTMENT,85000,Kilimani,Kilimani,Nairobi,2,2,Grace Wanjiru,0711 000 001,grace@example.com\r\n';
+
+export { LEASE_ALIASES, PROPERTY_ALIASES };
 export const IMPORT_TEMPLATE =
   'name,phone,email,source,temperature,type,tags,notes\r\nAmina Yusuf,0722 000 000,amina@example.com,WHATSAPP,HOT,BUYER,vip;kilimani,Wants a 3BR in Kilimani\r\n';
 

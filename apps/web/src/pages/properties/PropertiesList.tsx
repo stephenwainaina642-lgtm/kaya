@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Search, Plus, BedDouble, Bath } from 'lucide-react';
+import { Search, Plus, Upload, BedDouble, Bath } from 'lucide-react';
 import type { PropertyListItem, Page } from '@kaya/shared';
 import { formatMoney } from '@kaya/shared';
 import { api } from '../../lib/api';
@@ -12,6 +12,7 @@ import { Button } from '../../components/ui/Button';
 import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Modal } from '../../components/ui/Modal';
+import { ImportPropertiesForm } from '../../forms/ImportPropertiesForm';
 import { NewPropertyForm } from '../../forms/NewPropertyForm';
 
 const STATUS_TONE: Record<string, 'ok' | 'warn' | 'danger' | 'neutral'> = {
@@ -21,6 +22,7 @@ const STATUS_TONE: Record<string, 'ok' | 'warn' | 'danger' | 'neutral'> = {
 export function PropertiesList() {
   const [q, setQ] = useState('');
   const [showNew, setShowNew] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ['properties', q],
     queryFn: () => api.get<Page<PropertyListItem>>('/properties', { search: q, pageSize: 50 }),
@@ -28,7 +30,10 @@ export function PropertiesList() {
 
   return (
     <>
-      <PageHeader title="Properties" subtitle={data ? `${data.total} listings` : undefined} actions={<Button onClick={() => setShowNew(true)}><Plus size={16} /> New property</Button>} />
+      <PageHeader title="Properties" subtitle={data ? `${data.total} listings` : undefined} actions={<div className="flex gap-2"><Button variant="secondary" onClick={() => setShowImport(true)}><Upload size={16} /> Import CSV</Button><Button onClick={() => setShowNew(true)}><Plus size={16} /> New property</Button></div>} />
+      <Modal open={showImport} onClose={() => setShowImport(false)} title="Import properties from CSV">
+        <ImportPropertiesForm onDone={() => setShowImport(false)} />
+      </Modal>
       <Modal open={showNew} onClose={() => setShowNew(false)} title="New property" width="max-w-xl">
         <NewPropertyForm onDone={() => setShowNew(false)} />
       </Modal>
