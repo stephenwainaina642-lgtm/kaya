@@ -175,3 +175,24 @@ export interface VacancyReport {
   monthlyLoss: number;
   rows: VacancyRow[];
 }
+
+export interface TenantStatementRow {
+  period: string;
+  dueDate: string;
+  /** Rent plus any extras for the month. */
+  charged: number;
+  extras: RentChargeExtra[];
+  paid: number;
+  /** Running balance owed after this month, oldest first. */
+  balance: number;
+  payments: RentPaymentItem[];
+}
+
+export interface TenantStatement {
+  leaseId: string;
+  tenantName: string;
+  propertyTitle: string;
+  rentAmount: number;
+  rows: TenantStatementRow[];
+  totals: { charged: number; paid: number; balance: number };
+}

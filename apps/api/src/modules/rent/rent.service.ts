@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { and, asc, eq, gte, inArray, isNull, lt, lte, ne, sql as dsql } from 'drizzle-orm';
 import { RENT_PAYMENT_METHODS, effectivePlan, periodLabel, planHasModule } from '@kaya/shared';
 import type {
-  ArrearsReport, ChargeStatus, VacancyReport, GenerateRentResult, LeaseItem, OwnerStatement, RentChargeItem,
+  ArrearsReport, ChargeStatus, TenantStatement, VacancyReport, GenerateRentResult, LeaseItem, OwnerStatement, RentChargeItem,
   RentOverview, RentPaymentItem, StatementDeduction, StatementLine,
 } from '@kaya/shared';
 import { withTenant, type Tx } from '../../db/client';
@@ -313,6 +313,32 @@ export async function removeChargeExtra(a: Auth, chargeId: string, extraId: stri
     });
     const [item] = await chargeSelect(tx).where(eq(rentCharges.id, chargeId));
     return toCharge(item as Omit<RentChargeItem, 'balance'>);
+  });
+}
+
+/** Everything one tenant has been charged and has paid on a lease, oldest month first. */
+export async function tenantStatement(a: Auth, leaseId: string): Promise<TenantStatement> {
+  parse(uuidField, leaseId);
+  return withTenant(a.organizationId, async (tx) => {
+    const [lease] = await leaseSelect(tx).where(eq(leases.id, leaseId));
+    if (!lease) throw notFound('Lease');
+    const charges = await tx.select().from(rentCharges).where(eq(rentCharges.leaseId, leaseId)).orderBy(asc(rentCharges.period));
+    const pays = charges.length
+      ? await tx.select().from(rentPayments).where(inArray(rentPayments.chargeId, charges.map((c) => c.id))).orderBy(asc(rentPayments.paidAt))
+      : [];
+    let balance = 0;
+    const rows = charges.map((c) => {
+      balance += c.amount - c.paidAmount;
+      return {
+        period: c.period, dueDate: c.dueDate, charged: c.amount, extras: c.extras, paid: c.paidAmount, balance,
+        payments: pays.filter((p) => p.chargeId === c.id).map((p) => ({
+          id: p.id, amount: p.amount, method: p.method as RentPaymentItem['method'], reference: p.reference, paidAt: p.paidAt.toISOString(),
+        })),
+      };
+    });
+    const charged = rows.reduce((n, r) => n + r.charged, 0);
+    const paid = rows.reduce((n, r) => n + r.paid, 0);
+    return { leaseId, tenantName: lease.tenantName, propertyTitle: lease.propertyTitle, rentAmount: lease.rentAmount, rows, totals: { charged, paid, balance: charged - paid } };
   });
 }
 

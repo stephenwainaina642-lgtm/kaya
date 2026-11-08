@@ -305,4 +305,18 @@ describe('lease expiry alerts and renewal', () => {
     const extraId = added.body.extras[0].id;
     expect((await request(app).delete(`/api/rent/charges/${charge.id}/extras/${extraId}`).set(h)).status).toBe(409);
   });
+  it('builds a tenant statement with running balance across months', async () => {
+    const t = await setupTenant('ORG_ADMIN', 'GROWTH');
+    const h = t.authHeader;
+    const { lease } = await seed(h, 40_000);
+    for (const period of ['2026-01', '2026-02']) await request(app).post('/api/rent/charges/generate').set(h).send({ period });
+    const jan = (await request(app).get('/api/rent/charges').set(h).query({ period: '2026-01' })).body[0];
+    await request(app).post(`/api/rent/charges/${jan.id}/payments`).set(h).send({ amount: 25_000, method: 'CASH' });
+    const st = (await request(app).get(`/api/rent/leases/${lease.body.id}/statement`).set(h)).body;
+    expect(st.rows.map((r: { period: string }) => r.period)).toEqual(['2026-01', '2026-02']);
+    expect(st.rows[0]).toMatchObject({ charged: 40_000, paid: 25_000, balance: 15_000 });
+    expect(st.rows[1].balance).toBe(55_000);
+    expect(st.totals).toEqual({ charged: 80_000, paid: 25_000, balance: 55_000 });
+    expect(st.rows[0].payments).toHaveLength(1);
+  });
 });

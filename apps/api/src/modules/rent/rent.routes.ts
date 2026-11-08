@@ -4,7 +4,7 @@ import { requirePlanModule } from '../../middleware/plan';
 import { toCsv } from '../../lib/csv';
 import {
   listLeases, createLease, endLease, renewLease, generateCharges, listCharges, recordPayment, emailReceipt, listPayments,
-  getOverview, getArrears, getVacancies, addChargeExtra, removeChargeExtra, settleDeposit, ownerStatement,
+  getOverview, getArrears, getVacancies, tenantStatement, addChargeExtra, removeChargeExtra, settleDeposit, ownerStatement,
 } from './rent.service';
 
 export const rentRouter = Router();
@@ -15,6 +15,7 @@ const wrap = (fn: (req: any, res: any) => Promise<void>) => (req: any, res: any,
 rentRouter.get('/overview', requirePermission('rent:view'), wrap(async (req, res) => { res.json(await getOverview(ctx(req), req.query)); }));
 rentRouter.get('/leases', requirePermission('rent:view'), wrap(async (req, res) => { res.json(await listLeases(ctx(req), req.query.status as string | undefined)); }));
 rentRouter.post('/leases', requirePermission('rent:create'), wrap(async (req, res) => { res.status(201).json(await createLease(ctx(req), req.body)); }));
+rentRouter.get('/leases/:id/statement', requirePermission('rent:view'), wrap(async (req, res) => { res.json(await tenantStatement(ctx(req), req.params.id)); }));
 rentRouter.post('/leases/:id/end', requirePermission('rent:edit'), wrap(async (req, res) => { res.json(await endLease(ctx(req), req.params.id, req.body?.endDate)); }));
 rentRouter.post('/leases/:id/settle-deposit', requirePermission('rent:edit'), wrap(async (req, res) => { res.json(await settleDeposit(ctx(req), req.params.id, req.body)); }));
 rentRouter.post('/leases/:id/renew', requirePermission('rent:edit'), wrap(async (req, res) => { res.json(await renewLease(ctx(req), req.params.id, req.body)); }));

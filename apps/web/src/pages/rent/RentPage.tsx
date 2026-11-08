@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { KeyRound, Plus, RefreshCw, Download, MessageCircle, Printer, Mail } from 'lucide-react';
 import { rentReminderMessage, whatsappLink } from '@kaya/shared';
 import type {
-  VacancyReport,
+  TenantStatement, VacancyReport,
   ArrearsReport, RentPaymentItem, GenerateRentResult, LeaseItem, OwnerStatement, RentChargeItem, RentOverview, OwnerListItem, Page,
 } from '@kaya/shared';
 import { api, ApiError } from '../../lib/api';
@@ -19,6 +19,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Modal } from '../../components/ui/Modal';
 import { NewLeaseForm } from '../../forms/NewLeaseForm';
+import { printTenantStatement } from '../../lib/tenantStatement';
 import { AddChargeForm } from '../../forms/AddChargeForm';
 import { SettleDepositForm } from '../../forms/SettleDepositForm';
 import { RenewLeaseForm } from '../../forms/RenewLeaseForm';
@@ -215,6 +216,11 @@ function Leases() {
   const qc = useQueryClient();
   const [renewing, setRenewing] = useState<LeaseItem | null>(null);
   const [settling, setSettling] = useState<LeaseItem | null>(null);
+  const { user } = useAuth();
+  const openStatement = async (id: string) => {
+    const st = await api.get<TenantStatement>(`/rent/leases/${id}/statement`);
+    printTenantStatement(user?.organizationName ?? 'Statement', st);
+  };
   const { data, isLoading } = useQuery({ queryKey: ['rent', 'leases'], queryFn: () => api.get<LeaseItem[]>('/rent/leases') });
   const end = useMutation({
     mutationFn: (id: string) => api.post(`/rent/leases/${id}/end`, {}),
@@ -251,6 +257,7 @@ function Leases() {
                     <Button variant="ghost" disabled={end.isPending} onClick={() => { if (window.confirm('End this lease? No more rent will be raised for it.')) end.mutate(l.id); }}>End lease</Button>
                   </div>
                 )}
+                <Button variant="ghost" onClick={() => openStatement(l.id)}>Statement</Button>
                 {l.status === 'ENDED' && l.depositAmount > 0 && (l.depositSettledAt
                   ? <span className="whitespace-nowrap text-xs text-muted" title={l.depositNotes ?? undefined}>Deposit: {kes(l.depositAmount - l.depositDeduction)} refunded{l.depositDeduction > 0 ? `, ${kes(l.depositDeduction)} kept` : ''}</span>
                   : <Button variant="secondary" onClick={() => setSettling(l)}>Settle deposit</Button>)}
