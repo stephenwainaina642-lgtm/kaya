@@ -58,12 +58,12 @@ export async function renewalSuggestion(a: Auth, leaseId: string): Promise<Renew
     }
     return { l, comps, h };
   });
-  const [org] = await systemDb.select({ name: organizations.name }).from(organizations).where(eq(organizations.id, a.organizationId));
+  const [org] = await systemDb.select({ name: organizations.name, currency: organizations.currency }).from(organizations).where(eq(organizations.id, a.organizationId));
   const comparables = ctx.comps.length >= 2 ? { count: ctx.comps.length, median: median(ctx.comps) } : null;
   const paymentSummary = describePayments(ctx.h);
 
   const raw = await askClaudeForJson<{ suggestedRent?: unknown; rationale?: unknown; message?: unknown }>(
-    `You help a Kenyan property management agency (${org?.name ?? 'the agency'}) renew tenancies fairly. Amounts are KES per month. ` +
+    `You help a property management agency (${org?.name ?? 'the agency'}) renew tenancies fairly. Amounts are in ${org?.currency ?? 'KES'} per month. ` +
       'Propose a new monthly rent: keep it unchanged for a tenant with a poor payment record you want to retain carefully, or raise it modestly (typically 0-10%) for a reliable tenant, ' +
       `never above ${Math.round(MAX_RISE * 100)}% and, if comparable rents are given, no higher than needed to approach the comparable median. ` +
       'Write a rationale of at most 2 sentences using only the data given, and a warm, professional renewal offer message of at most 4 sentences that states the new rent and asks the tenant to confirm. ' +

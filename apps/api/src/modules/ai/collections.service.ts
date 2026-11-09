@@ -110,13 +110,13 @@ export async function gatherCases(a: Auth, now = new Date()): Promise<{ cases: C
 export async function collectionsPlan(a: Auth): Promise<CollectionsPlan> {
   const { cases, omitted } = await gatherCases(a);
   if (cases.length === 0) return { briefing: 'No rent is overdue right now. Nothing to chase.', items: [], omitted: 0 };
-  const [org] = await systemDb.select({ name: organizations.name }).from(organizations).where(eq(organizations.id, a.organizationId));
+  const [org] = await systemDb.select({ name: organizations.name, currency: organizations.currency }).from(organizations).where(eq(organizations.id, a.organizationId));
   const raw = await askClaudeForJson<Parameters<typeof buildPlan>[1]>(
-    `You help a Kenyan property management agency (${org?.name ?? 'the agency'}) collect overdue rent firmly but respectfully. ` +
-      'Amounts are Kenyan shillings (KES). For each numbered tenant, judge the risk the rent will not be recovered (LOW = usually pays, just late; ' +
+    `You help a property management agency (${org?.name ?? 'the agency'}) collect overdue rent firmly but respectfully. ` +
+      `Amounts are in ${org?.currency ?? 'KES'}. For each numbered tenant, judge the risk the rent will not be recovered (LOW = usually pays, just late; ` +
       'MEDIUM = pattern of delays; HIGH = repeatedly unpaid or very old arrears), give a one-sentence reason from the data given, ' +
       'a concrete next step for the agent (e.g. phone call, payment plan, formal notice), and a ready-to-send WhatsApp/SMS message of at most 3 sentences ' +
-      'that names the amount owed, is polite, never threatens, and asks for a payment date. Write the message in simple English, with a short Swahili greeting such as "Habari". ' +
+      `that names the amount owed, is polite, never threatens, and asks for a payment date. Write the message in simple, plain English${['KES', 'TZS', 'UGX'].includes(org?.currency ?? '') ? ', opening with a short Swahili greeting such as "Habari"' : ''}. ` +
       'Use only the data supplied; do not invent facts, legal claims or deadlines. ' +
       'Return JSON: {"briefing": "<2-3 sentences on the overall picture>", "tenants": [{"n": <number from the list>, "risk": "LOW|MEDIUM|HIGH", "reason": "...", "action": "...", "message": "..."}]}.',
     cases.map((c, i) => caseToPrompt(c, i + 1)).join('\n'),

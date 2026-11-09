@@ -142,6 +142,8 @@ export interface RentReminderInput {
   balance: number;
   daysOverdue: number;
   agencyName: string;
+  /** ISO code of the agency's currency; defaults to KES. */
+  currency?: string;
 }
 
 /**
@@ -151,7 +153,7 @@ export interface RentReminderInput {
  */
 export function rentReminderMessage(i: RentReminderInput): string {
   const first = i.tenantName.trim().split(/\s+/)[0] || 'there';
-  const amount = `KES ${i.balance.toLocaleString('en-KE')}`;
+  const amount = `${i.currency ?? 'KES'} ${i.balance.toLocaleString('en-US')}`;
   const what = `${amount} for ${i.propertyTitle} (${periodLabel(i.period)} rent, due ${i.dueDate})`;
   const body = i.daysOverdue > 30
     ? `Our records show ${what} is still unpaid, now ${i.daysOverdue} days overdue. Please settle it as soon as you can, or contact us today so we can agree a way forward.`
@@ -225,6 +227,7 @@ export interface PortalRepair {
 /** What a landlord sees on their private, read-only link. */
 export interface PortalView {
   agencyName: string;
+  currency: string;
   ownerName: string;
   period: string;
   statement: OwnerStatement;
@@ -291,6 +294,7 @@ export interface MpesaApplyResult {
 /** What a tenant sees on their private, read-only link. */
 export interface TenantPortalView {
   agencyName: string;
+  currency: string;
   /** The agency's public slug, used to link to its "report a problem" page. */
   agencySlug: string;
   tenantName: string;

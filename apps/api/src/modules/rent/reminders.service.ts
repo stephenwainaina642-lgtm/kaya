@@ -11,7 +11,6 @@ import type { Auth } from '../crm/common';
 
 /** A tenant is not texted again within this many days. */
 export const REMINDER_COOLDOWN_DAYS = 3;
-const kes = (n: number) => `KES ${n.toLocaleString('en-KE')}`;
 
 /**
  * Texts every tenant with overdue rent one SMS (not one per month), with their
@@ -23,8 +22,9 @@ export async function sendRentReminders(a: Auth, now = new Date()): Promise<Remi
   if (!result.smsConfigured) return result;
   const today = now.toISOString().slice(0, 10);
   const cutoff = new Date(now.getTime() - REMINDER_COOLDOWN_DAYS * 86_400_000);
-  const [org] = await systemDb.select({ name: organizations.name }).from(organizations).where(eq(organizations.id, a.organizationId));
+  const [org] = await systemDb.select({ name: organizations.name, currency: organizations.currency }).from(organizations).where(eq(organizations.id, a.organizationId));
 
+  const kes = (n: number) => `${org?.currency ?? 'KES'} ${n.toLocaleString('en-US')}`;
   return withTenant(a.organizationId, async (tx) => {
     const rows = await tx.select({
       leaseId: leases.id, token: leases.portalToken, reminded: leases.reminderSentAt, phone: clients.phone, tenantName: clients.fullName,

@@ -72,10 +72,11 @@ export interface RentReceiptData {
   rentAmount: number;
   paidToDate: number;
   balance: number;
+  currency?: string;
 }
 
 export function rentReceiptEmail(d: RentReceiptData): Omit<Mail, 'to'> {
-  const kes = (n: number) => `KES ${n.toLocaleString('en-KE')}`;
+  const kes = (n: number) => `${d.currency ?? 'KES'} ${n.toLocaleString('en-US')}`;
   const subject = `Rent receipt ${d.receiptNo} — ${d.periodLabel}`;
   const rows: [string, string][] = [
     ['Property', d.propertyTitle],
@@ -107,10 +108,11 @@ export interface OwnerStatementEmailData {
   net: number;
   lines: { property: string; tenant: string; rentDue: number; collected: number }[];
   portalUrl: string | null;
+  currency?: string;
 }
 
 export function ownerStatementEmail(d: OwnerStatementEmailData): Omit<Mail, 'to'> {
-  const kes = (n: number) => `KES ${n.toLocaleString('en-KE')}`;
+  const kes = (n: number) => `${d.currency ?? 'KES'} ${n.toLocaleString('en-US')}`;
   const subject = `Your rent statement for ${d.periodLabel}: ${d.agencyName}`;
   const summary: [string, string][] = [
     ['Rent collected', kes(d.collected)],

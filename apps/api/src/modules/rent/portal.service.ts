@@ -59,7 +59,7 @@ export async function getPortal(token: string, periodInput?: string): Promise<Po
   if (!/^[A-Za-z0-9_-]{20,80}$/.test(token)) throw notFound('Page');
   const period = parse(periodField, periodInput ?? currentPeriod());
   const [hit] = await systemDb.select({
-    ownerId: owners.id, organizationId: owners.organizationId, agencyName: organizations.name,
+    ownerId: owners.id, organizationId: owners.organizationId, agencyName: organizations.name, currency: organizations.currency,
     plan: organizations.plan, planExpiresAt: organizations.planExpiresAt, suspendedAt: organizations.suspendedAt,
   }).from(owners).innerJoin(organizations, eq(organizations.id, owners.organizationId)).where(eq(owners.portalToken, token));
   if (!hit || hit.suspendedAt || !planHasModule(effectivePlan(hit.plan, hit.planExpiresAt), 'rentManagement')) throw notFound('Page');
@@ -86,7 +86,7 @@ export async function getPortal(token: string, periodInput?: string): Promise<Po
       openRepairs: repairs.map((r) => ({ title: r.title, propertyTitle: title.get(r.propertyId) ?? '', priority: r.priority, status: r.status, createdAt: r.createdAt.toISOString() })),
     };
   });
-  return { agencyName: hit.agencyName, ownerName: statement.ownerName, period, statement, units, openRepairs };
+  return { agencyName: hit.agencyName, currency: hit.currency, ownerName: statement.ownerName, period, statement, units, openRepairs };
 }
 
 export interface EmailStatementResult { sent: boolean; to: string }
@@ -101,9 +101,9 @@ export async function emailOwnerStatement(a: Auth, ownerId: string, periodInput:
   const st = await ownerStatement(a, ownerId, period);
   if (st.lines.length === 0) throw new AppError(409, 'NOTHING_TO_SEND', 'No rent was raised for this landlord in that month.', {});
   const token = includeLink ? (o.token ?? (await createPortalLink(a, ownerId)).token) : null;
-  const [org] = await systemDb.select({ name: organizations.name }).from(organizations).where(eq(organizations.id, a.organizationId));
+  const [org] = await systemDb.select({ name: organizations.name, currency: organizations.currency }).from(organizations).where(eq(organizations.id, a.organizationId));
   const mail = ownerStatementEmail({
-    agencyName: org?.name ?? 'Your agent', ownerName: st.ownerName, periodLabel: periodLabel(period),
+    currency: org?.currency, agencyName: org?.name ?? 'Your agent', ownerName: st.ownerName, periodLabel: periodLabel(period),
     collected: st.totals.collected, feeAndTax: st.totals.managementFee + st.totals.withholding, repairs: st.totals.maintenance, net: st.totals.netToLandlord,
     lines: st.lines.map((l) => ({ property: l.propertyTitle, tenant: l.tenantName, rentDue: l.rentDue, collected: l.collected })),
     portalUrl: token ? `${appUrl}/portal/${token}` : null,
@@ -241,13 +241,13 @@ export async function getTenantPortal(token: string): Promise<TenantPortalView> 
   if (!/^[A-Za-z0-9_-]{20,80}$/.test(token)) throw notFound('Page');
   const [hit] = await systemDb.select({
     leaseId: leases.id, organizationId: leases.organizationId, rentAmount: leases.rentAmount, dueDay: leases.dueDay,
-    agencyName: organizations.name, agencySlug: organizations.slug,
+    agencyName: organizations.name, currency: organizations.currency, agencySlug: organizations.slug,
     plan: organizations.plan, planExpiresAt: organizations.planExpiresAt, suspendedAt: organizations.suspendedAt,
   }).from(leases).innerJoin(organizations, eq(organizations.id, leases.organizationId)).where(eq(leases.portalToken, token));
   if (!hit || hit.suspendedAt || !planHasModule(effectivePlan(hit.plan, hit.planExpiresAt), 'rentManagement')) throw notFound('Page');
   const statement = await tenantStatement({ organizationId: hit.organizationId } as Auth, hit.leaseId);
   return {
-    agencyName: hit.agencyName, agencySlug: hit.agencySlug, tenantName: statement.tenantName, propertyTitle: statement.propertyTitle,
+    agencyName: hit.agencyName, currency: hit.currency, agencySlug: hit.agencySlug, tenantName: statement.tenantName, propertyTitle: statement.propertyTitle,
     rentAmount: hit.rentAmount, dueDay: hit.dueDay, statement,
   };
 }

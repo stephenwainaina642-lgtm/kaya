@@ -101,7 +101,7 @@ export async function createLease(a: Auth, body: unknown): Promise<LeaseItem> {
     }).returning({ id: leases.id });
     await recordAudit(tx, {
       organizationId: a.organizationId, actorId: a.userId, action: 'CREATE', entityType: 'lease', entityId: row!.id,
-      summary: `Created lease at KES ${input.rentAmount}/month`,
+      summary: `Created lease at ${input.rentAmount.toLocaleString('en-US')}/month`,
     });
     const [item] = await leaseSelect(tx).where(eq(leases.id, row!.id));
     return toLease(item!);
@@ -140,12 +140,12 @@ export async function settleDeposit(a: Auth, id: string, body: unknown): Promise
     if (lease.depositSettledAt) throw conflict('This deposit has already been settled.', 'DEPOSIT_SETTLED');
     if (lease.depositAmount <= 0) throw conflict('This lease has no deposit to settle.', 'NO_DEPOSIT');
     if (input.deduction > lease.depositAmount) {
-      throw new AppError(422, 'VALIDATION_FAILED', `Deductions cannot be more than the deposit of KES ${lease.depositAmount}.`, { fields: { deduction: `Maximum KES ${lease.depositAmount}` } });
+      throw new AppError(422, 'VALIDATION_FAILED', `Deductions cannot be more than the deposit of ${lease.depositAmount.toLocaleString('en-US')}.`, { fields: { deduction: `Maximum KES ${lease.depositAmount}` } });
     }
     await tx.update(leases).set({ depositDeduction: input.deduction, depositNotes: input.notes || null, depositSettledAt: new Date() }).where(eq(leases.id, id));
     await recordAudit(tx, {
       organizationId: a.organizationId, actorId: a.userId, action: 'UPDATE', entityType: 'lease', entityId: id,
-      summary: `Settled deposit: KES ${lease.depositAmount - input.deduction} refunded, KES ${input.deduction} kept`,
+      summary: `Settled deposit: ${(lease.depositAmount - input.deduction).toLocaleString('en-US')} refunded, ${input.deduction.toLocaleString('en-US')} kept`,
     });
     const [item] = await leaseSelect(tx).where(eq(leases.id, id));
     return toLease(item!);
@@ -169,7 +169,7 @@ export async function renewLease(a: Auth, id: string, body: unknown): Promise<Le
     }).where(eq(leases.id, id));
     await recordAudit(tx, {
       organizationId: a.organizationId, actorId: a.userId, action: 'UPDATE', entityType: 'lease', entityId: id,
-      summary: `Renewed lease to ${input.endDate}${input.rentAmount && input.rentAmount !== lease.rentAmount ? ` at KES ${input.rentAmount}/month` : ''}`,
+      summary: `Renewed lease to ${input.endDate}${input.rentAmount && input.rentAmount !== lease.rentAmount ? ` at ${input.rentAmount.toLocaleString('en-US')}/month` : ''}`,
     });
     const [item] = await leaseSelect(tx).where(eq(leases.id, id));
     return toLease(item!);
@@ -288,7 +288,7 @@ export async function addChargeExtra(a: Auth, chargeId: string, body: unknown): 
     }).where(eq(rentCharges.id, chargeId));
     await recordAudit(tx, {
       organizationId: a.organizationId, actorId: a.userId, action: 'UPDATE', entityType: 'rent_charge', entityId: chargeId,
-      summary: `Added ${input.label} KES ${input.amount} to rent charge`,
+      summary: `Added ${input.label} ${input.amount.toLocaleString('en-US')} to rent charge`,
     });
     const [item] = await chargeSelect(tx).where(eq(rentCharges.id, chargeId));
     return toCharge(item as Omit<RentChargeItem, 'balance'>);
@@ -309,7 +309,7 @@ export async function removeChargeExtra(a: Auth, chargeId: string, extraId: stri
     }).where(eq(rentCharges.id, chargeId));
     await recordAudit(tx, {
       organizationId: a.organizationId, actorId: a.userId, action: 'UPDATE', entityType: 'rent_charge', entityId: chargeId,
-      summary: `Removed ${extra.label} KES ${extra.amount} from rent charge`,
+      summary: `Removed ${extra.label} ${extra.amount.toLocaleString('en-US')} from rent charge`,
     });
     const [item] = await chargeSelect(tx).where(eq(rentCharges.id, chargeId));
     return toCharge(item as Omit<RentChargeItem, 'balance'>);
@@ -352,7 +352,7 @@ export async function recordPayment(a: Auth, chargeId: string, body: unknown): P
     if (!charge) throw notFound('Rent charge');
     const balance = charge.amount - charge.paidAmount;
     if (input.amount > balance) {
-      throw new AppError(422, 'VALIDATION_FAILED', `Amount is more than the outstanding balance of KES ${balance}.`, { fields: { amount: `Maximum KES ${balance}` } });
+      throw new AppError(422, 'VALIDATION_FAILED', `Amount is more than the outstanding balance of ${balance.toLocaleString('en-US')}.`, { fields: { amount: `Maximum ${balance.toLocaleString('en-US')}` } });
     }
     if (input.method === 'MPESA' && input.reference) {
       const [dup] = await tx.select({ id: rentPayments.id }).from(rentPayments)
@@ -368,7 +368,7 @@ export async function recordPayment(a: Auth, chargeId: string, body: unknown): P
     await tx.update(rentCharges).set({ paidAmount: paid, status: chargeStatus(charge.amount, paid) }).where(eq(rentCharges.id, chargeId));
     await recordAudit(tx, {
       organizationId: a.organizationId, actorId: a.userId, action: 'CREATE', entityType: 'rent_payment', entityId: chargeId,
-      summary: `Recorded KES ${input.amount} ${input.method} rent payment`,
+      summary: `Recorded ${input.amount.toLocaleString('en-US')} ${input.method} rent payment`,
     });
     const [item] = await chargeSelect(tx).where(eq(rentCharges.id, chargeId));
     return toCharge(item as Omit<RentChargeItem, 'balance'>);
@@ -405,14 +405,14 @@ export async function emailReceipt(a: Auth, paymentId: string): Promise<{ sent: 
   if (!row.tenantEmail) {
     throw new AppError(422, 'VALIDATION_FAILED', 'This tenant has no email address. Add one to their client record first.');
   }
-  const [org] = await systemDb.select({ name: organizations.name }).from(organizations).where(eq(organizations.id, a.organizationId));
+  const [org] = await systemDb.select({ name: organizations.name, currency: organizations.currency }).from(organizations).where(eq(organizations.id, a.organizationId));
   const method = row.method === 'MPESA' ? 'M-Pesa' : row.method[0] + row.method.slice(1).toLowerCase();
   const mail = rentReceiptEmail({
     agencyName: org?.name ?? 'Your agent', tenantName: row.tenantName, propertyTitle: row.propertyTitle,
     periodLabel: periodLabel(row.period), receiptNo: `RCT-${row.paymentId.replace(/-/g, '').slice(0, 8).toUpperCase()}`,
     amount: row.amount, method, reference: row.reference,
     paidOn: row.paidAt.toLocaleDateString('en-KE', { day: 'numeric', month: 'long', year: 'numeric' }),
-    rentAmount: row.rentAmount, paidToDate: row.paidToDate, balance: row.rentAmount - row.paidToDate,
+    rentAmount: row.rentAmount, paidToDate: row.paidToDate, balance: row.rentAmount - row.paidToDate, currency: org?.currency,
   });
   const sent = await sendMail({ to: row.tenantEmail, ...mail });
   if (!sent) throw new AppError(503, 'EMAIL_NOT_SENT', 'The email could not be sent right now. Check that email is set up, then try again.');
@@ -608,8 +608,9 @@ export async function sweepLeaseExpiry(now: Date = new Date()): Promise<{ alerts
   let alerts = 0;
   for (const [orgId, leaseIds] of byOrg) {
     try {
-      const [org] = await systemDb.select({ plan: organizations.plan, planExpiresAt: organizations.planExpiresAt, suspendedAt: organizations.suspendedAt })
+      const [org] = await systemDb.select({ plan: organizations.plan, planExpiresAt: organizations.planExpiresAt, suspendedAt: organizations.suspendedAt, currency: organizations.currency })
         .from(organizations).where(eq(organizations.id, orgId));
+      const currency = org?.currency ?? 'KES';
       if (!org || org.suspendedAt || !planHasModule(effectivePlan(org.plan, org.planExpiresAt, now), 'rentManagement')) continue;
       alerts += await withTenant(orgId, async (tx) => {
         const rows = await tx.select({
@@ -627,7 +628,7 @@ export async function sweepLeaseExpiry(now: Date = new Date()): Promise<{ alerts
             organizationId: orgId,
             title: `Lease renewal: ${l.tenantName}, ${l.propertyTitle}`,
             notes: daysLeft >= 0
-              ? `This lease ends on ${l.endDate} (${daysLeft} day${daysLeft === 1 ? '' : 's'} left). Rent is KES ${l.rentAmount}/month. Agree a renewal or plan the handover.`
+              ? `This lease ends on ${l.endDate} (${daysLeft} day${daysLeft === 1 ? '' : 's'} left). Rent is ${currency} ${l.rentAmount.toLocaleString('en-US')}/month. Agree a renewal or plan the handover.`
               : `This lease ended on ${l.endDate} and is still marked active. Renew it or end it in the Rent section.`,
             dueAt: now,
             priority: daysLeft <= 14 ? 'HIGH' : 'MEDIUM',
