@@ -229,11 +229,44 @@ function endsIn(l: LeaseItem): { label: string; tone: 'danger' | 'warn' | 'neutr
   return null;
 }
 
+function TenantLink({ lease }: { lease: LeaseItem }) {
+  const qc = useQueryClient();
+  const [copied, setCopied] = useState(false);
+  const key = ['rent', 'lease-link', lease.id];
+  const link = useQuery({ queryKey: key, queryFn: () => api.get<{ token: string | null }>(`/rent/leases/${lease.id}/portal-link`) });
+  const refresh = () => qc.invalidateQueries({ queryKey: key });
+  const create = useMutation({ mutationFn: () => api.post(`/rent/leases/${lease.id}/portal-link`), onSuccess: refresh });
+  const revoke = useMutation({ mutationFn: () => api.del(`/rent/leases/${lease.id}/portal-link`), onSuccess: refresh });
+  if (link.isLoading) return <Spinner />;
+  const token = link.data?.token;
+  const url = token ? `${window.location.origin}/tenant/${token}` : '';
+  const text = `Hello ${lease.tenantName.split(' ')[0]}, you can see your rent balance and payments here: ${url}`;
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-muted">A private, read-only page where {lease.tenantName} sees their own rent balance and payments, and can report a repair. No login. Anyone with the link can view it, so send it only to them.</p>
+      {token ? (
+        <>
+          <Input readOnly value={url} className="bg-sunk text-muted" onFocus={(e) => e.target.select()} />
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => { navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1500); }}>{copied ? 'Copied' : 'Copy'}</Button>
+            <a href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noreferrer"><Button variant="secondary">WhatsApp</Button></a>
+            <Button variant="secondary" disabled={create.isPending} onClick={() => { if (confirm('Make a new link? The old one will stop working.')) create.mutate(); }}>New link</Button>
+            <Button variant="ghost" disabled={revoke.isPending} onClick={() => { if (confirm('Turn off this tenant\'s link?')) revoke.mutate(); }}>Turn off</Button>
+          </div>
+        </>
+      ) : (
+        <Button variant="secondary" disabled={create.isPending} onClick={() => create.mutate()}>Create link</Button>
+      )}
+    </div>
+  );
+}
+
 function Leases() {
   const qc = useQueryClient();
   const [renewing, setRenewing] = useState<LeaseItem | null>(null);
   const [settling, setSettling] = useState<LeaseItem | null>(null);
   const [lettering, setLettering] = useState<LeaseItem | null>(null);
+  const [linking, setLinking] = useState<LeaseItem | null>(null);
   const { user } = useAuth();
   const openStatement = async (id: string) => {
     const st = await api.get<TenantStatement>(`/rent/leases/${id}/statement`);
@@ -273,6 +306,7 @@ function Leases() {
                 {l.status === 'ACTIVE' && (
                   <>
                     <Button variant="ghost" onClick={() => setLettering(l)}>Letter</Button>
+                    <Button variant="ghost" onClick={() => setLinking(l)}>Tenant link</Button>
                     <Button variant="secondary" onClick={() => setRenewing(l)}>Renew</Button>
                     <Button variant="ghost" disabled={end.isPending} onClick={() => { if (window.confirm('End this lease? No more rent will be raised for it.')) end.mutate(l.id); }}>End lease</Button>
                   </>
@@ -291,6 +325,9 @@ function Leases() {
     </Card>
     <Modal open={!!renewing} onClose={() => setRenewing(null)} title="Renew lease">
       {renewing && <RenewLeaseForm lease={renewing} onDone={() => setRenewing(null)} />}
+    </Modal>
+    <Modal open={!!linking} onClose={() => setLinking(null)} title="Tenant link">
+      {linking && <TenantLink lease={linking} />}
     </Modal>
     <Modal open={!!lettering} onClose={() => setLettering(null)} title="Letter to tenant">
       {lettering && <LeaseLetterForm lease={lettering} onDone={() => setLettering(null)} />}

@@ -34,6 +34,7 @@ import { TeamPage } from './pages/team/TeamPage';
 import { SettingsPage } from './pages/settings/SettingsPage';
 import { PublicShortlist } from './pages/public/PublicShortlist';
 import { PublicPortal } from './pages/public/PublicPortal';
+import { PublicTenantPortal } from './pages/public/PublicTenantPortal';
 import { PublicRepair } from './pages/public/PublicRepair';
 import { PublicInquiry } from './pages/public/PublicInquiry';
 import { Landing } from './pages/marketing/Landing';
@@ -81,6 +82,7 @@ export default function App() {
       <Route path="/inquire/:slug" element={<PublicInquiry />} />
       <Route path="/report/:slug" element={<PublicRepair />} />
       <Route path="/portal/:token" element={<PublicPortal />} />
+      <Route path="/tenant/:token" element={<PublicTenantPortal />} />
       <Route
         path="/platform/*"
         element={

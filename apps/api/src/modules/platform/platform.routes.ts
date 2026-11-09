@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { getPublicShortlist } from '../shortlists/shortlists.service';
 import { createPublicViewingRequest, getPortalDocumentFile, signPortalDocument } from '../portal/portal.service';
-import { getPortal } from '../rent/portal.service';
+import { getPortal, getTenantPortal } from '../rent/portal.service';
 import { portalLimiter, repairReportLimiter } from '../../middleware/rateLimit';
 import { submitRepairReport } from '../maintenance/public-report.service';
 import { getPublicOrgInfo, submitPublicInquiry } from '../leads/public-inquiry.service';
@@ -72,6 +72,15 @@ platformRouter.get('/organizations/:slug/logo', async (req, res, next) => {
     // the browser sniffs image content-type reliably, and upload already
     // restricted this file to a handful of known image types.
     await sendFile(storageKey, res);
+  } catch (err) {
+    next(err);
+  }
+});
+
+platformRouter.get('/tenant-portal/:token', portalLimiter, async (req, res, next) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    res.json(await getTenantPortal(req.params.token!));
   } catch (err) {
     next(err);
   }

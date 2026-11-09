@@ -287,3 +287,15 @@ export interface MpesaApplyResult {
   recorded: number;
   failed: { code: string; error: string }[];
 }
+
+/** What a tenant sees on their private, read-only link. */
+export interface TenantPortalView {
+  agencyName: string;
+  /** The agency's public slug, used to link to its "report a problem" page. */
+  agencySlug: string;
+  tenantName: string;
+  propertyTitle: string;
+  rentAmount: number;
+  dueDay: number;
+  statement: TenantStatement;
+}

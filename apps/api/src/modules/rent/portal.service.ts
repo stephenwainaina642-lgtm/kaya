@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import { and, eq, inArray, notInArray, sql } from 'drizzle-orm';
-import { effectivePlan, periodLabel, planHasModule, type PortalView } from '@kaya/shared';
+import { effectivePlan, periodLabel, planHasModule, type PortalView, type TenantPortalView } from '@kaya/shared';
 import { withTenant } from '../../db/client';
 import { systemDb } from '../../db/system';
 import { clients, leases, maintenanceRequests, organizations, owners, properties } from '../../db/schema';
@@ -9,7 +9,7 @@ import { notFound } from '../../lib/errors';
 import { parse } from '../../lib/validate';
 import { recordAudit } from '../../lib/audit';
 import { type Auth, uuidField } from '../crm/common';
-import { ownerStatement, currentPeriod } from './rent.service';
+import { ownerStatement, currentPeriod, tenantStatement } from './rent.service';
 import { appUrl } from '../../config/env';
 import { ownerStatementEmail, sendMail } from '../../lib/mailer';
 import { AppError } from '../../lib/errors';
@@ -201,4 +201,53 @@ export async function sweepStatementEmails(now: Date = new Date()): Promise<{ or
     }
   }
   return { organizations: orgs, sent: sentTotal };
+}
+
+export async function getTenantLink(a: Auth, leaseId: string): Promise<{ token: string | null }> {
+  parse(uuidField, leaseId);
+  return withTenant(a.organizationId, async (tx) => {
+    const [l] = await tx.select({ token: leases.portalToken }).from(leases).where(eq(leases.id, leaseId));
+    if (!l) throw notFound('Lease');
+    return { token: l.token };
+  });
+}
+
+export async function createTenantLink(a: Auth, leaseId: string): Promise<{ token: string }> {
+  parse(uuidField, leaseId);
+  const token = randomBytes(24).toString('base64url');
+  await withTenant(a.organizationId, async (tx) => {
+    const done = await tx.update(leases).set({ portalToken: token }).where(eq(leases.id, leaseId)).returning({ id: leases.id });
+    if (!done.length) throw notFound('Lease');
+    await recordAudit(tx, {
+      organizationId: a.organizationId, actorId: a.userId, action: 'UPDATE', entityType: 'lease', entityId: leaseId, summary: 'Created tenant portal link',
+    });
+  });
+  return { token };
+}
+
+export async function revokeTenantLink(a: Auth, leaseId: string): Promise<void> {
+  parse(uuidField, leaseId);
+  await withTenant(a.organizationId, async (tx) => {
+    const done = await tx.update(leases).set({ portalToken: null }).where(eq(leases.id, leaseId)).returning({ id: leases.id });
+    if (!done.length) throw notFound('Lease');
+    await recordAudit(tx, {
+      organizationId: a.organizationId, actorId: a.userId, action: 'UPDATE', entityType: 'lease', entityId: leaseId, summary: 'Revoked tenant portal link',
+    });
+  });
+}
+
+/** Public, read-only view for a tenant: their own balance and payment history, nothing else. */
+export async function getTenantPortal(token: string): Promise<TenantPortalView> {
+  if (!/^[A-Za-z0-9_-]{20,80}$/.test(token)) throw notFound('Page');
+  const [hit] = await systemDb.select({
+    leaseId: leases.id, organizationId: leases.organizationId, rentAmount: leases.rentAmount, dueDay: leases.dueDay,
+    agencyName: organizations.name, agencySlug: organizations.slug,
+    plan: organizations.plan, planExpiresAt: organizations.planExpiresAt, suspendedAt: organizations.suspendedAt,
+  }).from(leases).innerJoin(organizations, eq(organizations.id, leases.organizationId)).where(eq(leases.portalToken, token));
+  if (!hit || hit.suspendedAt || !planHasModule(effectivePlan(hit.plan, hit.planExpiresAt), 'rentManagement')) throw notFound('Page');
+  const statement = await tenantStatement({ organizationId: hit.organizationId } as Auth, hit.leaseId);
+  return {
+    agencyName: hit.agencyName, agencySlug: hit.agencySlug, tenantName: statement.tenantName, propertyTitle: statement.propertyTitle,
+    rentAmount: hit.rentAmount, dueDay: hit.dueDay, statement,
+  };
 }

@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, integer, date, unique, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, integer, date, unique, uniqueIndex, jsonb } from 'drizzle-orm/pg-core';
 import { clients } from './crm';
 import { properties } from './properties';
 import { users } from './identity';
@@ -29,8 +29,10 @@ export const leases = pgTable('leases', {
   depositSettledAt: timestamp('deposit_settled_at', { withTimezone: true }),
   depositNotes: text('deposit_notes'),
   expiryAlertSentAt: timestamp('expiry_alert_sent_at', { withTimezone: true }),
+  // Secret in the tenant's read-only link. Null = no link; clearing or replacing it revokes the old one.
+  portalToken: text('portal_token'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({ portalTokenIdx: uniqueIndex('leases_portal_token_idx').on(t.portalToken) }));
 
 export const rentCharges = pgTable('rent_charges', {
   id: uuid('id').primaryKey().defaultRandom(),
