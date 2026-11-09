@@ -338,3 +338,16 @@ export interface CollectionsPlan {
   /** Overdue tenants left out to keep the plan short (largest balances are covered first). */
   omitted: number;
 }
+
+export interface RenewalSuggestion {
+  currentRent: number;
+  /** Suggested new monthly rent, never below today's and capped at a 15% rise. */
+  suggestedRent: number;
+  /** What the agency's own comparable active leases (same area and bedrooms) rent for; null with fewer than two. */
+  comparables: { count: number; median: number } | null;
+  /** How the tenant has paid over the last year, in one sentence. */
+  paymentSummary: string;
+  rationale: string;
+  /** A ready-to-send renewal offer; the agent reviews and sends it. */
+  message: string;
+}

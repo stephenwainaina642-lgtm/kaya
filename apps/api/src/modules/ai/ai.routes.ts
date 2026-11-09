@@ -5,6 +5,7 @@ import { isAiConfigured, aiNotConfigured } from '../../lib/ai';
 import { parse } from '../../lib/validate';
 import { uuidField } from '../crm/common';
 import { collectionsPlan } from './collections.service';
+import { renewalSuggestion } from './renewal.service';
 import { scoreLead, draftMessage, draftMessageInput, summarizeContact, summarizeInput, nextBestActions } from './ai.service';
 
 export const aiRouter = Router();
@@ -56,6 +57,14 @@ aiRouter.get('/next-actions', async (req, res, next) => {
 aiRouter.post('/rent/collections-plan', requirePlanModule('rentManagement'), requirePermission('rent:edit'), async (req, res, next) => {
   try {
     res.json(await collectionsPlan(ctx(req)));
+  } catch (err) {
+    next(err);
+  }
+});
+
+aiRouter.post('/rent/leases/:id/renewal', requirePlanModule('rentManagement'), requirePermission('rent:edit'), async (req, res, next) => {
+  try {
+    res.json(await renewalSuggestion(ctx(req), req.params.id!));
   } catch (err) {
     next(err);
   }
