@@ -18,7 +18,8 @@
 // Required env vars: DATABASE_ADMIN_URL, APP_DB_PASSWORD.
 
 import { Client } from 'pg';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -40,6 +41,21 @@ function run(cmd, args, opts = {}) {
   if (result.status !== 0) {
     throw new Error(`${cmd} ${args.join(' ')} exited with code ${result.status}`);
   }
+}
+
+/**
+ * A hash of everything that decides what the database should look like: the
+ * schema files, the RLS policies, and this script. When it matches what the
+ * last successful setup stored, the (slow) schema push is skipped entirely.
+ * On a free Render instance every wake-up from sleep re-runs this script, and
+ * the push alone costs 60-120s, which made sign-in time out.
+ */
+function setupFingerprint() {
+  const h = createHash('sha256');
+  const dir = path.join(ROOT, 'apps/api/src/db/schema');
+  for (const f of readdirSync(dir).sort()) h.update(f).update(readFileSync(path.join(dir, f)));
+  for (const f of ['apps/api/src/db/rls.sql', 'scripts/deploy-setup.mjs']) h.update(readFileSync(path.join(ROOT, f)));
+  return h.digest('hex');
 }
 
 async function main() {
@@ -176,6 +192,12 @@ async function main() {
     SELECT 'shortlist_items_pair_unique' WHERE NOT EXISTS (
       SELECT 1 FROM pg_constraint WHERE conname = 'shortlist_items_pair_unique'
     )
+    UNION ALL
+    SELECT 'deals_org_number_unique' WHERE to_regclass('deals') IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM pg_constraint WHERE conname = 'deals_org_number_unique'
+    ) AND NOT EXISTS (
+      SELECT 1 FROM deals GROUP BY organization_id, deal_number HAVING count(*) > 1
+    )
   `;
 
 async function applyKnownFixups(c) {
@@ -186,6 +208,20 @@ async function applyKnownFixups(c) {
            AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'shortlist_items_pair_unique')
         THEN
           ALTER TABLE shortlist_items ADD CONSTRAINT shortlist_items_pair_unique UNIQUE (shortlist_id, property_id);
+        END IF;
+      END $$;
+    `);
+    // Same prompt, same fix: without this, every boot stopped at "truncate the
+    // deals table?". Only added when no organisation has two deals with the
+    // same number, so it can never fail on existing data.
+    await c.query(`
+      DO $$
+      BEGIN
+        IF to_regclass('deals') IS NOT NULL
+           AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'deals_org_number_unique')
+           AND NOT EXISTS (SELECT 1 FROM deals GROUP BY organization_id, deal_number HAVING count(*) > 1)
+        THEN
+          ALTER TABLE deals ADD CONSTRAINT deals_org_number_unique UNIQUE (organization_id, deal_number);
         END IF;
       END $$;
     `);
@@ -312,6 +348,20 @@ async function applyKnownFixups(c) {
     }
   }
 
+  const fingerprint = setupFingerprint();
+  const { rows: stateTable } = await client.query(`SELECT to_regclass('kaya_deploy_state') AS t`);
+  if (stateTable[0].t) {
+    const { rows: saved } = await client.query(`SELECT value FROM kaya_deploy_state WHERE key = 'setup_fingerprint'`);
+    if (saved[0]?.value === fingerprint) {
+      const { rows: gaps } = await client.query(MISSING_SQL);
+      if (gaps.length === 0) {
+        console.log('[deploy-setup] Schema unchanged since the last successful setup; skipping the schema push. Verified: all known fixups are in place.');
+        await client.end();
+        return;
+      }
+    }
+  }
+
   console.log('[deploy-setup] Pre-applying known schema fixups (avoids push confirmation prompts)');
   await applyKnownFixups(client);
 
@@ -391,6 +441,13 @@ async function applyKnownFixups(c) {
     console.error(`[deploy-setup] *** STILL MISSING after push + fixups: ${missing.map((r) => r.item).join(', ')} ***`);
   } else {
     console.log('[deploy-setup] Verified: all known fixups are in place.');
+    // Remember this state so the next wake-up can skip the push. Created here,
+    // after the push, because drizzle-kit drops tables it does not know about.
+    await client2.query(`CREATE TABLE IF NOT EXISTS kaya_deploy_state (key text PRIMARY KEY, value text NOT NULL)`);
+    await client2.query(
+      `INSERT INTO kaya_deploy_state (key, value) VALUES ('setup_fingerprint', $1) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
+      [fingerprint],
+    );
   }
 
   console.log('[deploy-setup] Checking whether demo data needs seeding');

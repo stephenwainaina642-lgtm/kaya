@@ -46,21 +46,32 @@ async function request<T>(path: string, opts: RequestOpts = {}): Promise<T> {
 
   // A sleeping free-tier server can take a minute to wake; beyond ~90s
   // something is genuinely wrong, so say so instead of spinning forever.
-  const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), 90_000);
-  let res: Response;
-  try {
-    res = await fetch(url, {
-      method: opts.method ?? 'GET',
-      headers,
-      credentials: 'include',
-      body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
-      signal: ctl.signal,
-    });
-  } catch {
-    throw new ApiError(0, 'The server is taking too long to respond. Please try again in a moment.', 'NETWORK');
-  } finally {
-    clearTimeout(timer);
+  // While it is waking, Render's edge answers 502/503/504 without ever
+  // reaching the app, so retrying those is always safe (even for POSTs) and
+  // saves the person from pressing the button again.
+  let res: Response | undefined;
+  for (let attempt = 1; attempt <= 6; attempt++) {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 90_000);
+    try {
+      res = await fetch(url, {
+        method: opts.method ?? 'GET',
+        headers,
+        credentials: 'include',
+        body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+        signal: ctl.signal,
+      });
+    } catch {
+      throw new ApiError(0, 'The server is taking too long to respond. Please try again in a moment.', 'NETWORK');
+    } finally {
+      clearTimeout(timer);
+    }
+    if (![502, 503, 504].includes(res.status) || attempt === 6) break;
+    await new Promise((r) => setTimeout(r, 5_000));
+  }
+  if (!res) throw new ApiError(0, 'The server is not reachable. Please try again in a moment.', 'NETWORK');
+  if ([502, 503, 504].includes(res.status)) {
+    throw new ApiError(res.status, 'Kaya is waking up after being idle. Give it a minute, then try again.', 'WAKING_UP');
   }
 
   if (res.status === 401 && onUnauthorized) {
