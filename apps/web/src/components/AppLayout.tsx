@@ -59,20 +59,19 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
     (!item.module || !user || planHasModule(user.plan, item.module)) && (!item.permission || !user || can(user.role, item.permission));
   return (
     <>
-      <div className="px-5 pb-5 pt-6">
+      <div className="px-5 pb-4 pt-5">
         <div className="flex items-center gap-3">
-          <BrandMark logoUrl={user?.logoUrl} name={user?.organizationName ?? 'Kaya'} brandColor={user?.brandColor} size={34} />
-          <span className="truncate font-display text-[1.35rem] leading-none text-spine-bright">{user?.organizationName || 'Kaya'}</span>
+          <BrandMark logoUrl={user?.logoUrl} name={user?.organizationName ?? 'Kaya'} brandColor={user?.brandColor} size={32} />
+          <span className="truncate text-[0.95rem] font-semibold text-ink">{user?.organizationName || 'Kaya'}</span>
         </div>
-        <span className="mt-5 block h-px w-8 bg-brass" />
       </div>
-      <nav className="spine-scroll flex-1 overflow-y-auto px-3 pb-4">
+      <nav className="scrollbar-thin flex-1 overflow-y-auto px-3 pb-4">
         {NAV_GROUPS.map((g, gi) => {
           const items = g.items.filter(visible);
           if (!items.length) return null;
           return (
             <div key={gi} className={gi === 0 ? '' : 'mt-6'}>
-              {g.title && <p className="mb-1.5 px-3 text-xs font-medium text-spine-text/55">{t(g.titleKey!, g.title)}</p>}
+              {g.title && <p className="mb-1 px-3 text-xs font-medium text-faint">{t(g.titleKey!, g.title)}</p>}
               {items.map(({ to, labelKey, icon: Icon, end }) => (
                 <NavLink
                   key={to}
@@ -81,14 +80,13 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                   onClick={onNavigate}
                   className={({ isActive }) =>
                     `group relative mb-px flex items-center gap-3 rounded-control py-[7px] pl-3 pr-3 text-[0.875rem] transition-colors ${
-                      isActive ? 'bg-white/[0.07] font-medium text-spine-bright' : 'text-spine-text hover:bg-white/[0.04] hover:text-spine-bright'
+                      isActive ? 'bg-sunk font-medium text-ink' : 'text-muted hover:bg-sunk hover:text-ink'
                     }`
                   }
                 >
                   {({ isActive }) => (
                     <>
-                      {isActive && <span className="absolute -left-3 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r bg-brass" />}
-                      <Icon size={16} strokeWidth={1.75} className={isActive ? 'text-brass' : 'text-spine-text/70 group-hover:text-spine-bright'} />
+                                            <Icon size={16} strokeWidth={1.75} className={isActive ? 'text-ink' : 'text-faint group-hover:text-ink'} />
                       {t(labelKey)}
                     </>
                   )}
@@ -98,14 +96,14 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           );
         })}
       </nav>
-      <div className="border-t border-spine-line p-3">
+      <div className="border-t border-line p-3">
         <div className="flex items-center gap-2.5 rounded-control px-2 py-2">
-          <Avatar name={user?.name ?? '?'} size={32} onDark />
+          <Avatar name={user?.name ?? '?'} size={32} />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-spine-bright">{user?.name}</p>
-            <p className="truncate text-xs text-spine-text/70">{(user?.role ?? '').replace('_', ' ').toLowerCase().replace(/^./, (c) => c.toUpperCase())}</p>
+            <p className="truncate text-sm font-medium text-ink">{user?.name}</p>
+            <p className="truncate text-xs text-muted">{(user?.role ?? '').replace('_', ' ').toLowerCase().replace(/^./, (c) => c.toUpperCase())}</p>
           </div>
-          <button onClick={() => logout()} className="rounded-control p-1.5 text-spine-text/60 hover:bg-white/[0.06] hover:text-spine-bright" title={t('nav.logOut')} aria-label={t('nav.logOut')}>
+          <button onClick={() => logout()} className="rounded-control p-1.5 text-faint hover:bg-sunk hover:text-ink" title={t('nav.logOut')} aria-label={t('nav.logOut')}>
             <LogOut size={16} />
           </button>
         </div>
@@ -122,18 +120,18 @@ export function AppLayout() {
   return (
     <div className="flex h-screen bg-ground">
       {/* Desktop sidebar */}
-      <aside className="hidden w-[15.5rem] shrink-0 flex-col bg-spine lg:flex">
+      <aside className="hidden w-[15.5rem] shrink-0 flex-col border-r border-line bg-white lg:flex">
         <SidebarContent />
       </aside>
 
       {/* Mobile drawer */}
       {open && (
         <div className="fixed inset-0 z-40 lg:hidden">
-          <div className="absolute inset-0 bg-spine/60 backdrop-blur-[2px]" onClick={() => setOpen(false)} />
-          <aside className="absolute inset-y-0 left-0 flex w-72 flex-col bg-spine shadow-lift">
+          <div className="absolute inset-0 bg-ink/40" onClick={() => setOpen(false)} />
+          <aside className="absolute inset-y-0 left-0 flex w-72 flex-col bg-white shadow-lift">
             <button
               onClick={() => setOpen(false)}
-              className="absolute right-3 top-5 rounded-control p-1.5 text-spine-text hover:bg-white/[0.06]" aria-label="Close menu"
+              className="absolute right-3 top-5 rounded-control p-1.5 text-faint hover:bg-sunk" aria-label="Close menu"
             >
               <X size={18} />
             </button>
@@ -148,7 +146,7 @@ export function AppLayout() {
             <Menu size={20} />
           </button>
           <BrandMark logoUrl={user?.logoUrl} name={user?.organizationName ?? 'Kaya'} brandColor={user?.brandColor} size={28} />
-          <span className="truncate font-display text-xl text-ink">{user?.organizationName || 'Kaya'}</span>
+          <span className="truncate text-base font-semibold text-ink">{user?.organizationName || 'Kaya'}</span>
         </div>
         <main key={location.pathname} className="scrollbar-thin flex-1 overflow-y-auto">
           <Outlet />

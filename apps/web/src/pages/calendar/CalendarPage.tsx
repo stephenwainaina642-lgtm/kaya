@@ -16,7 +16,7 @@ const TYPE_TONE: Record<string, 'ok' | 'warn' | 'danger' | 'neutral' | 'accent'>
 };
 
 const DOT_TONE: Record<string, string> = {
-  VIEWING: 'bg-cypress-600', FOLLOW_UP: 'bg-brass', TASK: 'bg-faint', DEAL_DEADLINE: 'bg-danger',
+  VIEWING: 'bg-cypress-600', FOLLOW_UP: 'bg-accent', TASK: 'bg-faint', DEAL_DEADLINE: 'bg-danger',
 };
 
 function dateKey(d: Date) {

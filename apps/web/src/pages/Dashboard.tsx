@@ -14,7 +14,7 @@ import { NextActionsWidget } from '../components/ai/NextActionsWidget';
 import { OnboardingChecklist } from '../components/OnboardingChecklist';
 
 const ATTENTION_ACCENT: Record<AttentionItem['kind'], string> = {
-  STALLED_DEAL: 'border-l-brass',
+  STALLED_DEAL: 'border-l-accent',
   OVERDUE_FOLLOW_UP: 'border-l-warn',
   OVERDUE_TASK: 'border-l-danger',
   UNASSIGNED_LEAD: 'border-l-cypress-500',
@@ -38,23 +38,23 @@ function RentCard() {
       <div className="flex flex-wrap items-end justify-between gap-4 px-6 pb-5 pt-6">
         <div>
           <p className="text-sm text-muted">Rent collected in {periodLabel(data.period)}</p>
-          <p className="mt-1 font-display text-[2.6rem] leading-none text-ink">
-            {kes(data.collected)} <span className="text-xl text-faint">of {kes(data.expected)}</span>
+          <p className="mt-1 text-[2.25rem] font-semibold leading-none tracking-[-0.02em] text-ink">
+            {kes(data.collected)} <span className="text-lg font-normal text-faint">of {kes(data.expected)}</span>
           </p>
         </div>
         <div className="flex items-center gap-5">
-          <p className="text-right"><span className="block font-display text-3xl leading-none text-ink">{pct}%</span><span className="text-xs text-muted">collected</span></p>
+          <p className="text-right"><span className="block text-2xl font-semibold leading-none text-ink">{pct}%</span><span className="text-xs text-muted">collected</span></p>
           <Link to="/rent" className="text-sm font-medium text-cypress-700 hover:text-ink">Open rent roll</Link>
         </div>
       </div>
       <div className="mx-6 h-[3px] overflow-hidden rounded-full bg-sunk" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Rent collected">
-        <div className="fill-in h-full rounded-full bg-brass" style={{ width: `${Math.min(100, pct)}%` }} />
+        <div className="fill-in h-full rounded-full bg-ink" style={{ width: `${Math.min(100, pct)}%` }} />
       </div>
       <div className="mt-6 grid grid-cols-2 divide-x divide-line border-t border-line lg:grid-cols-4">
         {tiles.map((t) => (
           <Link key={t.label} to={t.to} className="px-6 py-4 transition-colors hover:bg-sunk">
             <p className="text-[0.8125rem] text-muted">{t.label}</p>
-            <p className={`mt-1 font-display text-[1.65rem] leading-tight ${t.tone === 'danger' ? 'text-danger' : 'text-ink'}`}>{t.value}</p>
+            <p className={`mt-1 text-xl font-semibold leading-tight ${t.tone === 'danger' ? 'text-danger' : 'text-ink'}`}>{t.value}</p>
             <p className="mt-0.5 text-xs text-muted">{t.note}</p>
           </Link>
         ))}
@@ -66,8 +66,8 @@ function RentCard() {
 function SecondaryStat({ label, value, icon: Icon }: { label: string; value: string; icon: typeof Users }) {
   return (
     <div className="flex flex-1 flex-col justify-center px-6 py-5">
-      <Icon size={16} strokeWidth={1.75} className="mb-3 text-brass" />
-      <p className="font-display text-[2.2rem] leading-none text-ink">{value}</p>
+      <Icon size={16} strokeWidth={1.75} className="mb-3 text-faint" />
+      <p className="text-[2rem] font-semibold leading-none tracking-[-0.02em] text-ink">{value}</p>
       <p className="mt-1.5 text-sm text-muted">{label}</p>
     </div>
   );
@@ -108,12 +108,10 @@ export function Dashboard() {
         <OnboardingChecklist />
         <RentCard />
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <div className="relative overflow-hidden rounded-panel bg-spine p-7 text-white shadow-lift lg:col-span-1">
-            <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(90% 70% at 100% 0%, rgba(182,146,90,0.16) 0%, rgba(12,26,22,0) 65%)' }} />
-            <span className="relative block h-px w-8 bg-brass" />
-            <p className="relative mt-5 text-sm text-white/55">Pipeline value</p>
-            <p className="relative mt-2 font-display text-[3.4rem] leading-none text-spine-bright">{formatMoney(kpis.pipelineValue, currency, { compact: true })}</p>
-          </div>
+          <Card className="p-6 lg:col-span-1">
+            <p className="text-sm text-muted">Pipeline value</p>
+            <p className="mt-2 text-[2.5rem] font-semibold leading-none tracking-[-0.02em] text-ink">{formatMoney(kpis.pipelineValue, currency, { compact: true })}</p>
+          </Card>
           <Card className="flex divide-x divide-line p-0 lg:col-span-2">
             <SecondaryStat label="Active leads" value={String(kpis.activeLeads)} icon={Users} />
             <SecondaryStat label="Active clients" value={String(kpis.activeClients)} icon={UserCircle} />
@@ -123,7 +121,7 @@ export function Dashboard() {
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <Card className="p-5 lg:col-span-2">
-            <h2 className="mb-4 font-display text-[1.35rem] leading-tight text-ink">Needs attention</h2>
+            <h2 className="mb-4 text-base font-semibold text-ink">Needs attention</h2>
             {attention.length === 0 ? (
               <EmptyState title="All caught up" body="Nothing urgent needs your attention right now." />
             ) : (
@@ -144,7 +142,7 @@ export function Dashboard() {
           </Card>
 
           <Card className="p-5">
-            <h2 className="mb-4 flex items-center gap-2 font-display text-[1.35rem] leading-tight text-ink">
+            <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-ink">
               <CalendarClock size={18} /> Upcoming
             </h2>
             {schedule.length === 0 ? (
@@ -169,7 +167,7 @@ export function Dashboard() {
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <Card className="p-5">
-            <h2 className="mb-4 font-display text-[1.35rem] leading-tight text-ink">Lead pipeline</h2>
+            <h2 className="mb-4 text-base font-semibold text-ink">Lead pipeline</h2>
             <ul className="space-y-2">
               {pipeline.map((stage) => (
                 <li key={stage.status} className="flex items-center justify-between text-sm">
@@ -180,7 +178,7 @@ export function Dashboard() {
             </ul>
           </Card>
           <Card className="p-5">
-            <h2 className="mb-4 font-display text-[1.35rem] leading-tight text-ink">Lead sources</h2>
+            <h2 className="mb-4 text-base font-semibold text-ink">Lead sources</h2>
             <ul className="space-y-2">
               {leadSources.map((s) => (
                 <li key={s.source} className="flex items-center justify-between text-sm">
@@ -191,7 +189,7 @@ export function Dashboard() {
             </ul>
           </Card>
           <Card className="p-5">
-            <h2 className="mb-4 font-display text-[1.35rem] leading-tight text-ink">Revenue trend (commission)</h2>
+            <h2 className="mb-4 text-base font-semibold text-ink">Revenue trend (commission)</h2>
             <ul className="space-y-2">
               {revenueTrend.map((pt) => (
                 <li key={pt.month} className="flex items-center justify-between text-sm">

@@ -45,7 +45,7 @@ export function OnboardingChecklist() {
   const banner = data.sampleLoaded && (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-panel border border-line bg-sunk px-4 py-3 text-sm">
       <span className="flex items-center gap-2 text-ink">
-        <Sparkles size={15} className="text-brass" />
+        <Sparkles size={15} className="text-accent" />
         You're looking at sample data. Explore freely, then clear it when you're ready to add your own.
       </span>
       <span className="flex items-center gap-3">
@@ -75,7 +75,6 @@ export function OnboardingChecklist() {
       >
         <X size={16} />
       </button>
-      <span className="block h-[3px] w-6 bg-brass" />
       <h2 className="mt-3 font-display text-lg font-semibold text-ink">Get your workspace set up</h2>
       <p className="mt-1 text-sm text-muted">{data.completed} of {data.total} done — a few quick steps to get value from Kaya.</p>
       <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-sunk">

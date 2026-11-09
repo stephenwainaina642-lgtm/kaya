@@ -31,7 +31,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             className={({ isActive }) =>
               `mb-0.5 flex items-center gap-3 rounded-control border-l-2 px-3 py-2 text-sm font-medium transition ${
                 isActive
-                  ? 'border-l-brass bg-white/10 text-white'
+                  ? 'border-l-accent bg-white/10 text-white'
                   : 'border-l-transparent text-cypress-100/70 hover:bg-white/5 hover:text-white'
               }`
             }

@@ -78,7 +78,6 @@ export function OrganizationDetail() {
         <div className="space-y-6">
           <div className="rounded-panel bg-[#14201a] p-6 text-white">
             <div className="flex items-center justify-between">
-              <span className="block h-[3px] w-6 bg-brass" />
               {org.suspended ? <Badge tone="danger">Suspended</Badge> : <Badge tone="ok">Active</Badge>}
             </div>
             <p className="mt-4 text-sm text-cypress-100/70">Total pipeline value</p>

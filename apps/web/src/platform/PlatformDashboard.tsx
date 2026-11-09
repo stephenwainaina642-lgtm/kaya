@@ -35,7 +35,6 @@ export function PlatformDashboard() {
           <>
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <div className="rounded-panel bg-[#14201a] p-6 text-white lg:col-span-1">
-                <span className="block h-[3px] w-6 bg-brass" />
                 <p className="mt-4 text-sm text-cypress-100/70">Pipeline value under management</p>
                 {/* Summed across every agency regardless of their own currency — a
                     true multi-currency total would need live FX conversion, which

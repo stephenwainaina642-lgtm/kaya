@@ -26,7 +26,7 @@ export function NextActionsWidget() {
   return (
     <Card className="p-5">
       <h2 className="mb-4 flex items-center gap-2 font-display text-lg font-semibold text-ink">
-        <Sparkles size={18} className="text-brass" /> AI-suggested next steps
+        <Sparkles size={18} className="text-accent" /> AI-suggested next steps
       </h2>
       {isLoading || !data ? (
         <Spinner />

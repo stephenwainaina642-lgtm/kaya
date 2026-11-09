@@ -20,8 +20,8 @@ export function BrandMark({
   const initial = (name || 'K').trim().charAt(0).toUpperCase() || 'K';
   return (
     <div
-      className={`flex shrink-0 items-center justify-center rounded-control font-display text-white ring-1 ring-inset ring-white/20 ${brandColor ? '' : 'bg-cypress-600'}`}
-      style={{ height: size, width: size, fontSize: size * 0.56, lineHeight: 1, backgroundColor: brandColor || undefined }}
+      className={`flex shrink-0 items-center justify-center rounded-control font-semibold text-white ${brandColor ? '' : 'bg-ink'}`}
+      style={{ height: size, width: size, fontSize: size * 0.5, lineHeight: 1, backgroundColor: brandColor || undefined }}
     >
       {initial}
     </div>

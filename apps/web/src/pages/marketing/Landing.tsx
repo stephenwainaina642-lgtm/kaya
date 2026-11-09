@@ -125,8 +125,8 @@ function Logo({ dark = false }: { dark?: boolean }) {
 function PipelineMock() {
   const rows = [
     { name: 'Kilimani · 2BR Apartment', price: 'KES 12.5M', stage: 'Viewing booked', tone: 'bg-cypress-50 text-cypress-700' },
-    { name: 'Lavington · Townhouse', price: 'KES 38M', stage: 'Offer received', tone: 'bg-[#fbf3e7] text-brass' },
-    { name: 'Karen · 5BR Villa', price: 'KES 85M', stage: 'Negotiating', tone: 'bg-[#fbf3e7] text-brass' },
+    { name: 'Lavington · Townhouse', price: 'KES 38M', stage: 'Offer received', tone: 'bg-[#fbf3e7] text-accent' },
+    { name: 'Karen · 5BR Villa', price: 'KES 85M', stage: 'Negotiating', tone: 'bg-[#fbf3e7] text-accent' },
   ];
   return (
     <div className="relative mx-auto w-full max-w-md">
@@ -273,7 +273,6 @@ export function Landing() {
           <div className="mt-14 grid gap-x-10 gap-y-12 md:grid-cols-2">
             {FEATURES.map((f) => (
               <div key={f.title} className="border-t border-line pt-5">
-                <span className="block h-[3px] w-6 bg-brass" />
                 <h3 className="mt-4 font-display text-xl font-semibold text-ink">{f.title}</h3>
                 <p className="mt-2 max-w-md text-sm leading-relaxed text-muted">{f.body}</p>
               </div>
@@ -290,10 +289,10 @@ export function Landing() {
           {PLANS.map((p) => (
             <div
               key={p.name}
-              className={`flex flex-col rounded-panel border p-7 ${p.highlight ? 'border-brass bg-surface shadow-card' : 'border-line bg-surface'}`}
+              className={`flex flex-col rounded-panel border p-7 ${p.highlight ? 'border-accent bg-surface shadow-card' : 'border-line bg-surface'}`}
             >
               {p.highlight && (
-                <span className="mb-3 inline-flex w-fit items-center rounded-full bg-[#fbf3e7] px-2.5 py-1 text-xs font-medium text-brass">
+                <span className="mb-3 inline-flex w-fit items-center rounded-full bg-[#fbf3e7] px-2.5 py-1 text-xs font-medium text-accent">
                   Most popular
                 </span>
               )}

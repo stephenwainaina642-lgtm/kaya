@@ -1,51 +1,52 @@
 import type { Config } from 'tailwindcss';
 
-// Design language: a private-office ledger. A deep evergreen "spine" (sidebar),
-// a cool stone canvas, white hairline-ruled surfaces, brass used sparingly as
-// the single warm accent. Token names are kept from the previous theme so every
-// page inherits the new look without being rewritten.
+// Design language: plain and exact, like a private bank's own software. One
+// sans-serif family, flat white surfaces on a cool grey canvas, near-black
+// primary actions and a single restrained blue for links and focus. No
+// gradients, glows or decoration. Token names are kept from earlier themes so
+// every page picks the new look up without being rewritten.
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       fontFamily: {
-        display: ['"Instrument Serif"', 'Georgia', 'serif'],
-        sans: ['"Hanken Grotesk Variable"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        // `font-display` is kept as an alias so older markup still works.
+        display: ['"IBM Plex Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        sans: ['"IBM Plex Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       colors: {
+        // Historic name for the primary (now near-black) scale.
         cypress: {
-          50: '#eef3f0',
-          100: '#dce7e1',
-          400: '#5e9078',
-          500: '#2f6b50',
-          600: '#1a4a39',
-          700: '#123629',
-          800: '#0c2a1f',
-          DEFAULT: '#1a4a39',
+          50: '#f3f4f6',
+          100: '#e5e7eb',
+          400: '#6b7280',
+          500: '#374151',
+          600: '#14181f',
+          700: '#0b0e13',
+          800: '#05070a',
+          DEFAULT: '#14181f',
         },
-        spine: { DEFAULT: '#0c1a16', raised: '#12261f', line: 'rgba(255,255,255,0.07)', text: '#a3b3ab', bright: '#f3f1ea' },
-        brass: { DEFAULT: '#b6925a', soft: '#f6efe2', deep: '#8a6d3b' },
-        ink: '#131c18',
-        muted: '#5e6b63',
-        faint: '#94a09a',
+        accent: { DEFAULT: '#2451d6', soft: '#eef2fd', deep: '#1b3fa8' },
+        ink: '#0f1419',
+        muted: '#5b6470',
+        faint: '#8a929c',
         surface: '#ffffff',
-        sunk: '#f6f7f4',
-        ground: '#f3f4f1',
-        line: '#e3e7e2',
-        ok: '#1f6a4a',
-        warn: '#9a7432',
-        danger: '#a8443a',
-        accent: '#b6925a',
+        sunk: '#f4f5f7',
+        ground: '#f6f7f8',
+        line: '#e4e6ea',
+        ok: '#15803d',
+        warn: '#b45309',
+        danger: '#b42318',
       },
       borderRadius: {
-        control: '8px',
-        panel: '14px',
+        control: '6px',
+        panel: '10px',
       },
       boxShadow: {
-        card: '0 1px 0 rgba(19,28,24,0.03), 0 14px 32px -22px rgba(19,28,24,0.22)',
-        lift: '0 24px 60px -24px rgba(12,26,22,0.45)',
+        card: '0 1px 2px rgba(15,20,25,0.04)',
+        lift: '0 12px 32px -8px rgba(15,20,25,0.18)',
       },
-      fontSize: { display: ['2.1rem', { lineHeight: '1.1', letterSpacing: '-0.01em' }] },
+      fontSize: { display: ['1.625rem', { lineHeight: '1.2', letterSpacing: '-0.015em' }] },
     },
   },
   plugins: [],

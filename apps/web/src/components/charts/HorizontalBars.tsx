@@ -6,7 +6,7 @@ interface BarDatum {
 
 export function HorizontalBars({ data, tone = 'cypress' }: { data: BarDatum[]; tone?: 'cypress' | 'brass' }) {
   const max = Math.max(...data.map((d) => d.value), 1);
-  const barColor = tone === 'brass' ? 'bg-brass' : 'bg-cypress-600';
+  const barColor = tone === 'brass' ? 'bg-accent' : 'bg-cypress-600';
 
   return (
     <ul className="space-y-3">

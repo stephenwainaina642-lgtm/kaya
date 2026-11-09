@@ -63,7 +63,7 @@ export function AnalyticsPage() {
 
             <Card className="p-5">
               <h2 className="mb-4 flex items-center gap-2 font-display text-lg font-semibold text-ink">
-                <Trophy size={18} className="text-brass" /> Agent leaderboard
+                <Trophy size={18} className="text-accent" /> Agent leaderboard
               </h2>
               {data.leaderboard.length === 0 ? (
                 <p className="text-sm text-muted">No agents yet.</p>

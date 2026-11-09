@@ -31,7 +31,7 @@ export function AiInsightsCard({
   return (
     <Card className="p-5">
       <h2 className="mb-3 flex items-center gap-2 font-display text-lg font-semibold text-ink">
-        <Sparkles size={18} className="text-brass" /> AI insights
+        <Sparkles size={18} className="text-accent" /> AI insights
       </h2>
 
       <div className="flex flex-wrap gap-2">

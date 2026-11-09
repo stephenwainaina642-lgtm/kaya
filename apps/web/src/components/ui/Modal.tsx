@@ -15,10 +15,10 @@ export function Modal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-spine/55 p-4 pt-16 backdrop-blur-[3px] sm:pt-24" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/40 p-4 pt-16 sm:pt-24" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div role="dialog" aria-modal="true" aria-label={title} className={`w-full ${width} rounded-panel border border-line bg-surface shadow-lift`}>
         <div className="flex items-center justify-between px-6 pb-3 pt-5">
-          <h2 className="text-[1.5rem] leading-tight text-ink">{title}</h2>
+          <h2 className="text-lg font-semibold text-ink">{title}</h2>
           <button onClick={onClose} aria-label="Close" className="rounded-control p-1.5 text-faint hover:bg-sunk hover:text-ink">
             <X size={18} />
           </button>
