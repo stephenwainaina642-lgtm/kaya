@@ -42,7 +42,8 @@ export function Login() {
       if (showServerMessage || (err instanceof ApiError && err.status === 0)) {
         setError((err as ApiError).message);
       } else if (err instanceof ApiError && err.status >= 500) {
-        setError(`The server hit a problem (error ${err.status}). Your password is fine. Wait a minute and try again.`);
+        const detail = err.message && err.message !== 'Something went wrong' ? ` Details: ${err.message}` : '';
+        setError(`The server hit a problem (error ${err.status}). Your password is fine. Wait a minute and try again.${detail}`);
       } else {
         setError('Invalid email or password.');
       }

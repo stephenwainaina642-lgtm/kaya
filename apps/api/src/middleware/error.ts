@@ -18,5 +18,12 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
   }
   req.log?.error({ err }, 'unhandled error');
   captureError(err, { method: req.method, path: req.path });
-  res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Something went wrong' } });
+  // Temporary diagnostic switch: set EXPOSE_ERROR_DETAILS=true on the server to
+  // see the real reason on screen instead of hunting through logs. It can reveal
+  // table and column names, so leave it off except while debugging.
+  const e = err as { name?: string; code?: string; message?: string };
+  const message = process.env.EXPOSE_ERROR_DETAILS === 'true'
+    ? `Something went wrong [${e.name ?? 'Error'}${e.code ? ` ${e.code}` : ''}]: ${String(e.message ?? err).slice(0, 300)}`
+    : 'Something went wrong';
+  res.status(500).json({ error: { code: 'INTERNAL_ERROR', message } });
 }
