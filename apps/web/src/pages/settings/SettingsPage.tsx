@@ -8,6 +8,7 @@ import { PageHeader } from '../../components/PageHeader';
 import { Card } from '../../components/ui/Card';
 import { Field } from '../../components/ui/Field';
 import { Input } from '../../components/ui/Input';
+import { PhoneInput } from '../../components/ui/PhoneInput';
 import { Button } from '../../components/ui/Button';
 import { BrandMark } from '../../components/BrandMark';
 
@@ -266,7 +267,7 @@ function BillingCard() {
             ))}
           </div>
           <Field label="M-Pesa number">
-            <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0712 345 678" inputMode="tel" required />
+            <PhoneInput value={phone} onChange={setPhone} placeholder="0712 345 678" required />
           </Field>
           <Button type="submit" disabled={waiting || phone.trim().length < 9}>
             {waiting ? 'Check your phone…' : `Pay KES ${total.toLocaleString('en-KE')} with M-Pesa`}

@@ -7,6 +7,7 @@ import {
 import { api, ApiError } from '../lib/api';
 import { Field } from '../components/ui/Field';
 import { Input } from '../components/ui/Input';
+import { PhoneInput } from '../components/ui/PhoneInput';
 import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
 
@@ -73,7 +74,7 @@ export function MaintenanceForm({ item, onDone }: { item?: MaintenanceItem; onDo
           </Select>
         </Field>
         <Field label="Vendor / fundi"><Input value={vendorName} onChange={(e) => setVendorName(e.target.value)} /></Field>
-        <Field label="Vendor phone"><Input value={vendorPhone} onChange={(e) => setVendorPhone(e.target.value)} /></Field>
+        <Field label="Vendor phone"><PhoneInput value={vendorPhone} onChange={setVendorPhone} /></Field>
         <Field label="Estimated cost (KES)"><Input type="number" min={0} value={estimated} onChange={(e) => setEstimated(e.target.value)} /></Field>
         {editing && (
           <Field label="Final cost (KES)"><Input type="number" min={0} value={actual} onChange={(e) => setActual(e.target.value)} /></Field>

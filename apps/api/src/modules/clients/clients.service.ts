@@ -16,7 +16,7 @@ import { recordAudit } from '../../lib/audit';
 
 export const clientCreate = z.object({
   fullName: nameField,
-  phone: z.string().trim().min(5).max(30),
+  phone: z.string().trim().min(5).max(30).regex(/^\+?[0-9 ()-]+$/, 'Phone numbers can only contain digits'),
   whatsapp: z.string().trim().max(30).nullable().optional(),
   email: z.string().email().nullable().optional(),
   leadType: z.enum(LEAD_TYPES).default('BUYER'),

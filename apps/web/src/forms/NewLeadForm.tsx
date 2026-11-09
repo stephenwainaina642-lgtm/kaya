@@ -4,6 +4,7 @@ import { LEAD_SOURCES, LEAD_TYPES, TEMPERATURES } from '@kaya/shared';
 import { api, ApiError } from '../lib/api';
 import { Field } from '../components/ui/Field';
 import { Input } from '../components/ui/Input';
+import { PhoneInput } from '../components/ui/PhoneInput';
 import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
 
@@ -41,7 +42,7 @@ export function NewLeadForm({ onDone }: { onDone: () => void }) {
         <Input value={fullName} onChange={(e) => setFullName(e.target.value)} required />
       </Field>
       <Field label="Phone">
-        <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="07XXXXXXXX" required />
+        <PhoneInput value={phone} onChange={setPhone} placeholder="07XXXXXXXX" required />
       </Field>
       <Field label="Email (optional)">
         <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />

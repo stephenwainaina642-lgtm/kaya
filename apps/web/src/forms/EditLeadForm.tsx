@@ -5,6 +5,7 @@ import type { LeadDetail } from '@kaya/shared';
 import { api, ApiError } from '../lib/api';
 import { Field } from '../components/ui/Field';
 import { Input } from '../components/ui/Input';
+import { PhoneInput } from '../components/ui/PhoneInput';
 import { Select } from '../components/ui/Select';
 import { TextArea } from '../components/ui/TextArea';
 import { Button } from '../components/ui/Button';
@@ -40,7 +41,7 @@ export function EditLeadForm({ lead, onDone }: { lead: LeadDetail; onDone: () =>
         <Input value={fullName} onChange={(e) => setFullName(e.target.value)} required />
       </Field>
       <Field label="Phone">
-        <Input value={phone} onChange={(e) => setPhone(e.target.value)} required />
+        <PhoneInput value={phone} onChange={setPhone} required />
       </Field>
       <Field label="Email (optional)">
         <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />

@@ -11,7 +11,7 @@ import { mergeTriage, triageReport } from './triage';
 
 const input = z.object({
   fullName: z.string().trim().min(1).max(200),
-  phone: z.string().trim().min(7).max(30),
+  phone: z.string().trim().min(7).max(30).regex(/^\+?[0-9 ()-]+$/, 'Phone numbers can only contain digits'),
   category: z.enum(MAINTENANCE_CATEGORIES).default('OTHER'),
   urgent: z.boolean().default(false),
   message: z.string().trim().min(5).max(2000),

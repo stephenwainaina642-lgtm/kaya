@@ -16,7 +16,7 @@ import { toPublicLogoUrl } from '../../lib/branding';
 
 export const publicInquiryInput = z.object({
   fullName: z.string().trim().min(1).max(200),
-  phone: z.string().trim().min(5).max(30),
+  phone: z.string().trim().min(5).max(30).regex(/^\+?[0-9 ()-]+$/, 'Phone numbers can only contain digits'),
   email: z.string().email().nullable().optional(),
   leadType: z.enum(LEAD_TYPES).default('BUYER'),
   message: z.string().trim().max(2000).nullable().optional(),

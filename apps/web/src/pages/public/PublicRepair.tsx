@@ -7,6 +7,7 @@ import { api, ApiError } from '../../lib/api';
 import { Spinner } from '../../components/ui/Spinner';
 import { Field } from '../../components/ui/Field';
 import { Input } from '../../components/ui/Input';
+import { PhoneInput } from '../../components/ui/PhoneInput';
 import { Select } from '../../components/ui/Select';
 import { TextArea } from '../../components/ui/TextArea';
 import { Button } from '../../components/ui/Button';
@@ -80,7 +81,7 @@ export function PublicRepair() {
             <Input value={fullName} onChange={(e) => setFullName(e.target.value)} required />
           </Field>
           <Field label="Phone number">
-            <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="The number you gave your agent" inputMode="tel" required />
+            <PhoneInput value={phone} onChange={setPhone} placeholder="The number you gave your agent" required />
           </Field>
           <Field label="What kind of problem?">
             <Select value={category} onChange={(e) => setCategory(e.target.value)}>

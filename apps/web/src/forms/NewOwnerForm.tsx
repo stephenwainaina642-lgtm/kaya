@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '../lib/api';
 import { Field } from '../components/ui/Field';
 import { Input } from '../components/ui/Input';
+import { PhoneInput } from '../components/ui/PhoneInput';
 import { Button } from '../components/ui/Button';
 
 export function NewOwnerForm({ onDone }: { onDone: () => void }) {
@@ -27,7 +28,7 @@ export function NewOwnerForm({ onDone }: { onDone: () => void }) {
         <Input value={fullName} onChange={(e) => setFullName(e.target.value)} required />
       </Field>
       <Field label="Phone">
-        <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="07XXXXXXXX" required />
+        <PhoneInput value={phone} onChange={setPhone} placeholder="07XXXXXXXX" required />
       </Field>
       <Field label="Email (optional)">
         <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />

@@ -11,7 +11,7 @@ import { type Auth, uuidField, pagingQuery } from '../crm/common';
 export const ownerCreate = z.object({
   fullName: z.string().trim().max(200).nullable().optional(),
   companyName: z.string().trim().max(200).nullable().optional(),
-  phone: z.string().trim().min(5).max(30),
+  phone: z.string().trim().min(5).max(30).regex(/^\+?[0-9 ()-]+$/, 'Phone numbers can only contain digits'),
   email: z.string().email().nullable().optional(),
   whatsapp: z.string().trim().max(30).nullable().optional(),
   agreementType: z.string().trim().max(100).nullable().optional(),
