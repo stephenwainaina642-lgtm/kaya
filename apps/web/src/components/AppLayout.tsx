@@ -79,7 +79,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                   end={end}
                   onClick={onNavigate}
                   className={({ isActive }) =>
-                    `group relative mb-px flex items-center gap-3 rounded-control py-[7px] pl-3 pr-3 text-[0.875rem] transition-colors ${
+                    `group relative mb-px flex items-center focus-visible:outline-offset-[-2px] gap-3 rounded-control py-[7px] pl-3 pr-3 text-[0.875rem] transition-colors ${
                       isActive ? 'bg-sunk font-medium text-ink' : 'text-muted hover:bg-sunk hover:text-ink'
                     }`
                   }
