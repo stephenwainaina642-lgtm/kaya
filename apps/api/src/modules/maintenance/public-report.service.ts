@@ -7,6 +7,7 @@ import { clients, followUps, leases, maintenanceRequests, organizations, propert
 import { notFound } from '../../lib/errors';
 import { parse } from '../../lib/validate';
 import { recordAudit } from '../../lib/audit';
+import { mergeTriage, triageReport } from './triage';
 
 const input = z.object({
   fullName: z.string().trim().min(1).max(200),
@@ -40,7 +41,11 @@ export async function submitRepairReport(slug: string, body: unknown, ip: string
   }
 
   const key = digits(data.phone).slice(-9);
-  const summary = `${nice(data.category)}: ${data.message.replace(/\s+/g, ' ').slice(0, 70)}`;
+  // AI triage is a bonus: only for plans that include AI, and any failure leaves the tenant's own choices.
+  const raw = planHasModule(effectivePlan(org.plan, org.planExpiresAt), 'aiInsights') ? await triageReport(data.message) : null;
+  const triage = mergeTriage({ category: data.category, urgent: data.urgent }, raw);
+  const urgent = triage.priority === 'URGENT' || triage.priority === 'HIGH';
+  const summary = `${nice(triage.category)}: ${triage.summary || data.message.replace(/\s+/g, ' ').slice(0, 70)}`;
   const details = `${data.message}\n\nReported through the tenant link by ${data.fullName} (${data.phone}).`;
 
   await withTenant(org.id, async (tx) => {
@@ -61,28 +66,28 @@ export async function submitRepairReport(slug: string, body: unknown, ip: string
         title: `Unmatched repair report from ${data.fullName}`,
         notes: `${details}\n\nThis number is not on an active lease, so no repair was logged. Add it under Maintenance if it is genuine.`,
         dueAt: new Date(),
-        priority: data.urgent ? 'HIGH' : 'MEDIUM',
+        priority: urgent ? 'HIGH' : 'MEDIUM',
       });
       return;
     }
 
     const [row] = await tx.insert(maintenanceRequests).values({
       organizationId: org.id, propertyId: match.propertyId, tenantId: match.tenantId,
-      title: summary, description: details, category: data.category, priority: data.urgent ? 'URGENT' : 'MEDIUM',
+      title: summary, description: details, category: triage.category, priority: triage.priority,
     }).returning({ id: maintenanceRequests.id });
 
     await tx.insert(followUps).values({
       organizationId: org.id,
-      title: `${data.urgent ? 'Urgent repair' : 'Repair'} reported: ${match.propertyTitle}`,
+      title: `${urgent ? 'Urgent repair' : 'Repair'} reported: ${match.propertyTitle}`,
       notes: `${match.tenantName} reported: ${data.message.slice(0, 300)}`,
       dueAt: new Date(),
-      priority: data.urgent ? 'HIGH' : 'MEDIUM',
+      priority: urgent ? 'HIGH' : 'MEDIUM',
       clientId: match.tenantId,
       assignedToId: match.propertyAgent ?? match.tenantAgent ?? null,
     });
     await recordAudit(tx, {
       organizationId: org.id, actorId: null, action: 'CREATE', entityType: 'maintenance', entityId: row!.id,
-      summary: `Repair reported by tenant ${match.tenantName}: ${summary}`,
+      summary: `Repair reported by tenant ${match.tenantName}: ${summary}${triage.aiUsed ? ' (AI triaged)' : ''}`,
     });
   });
   void ip;
