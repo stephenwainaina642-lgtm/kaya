@@ -2,30 +2,23 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
 const PIPELINE_ROWS = [
-  { name: 'Kilimani · 2BR Apartment', price: 'KES 12.5M', tone: 'bg-cypress-50 text-cypress-700', stage: 'Viewing booked' },
-  { name: 'Lavington · Townhouse', price: 'KES 38M', tone: 'bg-[#fbf3e7] text-brass', stage: 'Offer received' },
+  { name: 'Kilimani · 2BR Apartment', price: 'KES 12.5M', tone: 'bg-white/10 text-white/80', stage: 'Viewing booked' },
+  { name: 'Lavington · Townhouse', price: 'KES 38M', tone: 'bg-brass/20 text-[#e3c796]', stage: 'Offer received' },
 ];
 
-/** The floating "pipeline" card on the editorial panel — a smaller, static
- * echo of the one on the marketing landing page (PipelineMock in
- * Landing.tsx), so a visitor who clicked through from there sees the same
- * visual language carried into sign-in/sign-up rather than a jarring cut
- * to a plain form. */
+/** A quiet glimpse of the product: two live-looking pipeline lines, set like ledger rows. */
 function PipelineGlimpse() {
   return (
-    <div className="rounded-panel border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
-      <div className="mb-3 flex items-center justify-between">
-        <p className="text-xs font-medium text-white/70">This week's pipeline</p>
-        <span className="text-[11px] text-white/40">Savanna Ridge Realty</span>
-      </div>
-      <div className="space-y-2">
+    <div className="rounded-panel border border-white/10 bg-white/[0.03] px-5 py-4">
+      <p className="mb-3 text-xs text-white/45">This week · Savanna Ridge Realty</p>
+      <div className="divide-y divide-white/10">
         {PIPELINE_ROWS.map((r) => (
-          <div key={r.name} className="flex items-center justify-between rounded-control bg-white/[0.06] px-3 py-2">
+          <div key={r.name} className="flex items-center justify-between gap-3 py-2.5">
             <div className="min-w-0">
-              <p className="truncate text-xs font-medium text-white">{r.name}</p>
-              <p className="text-[11px] text-white/50">{r.price}</p>
+              <p className="truncate text-sm text-white/90">{r.name}</p>
+              <p className="font-display text-lg leading-tight text-brass">{r.price}</p>
             </div>
-            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${r.tone}`}>{r.stage}</span>
+            <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${r.tone}`}>{r.stage}</span>
           </div>
         ))}
       </div>
@@ -41,36 +34,28 @@ function PipelineGlimpse() {
  * the thing people came to do below the fold.
  */
 export function AuthShell({
-  eyebrow, headline, subhead, children,
-}: { eyebrow: string; headline: string; subhead: string; children: ReactNode }) {
+  headline, subhead, children,
+}: { eyebrow?: string; headline: string; subhead: string; children: ReactNode }) {
   return (
     <div className="flex min-h-screen bg-ground">
-      <div className="relative hidden w-[44%] shrink-0 overflow-hidden bg-ink lg:flex lg:flex-col lg:justify-between">
-        <div
-          className="absolute inset-0 opacity-[0.05]"
-          style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1.5px, transparent 0)', backgroundSize: '26px 26px' }}
-        />
-        <div
-          className="absolute -right-24 -top-24 h-72 w-72 rounded-full opacity-20 blur-3xl"
-          style={{ background: 'radial-gradient(circle, #b08d57 0%, transparent 70%)' }}
-        />
-
-        <div className="relative z-10 px-10 pt-10 xl:px-14 xl:pt-12">
-          <Link to="/" className="inline-flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-control bg-brass font-display text-base font-semibold text-ink">K</div>
-            <span className="font-display text-lg font-semibold text-white">Kaya</span>
+      <div className="relative hidden w-[46%] shrink-0 overflow-hidden bg-spine lg:flex lg:flex-col lg:justify-between">
+        <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(120% 80% at 0% 0%, #17332a 0%, rgba(12,26,22,0) 60%), radial-gradient(70% 50% at 100% 100%, rgba(182,146,90,0.10) 0%, rgba(12,26,22,0) 70%)' }} />
+        <div className="relative z-10 px-10 pt-11 xl:px-16 xl:pt-14">
+          <Link to="/" className="inline-flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-control bg-cypress-600 font-display text-xl leading-none text-spine-bright ring-1 ring-inset ring-white/20">K</div>
+            <span className="font-display text-2xl text-spine-bright">Kaya</span>
           </Link>
+          <span className="mt-6 block h-px w-10 bg-brass" />
         </div>
 
-        <div className="relative z-10 px-10 xl:px-14">
-          <p className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-brass">{eyebrow}</p>
-          <h2 className="max-w-sm font-display text-3xl font-semibold leading-tight text-white xl:text-4xl">{headline}</h2>
-          <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/55">{subhead}</p>
+        <div className="relative z-10 px-10 xl:px-16">
+          <h2 className="max-w-md font-display text-[2.9rem] leading-[1.06] text-spine-bright xl:text-[3.4rem]">{headline}</h2>
+          <p className="mt-5 max-w-sm text-[0.95rem] leading-relaxed text-white/55">{subhead}</p>
         </div>
 
-        <div className="relative z-10 px-10 pb-12 pt-10 xl:px-14">
+        <div className="relative z-10 px-10 pb-12 pt-10 xl:px-16">
           <PipelineGlimpse />
-          <p className="mt-6 text-xs text-white/35">Built for agencies across East Africa and beyond — priced and shown in your own currency.</p>
+          <p className="mt-6 text-xs text-white/35">Built for agencies across East Africa and beyond, shown in your own currency.</p>
         </div>
       </div>
 

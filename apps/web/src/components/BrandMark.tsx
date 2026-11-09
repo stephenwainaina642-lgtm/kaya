@@ -1,8 +1,8 @@
 /**
  * An agency's identity wherever Kaya shows a logo mark — the app sidebar,
  * and the public inquiry/shortlist pages a client opens with no login.
- * Falls back to Kaya's own "K" mark and cypress green when the agency
- * hasn't set a logo/brand color, so branding is additive, never required.
+ * Falls back to a serif monogram in evergreen when the agency hasn't set a
+ * logo/brand colour, so branding is additive, never required.
  */
 export function BrandMark({
   logoUrl, name, brandColor, size = 32,
@@ -20,8 +20,8 @@ export function BrandMark({
   const initial = (name || 'K').trim().charAt(0).toUpperCase() || 'K';
   return (
     <div
-      className={`flex shrink-0 items-center justify-center rounded-control font-display font-semibold text-white ${brandColor ? '' : 'bg-cypress-600'}`}
-      style={{ height: size, width: size, fontSize: size * 0.42, backgroundColor: brandColor || undefined }}
+      className={`flex shrink-0 items-center justify-center rounded-control font-display text-white ring-1 ring-inset ring-white/20 ${brandColor ? '' : 'bg-cypress-600'}`}
+      style={{ height: size, width: size, fontSize: size * 0.56, lineHeight: 1, backgroundColor: brandColor || undefined }}
     >
       {initial}
     </div>

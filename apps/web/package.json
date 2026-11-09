@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource-variable/hanken-grotesk": "^5.3.0",
+    "@fontsource/instrument-serif": "^5.3.0",
     "@kaya/shared": "*",
     "@tanstack/react-query": "^5.59.0",
     "i18next": "^26.5.11",
