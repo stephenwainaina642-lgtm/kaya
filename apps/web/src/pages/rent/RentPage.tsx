@@ -4,7 +4,7 @@ import { KeyRound, Plus, RefreshCw, Download, MessageCircle, Printer, Mail, Uplo
 import { periodLabel, rentReminderMessage, whatsappLink } from '@kaya/shared';
 import type {
   TenantStatement, VacancyReport,
-  ArrearsReport, RentPaymentItem, GenerateRentResult, LeaseItem, OwnerStatement, RentChargeItem, RentOverview, OwnerListItem, Page,
+  ArrearsReport, ReminderResult, RentPaymentItem, GenerateRentResult, LeaseItem, OwnerStatement, RentChargeItem, RentOverview, OwnerListItem, Page,
 } from '@kaya/shared';
 import { api, ApiError } from '../../lib/api';
 import { useAuth } from '../../auth/AuthContext';
@@ -371,12 +371,26 @@ function Vacancies() {
 
 function Arrears() {
   const { user } = useAuth();
+  const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
+  const remind = useMutation({
+    mutationFn: () => api.post<ReminderResult>('/rent/reminders'),
+    onSuccess: (r) => setNotice(!r.smsConfigured
+      ? { ok: false, text: 'SMS is not set up on this server yet (needs Africa\'s Talking keys). WhatsApp buttons below still work.' }
+      : { ok: r.failed === 0, text: `${r.sent} texted` + (r.recentlyReminded ? `, ${r.recentlyReminded} reminded in the last 3 days` : '') + (r.noPhone ? `, ${r.noPhone} have no mobile number` : '') + (r.failed ? `, ${r.failed} failed` : '') }),
+    onError: (err) => setNotice({ ok: false, text: err instanceof ApiError ? err.message : 'Could not send' }),
+  });
   const { data, isLoading } = useQuery({ queryKey: ['rent', 'arrears'], queryFn: () => api.get<ArrearsReport>('/rent/arrears') });
   if (isLoading) return <Spinner />;
   if (!data?.rows.length) return <EmptyState icon={<KeyRound size={22} />} title="No overdue rent" body="Nothing is past its due date and unpaid." />;
   return (
     <div className="space-y-4">
-      <Stat label="Total overdue" value={kes(data.total)} sub={`${data.rows.length} charge${data.rows.length === 1 ? '' : 's'}`} />
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <Stat label="Total overdue" value={kes(data.total)} sub={`${data.rows.length} charge${data.rows.length === 1 ? '' : 's'}`} />
+        <Button variant="secondary" disabled={remind.isPending} onClick={() => { if (confirm('Text every tenant with overdue rent? Anyone reminded in the last 3 days is skipped.')) remind.mutate(); }}>
+          {remind.isPending ? 'Sending…' : 'Text all overdue tenants'}
+        </Button>
+      </div>
+      {notice && <p className={`text-sm ${notice.ok ? 'text-cypress-700' : 'text-danger'}`}>{notice.text}</p>}
       <Card className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead><tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">

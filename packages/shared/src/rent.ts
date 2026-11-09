@@ -299,3 +299,16 @@ export interface TenantPortalView {
   dueDay: number;
   statement: TenantStatement;
 }
+
+export interface ReminderResult {
+  /** Tenants sent a text. */
+  sent: number;
+  /** Skipped: no usable Kenyan mobile number on file. */
+  noPhone: number;
+  /** Skipped: already reminded in the last few days. */
+  recentlyReminded: number;
+  /** The provider rejected or could not be reached. */
+  failed: number;
+  /** False when SMS is not set up for this server, so nothing could be sent. */
+  smsConfigured: boolean;
+}

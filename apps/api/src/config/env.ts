@@ -42,6 +42,11 @@ const schema = z.object({
   // Resend (https://resend.com) when this is set. Without it, emails are
   // not delivered; see lib/mailer.ts.
   RESEND_API_KEY: z.string().optional(),
+  // Africa's Talking (https://africastalking.com) for SMS rent reminders. Without
+  // these, reminders are not sent; see lib/sms.ts. AT_SENDER_ID is optional.
+  AT_USERNAME: z.string().optional(),
+  AT_API_KEY: z.string().optional(),
+  AT_SENDER_ID: z.string().optional(),
   // Resend's shared sandbox sender works for testing; set this to an
   // address on a domain you've verified in Resend for real delivery.
   MAIL_FROM: z.string().default('Kaya <onboarding@resend.dev>'),

@@ -141,6 +141,10 @@ async function main() {
       SELECT 1 FROM information_schema.columns WHERE table_name = 'rent_charges' AND column_name = 'extras'
     )
     UNION ALL
+    SELECT 'leases.reminder_sent_at' WHERE to_regclass('leases') IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM information_schema.columns WHERE table_name = 'leases' AND column_name = 'reminder_sent_at'
+    )
+    UNION ALL
     SELECT 'leases.portal_token' WHERE to_regclass('leases') IS NOT NULL AND NOT EXISTS (
       SELECT 1 FROM information_schema.columns WHERE table_name = 'leases' AND column_name = 'portal_token'
     )
@@ -229,6 +233,7 @@ async function applyKnownFixups(c) {
             created_at timestamptz NOT NULL DEFAULT now()
           );
           ALTER TABLE leases ADD COLUMN IF NOT EXISTS expiry_alert_sent_at timestamptz;
+          ALTER TABLE leases ADD COLUMN IF NOT EXISTS reminder_sent_at timestamptz;
           ALTER TABLE leases ADD COLUMN IF NOT EXISTS portal_token text;
           CREATE UNIQUE INDEX IF NOT EXISTS leases_portal_token_idx ON leases (portal_token);
           ALTER TABLE owners ADD COLUMN IF NOT EXISTS portal_token text;

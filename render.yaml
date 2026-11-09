@@ -51,6 +51,12 @@ services:
         sync: false # set manually in the Render dashboard (Environment tab) — never stored in this file or in git. Optional: AI features (lead scoring, drafted messages, summaries) are disabled gracefully if unset.
       - key: RESEND_API_KEY
         sync: false # set in the Render dashboard — password-reset emails are not delivered without it
+      - key: AT_USERNAME
+        sync: false # optional; Africa's Talking username ("sandbox" for testing). With AT_API_KEY it turns on SMS rent reminders.
+      - key: AT_API_KEY
+        sync: false # optional; set in the Render dashboard
+      - key: AT_SENDER_ID
+        sync: false # optional; approved sender name
       - key: MAIL_FROM
         sync: false # optional; sender on a domain verified in Resend. Defaults to Resend's sandbox sender.
       - key: S3_BUCKET

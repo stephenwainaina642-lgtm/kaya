@@ -1,4 +1,5 @@
 import { applyMpesa, matchMpesa } from './mpesa-match.service';
+import { sendRentReminders } from './reminders.service';
 import { getTenantLink, createTenantLink, revokeTenantLink, getStatementSchedule, setStatementSchedule, emailAllStatements, emailOwnerStatement, getPortalLink, createPortalLink, revokePortalLink } from './portal.service';
 import { importLeases } from './import.service';
 import { Router } from 'express';
@@ -21,6 +22,7 @@ rentRouter.post('/leases', requirePermission('rent:create'), wrap(async (req, re
 rentRouter.get('/leases/:id/portal-link', requirePermission('rent:view'), wrap(async (req, res) => { res.json(await getTenantLink(ctx(req), req.params.id)); }));
 rentRouter.post('/leases/:id/portal-link', requirePermission('rent:edit'), wrap(async (req, res) => { res.json(await createTenantLink(ctx(req), req.params.id)); }));
 rentRouter.delete('/leases/:id/portal-link', requirePermission('rent:edit'), wrap(async (req, res) => { await revokeTenantLink(ctx(req), req.params.id); res.status(204).end(); }));
+rentRouter.post('/reminders', requirePermission('rent:edit'), wrap(async (req, res) => { res.json(await sendRentReminders(ctx(req))); }));
 rentRouter.get('/leases/:id/statement', requirePermission('rent:view'), wrap(async (req, res) => { res.json(await tenantStatement(ctx(req), req.params.id)); }));
 rentRouter.post('/leases/:id/end', requirePermission('rent:edit'), wrap(async (req, res) => { res.json(await endLease(ctx(req), req.params.id, req.body?.endDate)); }));
 rentRouter.post('/leases/import', requirePermission('rent:create'), wrap(async (req, res) => { res.status(201).json(await importLeases(ctx(req), req.body)); }));

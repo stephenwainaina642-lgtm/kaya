@@ -31,6 +31,8 @@ export const leases = pgTable('leases', {
   expiryAlertSentAt: timestamp('expiry_alert_sent_at', { withTimezone: true }),
   // Secret in the tenant's read-only link. Null = no link; clearing or replacing it revokes the old one.
   portalToken: text('portal_token'),
+  // When the tenant was last sent an SMS arrears reminder; used to avoid nagging.
+  reminderSentAt: timestamp('reminder_sent_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({ portalTokenIdx: uniqueIndex('leases_portal_token_idx').on(t.portalToken) }));
 
