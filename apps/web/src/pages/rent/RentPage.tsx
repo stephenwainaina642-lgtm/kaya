@@ -4,7 +4,7 @@ import { KeyRound, Plus, RefreshCw, Download, MessageCircle, Printer, Mail, Uplo
 import { periodLabel, rentReminderMessage, whatsappLink } from '@kaya/shared';
 import type {
   TenantStatement, VacancyReport,
-  ArrearsReport, ReminderResult, RentPaymentItem, GenerateRentResult, LeaseItem, OwnerStatement, RentChargeItem, RentOverview, OwnerListItem, Page,
+  ArrearsReport, ReminderResult, CollectionsPlan, RentPaymentItem, GenerateRentResult, LeaseItem, OwnerStatement, RentChargeItem, RentOverview, OwnerListItem, Page,
 } from '@kaya/shared';
 import { api, ApiError } from '../../lib/api';
 import { useAuth } from '../../auth/AuthContext';
@@ -369,6 +369,45 @@ function Vacancies() {
   );
 }
 
+function CollectionsCopilot() {
+  const [copied, setCopied] = useState<string | null>(null);
+  const plan = useMutation({ mutationFn: () => api.post<CollectionsPlan>('/ai/rent/collections-plan') });
+  const tone = { HIGH: 'danger', MEDIUM: 'warn', LOW: 'ok' } as const;
+  return (
+    <Card className="space-y-3 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="max-w-xl">
+          <p className="text-sm font-medium text-ink">AI collections plan</p>
+          <p className="mt-0.5 text-xs text-muted">Ranks overdue tenants by how likely rent is to be recovered and drafts a polite message for each. You review and send. Only first names, amounts and payment pattern are shared with the AI.</p>
+        </div>
+        <Button variant="secondary" disabled={plan.isPending} onClick={() => plan.mutate()}>{plan.isPending ? 'Thinking…' : plan.data ? 'Refresh plan' : 'Build plan'}</Button>
+      </div>
+      {plan.isError && <p className="text-sm text-danger">{plan.error instanceof ApiError ? plan.error.message : 'Could not build the plan'}</p>}
+      {plan.data && (
+        <div className="space-y-3">
+          <p className="text-sm text-ink">{plan.data.briefing}</p>
+          {plan.data.items.map((i) => (
+            <div key={i.leaseId} className="rounded-panel border border-line p-3 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-medium text-ink">{i.tenantName} <span className="font-normal text-muted">· {i.propertyTitle} · {kes(i.owed)}</span></p>
+                <Badge tone={tone[i.risk]}>{i.risk === 'HIGH' ? 'High risk' : i.risk === 'MEDIUM' ? 'Medium risk' : 'Low risk'}</Badge>
+              </div>
+              <p className="mt-1 text-xs text-muted">{i.reason}</p>
+              <p className="mt-1 text-xs text-ink"><span className="font-medium">Next step:</span> {i.action}</p>
+              <p className="mt-2 rounded-md bg-sunk p-2 text-ink">{i.message}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Button variant="ghost" onClick={() => { navigator.clipboard.writeText(i.message); setCopied(i.leaseId); setTimeout(() => setCopied(null), 1500); }}>{copied === i.leaseId ? 'Copied' : 'Copy'}</Button>
+                {i.tenantPhone && <a href={whatsappLink(i.tenantPhone, i.message)} target="_blank" rel="noreferrer"><Button variant="ghost">WhatsApp</Button></a>}
+              </div>
+            </div>
+          ))}
+          {plan.data.omitted > 0 && <p className="text-xs text-muted">{plan.data.omitted} more overdue tenant{plan.data.omitted === 1 ? '' : 's'} with smaller balances are not in this plan.</p>}
+        </div>
+      )}
+    </Card>
+  );
+}
+
 function Arrears() {
   const { user } = useAuth();
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
@@ -391,6 +430,7 @@ function Arrears() {
         </Button>
       </div>
       {notice && <p className={`text-sm ${notice.ok ? 'text-cypress-700' : 'text-danger'}`}>{notice.text}</p>}
+      <CollectionsCopilot />
       <Card className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead><tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">

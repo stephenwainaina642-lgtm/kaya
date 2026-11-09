@@ -1,9 +1,10 @@
 import { Router } from 'express';
-import { authenticate, ctx } from '../../middleware/auth';
+import { authenticate, ctx, requirePermission } from '../../middleware/auth';
 import { requirePlanModule } from '../../middleware/plan';
 import { isAiConfigured, aiNotConfigured } from '../../lib/ai';
 import { parse } from '../../lib/validate';
 import { uuidField } from '../crm/common';
+import { collectionsPlan } from './collections.service';
 import { scoreLead, draftMessage, draftMessageInput, summarizeContact, summarizeInput, nextBestActions } from './ai.service';
 
 export const aiRouter = Router();
@@ -47,6 +48,14 @@ aiRouter.post('/summarize', async (req, res, next) => {
 aiRouter.get('/next-actions', async (req, res, next) => {
   try {
     res.json(await nextBestActions(ctx(req)));
+  } catch (err) {
+    next(err);
+  }
+});
+
+aiRouter.post('/rent/collections-plan', requirePlanModule('rentManagement'), requirePermission('rent:edit'), async (req, res, next) => {
+  try {
+    res.json(await collectionsPlan(ctx(req)));
   } catch (err) {
     next(err);
   }

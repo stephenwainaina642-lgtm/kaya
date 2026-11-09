@@ -312,3 +312,29 @@ export interface ReminderResult {
   /** False when SMS is not set up for this server, so nothing could be sent. */
   smsConfigured: boolean;
 }
+
+export type CollectionRisk = 'LOW' | 'MEDIUM' | 'HIGH';
+
+export interface CollectionsPlanItem {
+  leaseId: string;
+  tenantName: string;
+  tenantPhone: string | null;
+  propertyTitle: string;
+  owed: number;
+  monthsOverdue: number;
+  risk: CollectionRisk;
+  /** Why the AI rated it this way, in one sentence. */
+  reason: string;
+  /** The next step the agent should take. */
+  action: string;
+  /** A ready-to-send message in the language that suits the tenant; the agent still sends it. */
+  message: string;
+}
+
+export interface CollectionsPlan {
+  /** Two or three sentences on the whole picture. */
+  briefing: string;
+  items: CollectionsPlanItem[];
+  /** Overdue tenants left out to keep the plan short (largest balances are covered first). */
+  omitted: number;
+}
