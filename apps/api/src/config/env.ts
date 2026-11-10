@@ -66,6 +66,7 @@ const schema = z.object({
   // must be set to enable online billing; see lib/mpesa.ts. MPESA_CALLBACK_SECRET
   // is a long random string that becomes part of the callback URL, since
   // Safaricom does not sign its callbacks.
+  SECRETS_KEY: z.string().min(16).optional(),
   MPESA_ENV: z.enum(['sandbox', 'production']).default('sandbox'),
   MPESA_CONSUMER_KEY: z.string().optional(),
   MPESA_CONSUMER_SECRET: z.string().optional(),

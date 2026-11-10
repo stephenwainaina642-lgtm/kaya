@@ -12,7 +12,7 @@ import { toPublicLogoUrl } from '../../lib/branding';
 export async function getBranding(a: Auth): Promise<OrgBranding> {
   const [org] = await systemDb.select().from(organizations).where(eq(organizations.id, a.organizationId));
   if (!org) throw notFound('Organization');
-  return { name: org.name, logoUrl: toPublicLogoUrl(org.slug, org.logoUrl), brandColor: org.brandColor };
+  return { name: org.name, logoUrl: toPublicLogoUrl(org.slug, org.logoUrl), brandColor: org.brandColor, rentPaymentInfo: org.rentPaymentInfo };
 }
 
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
@@ -20,6 +20,7 @@ const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 export const updateBrandingInput = z.object({
   // null clears it (back to Kaya's default palette); omit to leave unchanged.
   brandColor: z.string().regex(HEX_COLOR, 'Must be a hex color like #2F5D4E').nullable().optional(),
+  rentPaymentInfo: z.string().trim().max(600).nullable().optional(),
 });
 
 export async function updateBranding(a: Auth, body: unknown): Promise<OrgBranding> {
@@ -29,6 +30,9 @@ export async function updateBranding(a: Auth, body: unknown): Promise<OrgBrandin
       .update(organizations)
       .set({ brandColor: input.brandColor })
       .where(eq(organizations.id, a.organizationId));
+  }
+  if (input.rentPaymentInfo !== undefined) {
+    await systemDb.update(organizations).set({ rentPaymentInfo: input.rentPaymentInfo || null }).where(eq(organizations.id, a.organizationId));
   }
   return getBranding(a);
 }

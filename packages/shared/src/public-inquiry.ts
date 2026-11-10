@@ -13,6 +13,8 @@ export interface OrgBranding {
   name: string;
   logoUrl: string | null;
   brandColor: string | null;
+  /** How tenants pay this agency; shown on tenant rent links. */
+  rentPaymentInfo?: string | null;
 }
 
 export interface PublicInquiryInput {

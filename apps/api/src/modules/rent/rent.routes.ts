@@ -1,3 +1,4 @@
+import { getMpesaSettings, saveMpesaSettings, removeMpesaSettings } from './mpesa-pay.service';
 import { applyMpesa, matchMpesa } from './mpesa-match.service';
 import { sendRentReminders } from './reminders.service';
 import { getTenantLink, createTenantLink, revokeTenantLink, getStatementSchedule, setStatementSchedule, emailAllStatements, emailOwnerStatement, getPortalLink, createPortalLink, revokePortalLink } from './portal.service';
@@ -11,11 +12,19 @@ import {
   getOverview, getArrears, getVacancies, getSummary, tenantStatement, addChargeExtra, removeChargeExtra, settleDeposit, ownerStatement,
 } from './rent.service';
 
+import { listClaims, confirmClaim, rejectClaim } from './claims.service';
+
 export const rentRouter = Router();
 rentRouter.use(authenticate, requirePlanModule('rentManagement'));
 
 const wrap = (fn: (req: any, res: any) => Promise<void>) => (req: any, res: any, next: any) => fn(req, res).catch(next);
 
+rentRouter.get('/mpesa-settings', requirePermission('rent:edit'), wrap(async (req, res) => { res.json(await getMpesaSettings(ctx(req))); }));
+rentRouter.put('/mpesa-settings', requirePermission('rent:edit'), wrap(async (req, res) => { res.json(await saveMpesaSettings(ctx(req), req.body)); }));
+rentRouter.delete('/mpesa-settings', requirePermission('rent:edit'), wrap(async (req, res) => { await removeMpesaSettings(ctx(req)); res.status(204).end(); }));
+rentRouter.get('/claims', requirePermission('rent:view'), wrap(async (req, res) => { res.json(await listClaims(ctx(req), (req.query.status as string) || 'PENDING')); }));
+rentRouter.post('/claims/:id/confirm', requirePermission('rent:edit'), wrap(async (req, res) => { res.json(await confirmClaim(ctx(req), req.params.id)); }));
+rentRouter.post('/claims/:id/reject', requirePermission('rent:edit'), wrap(async (req, res) => { await rejectClaim(ctx(req), req.params.id); res.status(204).end(); }));
 rentRouter.get('/overview', requirePermission('rent:view'), wrap(async (req, res) => { res.json(await getOverview(ctx(req), req.query)); }));
 rentRouter.get('/leases', requirePermission('rent:view'), wrap(async (req, res) => { res.json(await listLeases(ctx(req), req.query.status as string | undefined)); }));
 rentRouter.post('/leases', requirePermission('rent:create'), wrap(async (req, res) => { res.status(201).json(await createLease(ctx(req), req.body)); }));

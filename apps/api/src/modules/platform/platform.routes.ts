@@ -4,6 +4,8 @@ import { createPublicViewingRequest, getPortalDocumentFile, signPortalDocument }
 import { getPortal, getTenantPortal } from '../rent/portal.service';
 import { portalLimiter, repairReportLimiter } from '../../middleware/rateLimit';
 import { submitRepairReport } from '../maintenance/public-report.service';
+import { submitClaim } from '../rent/claims.service';
+import { startTenantPayment, getTenantPaymentStatus, handleRentCallback } from '../rent/mpesa-pay.service';
 import { servePhoto } from '../properties/photos.service';
 import { getPublicListings, getPublicListing } from '../properties/listings.service';
 import { getPublicOrgInfo, submitPublicInquiry } from '../leads/public-inquiry.service';
@@ -95,6 +97,35 @@ platformRouter.get('/tenant-portal/:token', portalLimiter, async (req, res, next
   try {
     res.setHeader('Cache-Control', 'no-store');
     res.json(await getTenantPortal(req.params.token!));
+  } catch (err) {
+    next(err);
+  }
+});
+
+platformRouter.post('/tenant-portal/:token/pay', portalLimiter, async (req, res, next) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    res.status(201).json(await startTenantPayment(req.params.token!, req.body));
+  } catch (err) { next(err); }
+});
+
+platformRouter.get('/tenant-portal/:token/pay/:id', portalLimiter, async (req, res, next) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    res.json(await getTenantPaymentStatus(req.params.token!, req.params.id!));
+  } catch (err) { next(err); }
+});
+
+// Safaricom's result for a rent prompt. Always acknowledged so they don't retry; problems are logged, not leaked.
+platformRouter.post('/mpesa/rent/:secret', async (req, res) => {
+  try { await handleRentCallback(req.params.secret ?? '', req.body); } catch (err) { console.error('[rent-mpesa] callback failed', err); }
+  res.json({ ResultCode: 0, ResultDesc: 'Accepted' });
+});
+
+platformRouter.post('/tenant-portal/:token/claims', portalLimiter, async (req, res, next) => {
+  try {
+    await submitClaim(req.params.token!, req.body);
+    res.status(201).end();
   } catch (err) {
     next(err);
   }

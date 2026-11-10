@@ -1,3 +1,4 @@
+import type { MpesaSettingsView } from '@kaya/shared';
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, Check, ExternalLink, Upload, Trash2, Download } from 'lucide-react';
@@ -46,6 +47,91 @@ function InquiryLinkCard() {
         Properties you switch on to advertise appear on your{' '}
         <a href={`${window.location.origin}/listings/${data.slug}`} target="_blank" rel="noreferrer" className="text-accent hover:underline">public listings page</a>.
       </p>
+    </Card>
+  );
+}
+
+function PaymentInfoCard() {
+  const qc = useQueryClient();
+  const { data } = useQuery({ queryKey: ['branding'], queryFn: () => api.get<OrgBranding>('/org/branding') });
+  const [text, setText] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const save = useMutation({
+    mutationFn: () => api.patch<OrgBranding>('/org/branding', { rentPaymentInfo: (text ?? '').trim() || null }),
+    onSuccess: () => { setSaved(true); setTimeout(() => setSaved(false), 1800); qc.invalidateQueries({ queryKey: ['branding'] }); },
+  });
+  if (!data) return null;
+  const value = text ?? data.rentPaymentInfo ?? '';
+  return (
+    <Card className="max-w-lg p-5">
+      <h2 className="text-lg font-semibold text-ink">How tenants pay you</h2>
+      <p className="mt-1 text-sm leading-relaxed text-muted">Shown on every tenant's rent link, above the box where they send their M-Pesa code.</p>
+      <textarea
+        value={value} maxLength={600} rows={4} onChange={(e) => setText(e.target.value)}
+        placeholder={'Paybill 247247\nAccount: your unit number, e.g. A4\nOr bank: Equity 0123456789'}
+        className="mt-3 w-full rounded-control border border-line px-3 py-2 text-sm text-ink"
+      />
+      <div className="mt-3 flex items-center gap-3">
+        <Button type="button" disabled={save.isPending || text === null} onClick={() => save.mutate()}>{save.isPending ? 'Saving…' : 'Save'}</Button>
+        {saved && <span className="flex items-center gap-1 text-sm text-ok"><Check size={14} /> Saved</span>}
+      </div>
+    </Card>
+  );
+}
+
+function MpesaCollectionCard() {
+  const qc = useQueryClient();
+  const { data } = useQuery({ queryKey: ['mpesa-settings'], queryFn: () => api.get<MpesaSettingsView>('/rent/mpesa-settings') });
+  const [open, setOpen] = useState(false);
+  const [f, setF] = useState({ mode: 'production', accountType: 'PAYBILL', shortcode: '', consumerKey: '', consumerSecret: '', passkey: '' });
+  const [error, setError] = useState<string | null>(null);
+  const save = useMutation({
+    mutationFn: () => api.put<MpesaSettingsView>('/rent/mpesa-settings', f),
+    onSuccess: () => { setOpen(false); setError(null); setF({ ...f, consumerKey: '', consumerSecret: '', passkey: '' }); qc.invalidateQueries({ queryKey: ['mpesa-settings'] }); },
+    onError: (err) => setError(err instanceof ApiError ? err.message : 'Something went wrong'),
+  });
+  const remove = useMutation({ mutationFn: () => api.del('/rent/mpesa-settings'), onSuccess: () => qc.invalidateQueries({ queryKey: ['mpesa-settings'] }) });
+  if (!data) return null;
+  const input = 'mt-1 w-full rounded-control border border-line px-3 py-2 text-sm text-ink';
+  return (
+    <Card className="max-w-lg p-5">
+      <h2 className="text-lg font-semibold text-ink">Collect rent by M-Pesa</h2>
+      <p className="mt-1 text-sm leading-relaxed text-muted">
+        Let tenants pay from their rent link with an M-Pesa PIN prompt. Money goes straight into your own paybill or till, and the payment is recorded against their balance automatically.
+      </p>
+      {data.configured && !open ? (
+        <div className="mt-3 space-y-3 text-sm">
+          <p className="rounded-control bg-[#edf5f0] px-3 py-2 text-ok">On: {data.accountType === 'TILL' ? 'Till' : 'Paybill'} {data.shortcode} ({data.mode === 'production' ? 'live' : 'sandbox'})</p>
+          {data.callbackUrl && <p className="break-all text-xs text-muted">Callback URL: <span className="select-all text-ink">{data.callbackUrl}</span></p>}
+          <div className="flex gap-3">
+            <Button type="button" variant="secondary" onClick={() => { setF({ ...f, mode: data.mode, accountType: data.accountType, shortcode: data.shortcode ?? '' }); setOpen(true); }}>Change</Button>
+            <Button type="button" variant="secondary" disabled={remove.isPending} onClick={() => { if (confirm('Turn off paying by M-Pesa prompt? Tenants will see your payment instructions instead.')) remove.mutate(); }}>Turn off</Button>
+          </div>
+        </div>
+      ) : !open ? (
+        <Button type="button" className="mt-3" onClick={() => setOpen(true)}>Set up</Button>
+      ) : (
+        <form className="mt-4 space-y-3" onSubmit={(e) => { e.preventDefault(); setError(null); save.mutate(); }}>
+          <p className="text-xs leading-relaxed text-faint">Get these from your app on developer.safaricom.co.ke (Daraja). They are stored encrypted and never shown again.</p>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="text-xs text-muted">Account type
+              <select value={f.accountType} onChange={(e) => setF({ ...f, accountType: e.target.value })} className={input}><option value="PAYBILL">Paybill</option><option value="TILL">Till (Buy Goods)</option></select>
+            </label>
+            <label className="text-xs text-muted">Environment
+              <select value={f.mode} onChange={(e) => setF({ ...f, mode: e.target.value })} className={input}><option value="production">Live</option><option value="sandbox">Sandbox (testing)</option></select>
+            </label>
+          </div>
+          <label className="block text-xs text-muted">Shortcode<input inputMode="numeric" value={f.shortcode} onChange={(e) => setF({ ...f, shortcode: e.target.value.replace(/\D/g, '') })} required className={input} /></label>
+          <label className="block text-xs text-muted">Consumer key<input value={f.consumerKey} onChange={(e) => setF({ ...f, consumerKey: e.target.value })} required={!data.configured} placeholder={data.configured ? 'Leave blank to keep the saved key' : ''} autoComplete="off" className={input} /></label>
+          <label className="block text-xs text-muted">Consumer secret<input type="password" value={f.consumerSecret} onChange={(e) => setF({ ...f, consumerSecret: e.target.value })} required={!data.configured} placeholder={data.configured ? 'Leave blank to keep' : ''} autoComplete="off" className={input} /></label>
+          <label className="block text-xs text-muted">Passkey<input type="password" value={f.passkey} onChange={(e) => setF({ ...f, passkey: e.target.value })} required={!data.configured} placeholder={data.configured ? 'Leave blank to keep' : ''} autoComplete="off" className={input} /></label>
+          {error && <p className="text-sm text-danger" role="alert">{error}</p>}
+          <div className="flex gap-3">
+            <Button type="submit" disabled={save.isPending}>{save.isPending ? 'Checking with Safaricom…' : 'Save'}</Button>
+            <Button type="button" variant="secondary" onClick={() => { setOpen(false); setError(null); }}>Cancel</Button>
+          </div>
+        </form>
+      )}
     </Card>
   );
 }
@@ -337,6 +423,8 @@ export function SettingsPage() {
       <PageHeader title="Settings" />
       <div className="space-y-6 p-8">
         <InquiryLinkCard />
+        <PaymentInfoCard />
+        <MpesaCollectionCard />
         <RepairLinkCard />
         <BrandingCard />
         <BillingCard />

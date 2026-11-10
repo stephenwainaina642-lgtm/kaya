@@ -51,6 +51,8 @@ services:
         sync: false # set manually in the Render dashboard (Environment tab) — never stored in this file or in git. Optional: AI features (lead scoring, drafted messages, summaries) are disabled gracefully if unset.
       - key: RESEND_API_KEY
         sync: false # set in the Render dashboard — password-reset emails are not delivered without it
+      - key: SECRETS_KEY
+        generateValue: true # encrypts each agency's saved M-Pesa keys; keep it stable, changing it means agencies re-enter their keys
       - key: AT_USERNAME
         sync: false # optional; Africa's Talking username ("sandbox" for testing). With AT_API_KEY it turns on SMS rent reminders.
       - key: AT_API_KEY

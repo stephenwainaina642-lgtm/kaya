@@ -4,7 +4,7 @@ import { KeyRound, Plus, RefreshCw, Download, MessageCircle, Printer, Mail, Uplo
 import { periodLabel, rentReminderMessage, whatsappLink } from '@kaya/shared';
 import type {
   TenantStatement, VacancyReport,
-  ArrearsReport, ReminderResult, CollectionsPlan, RentPaymentItem, GenerateRentResult, LeaseItem, OwnerStatement, RentChargeItem, RentOverview, OwnerListItem, Page,
+  ArrearsReport, ReminderResult, CollectionsPlan, RentPaymentItem, GenerateRentResult, LeaseItem, OwnerStatement, RentChargeItem, RentOverview, OwnerListItem, Page, PaymentClaim,
 } from '@kaya/shared';
 import { api, ApiError } from '../../lib/api';
 import { useAuth } from '../../auth/AuthContext';
@@ -74,6 +74,7 @@ export function RentPage() {
         </div>
       </div>
       <div className="px-8 pb-8">
+        <ClaimsInbox />
         {tab === 'roll' && <RentRoll />}
         {tab === 'leases' && <Leases />}
         {tab === 'arrears' && <Arrears />}
@@ -81,6 +82,39 @@ export function RentPage() {
         {tab === 'statements' && <Statements />}
       </div>
     </>
+  );
+}
+
+function ClaimsInbox() {
+  const qc = useQueryClient();
+  const { data } = useQuery({ queryKey: ['claims'], queryFn: () => api.get<PaymentClaim[]>('/rent/claims') });
+  const [error, setError] = useState<string | null>(null);
+  const act = useMutation({
+    mutationFn: ({ id, kind }: { id: string; kind: 'confirm' | 'reject' }) => api.post(`/rent/claims/${id}/${kind}`, {}),
+    onSuccess: () => { setError(null); qc.invalidateQueries({ queryKey: ['claims'] }); qc.invalidateQueries({ queryKey: ['rent'] }); },
+    onError: (err) => setError(err instanceof ApiError ? err.message : 'Something went wrong'),
+  });
+  if (!data?.length) return null;
+  return (
+    <div className="mb-6 rounded-panel border border-[#f1dcae] bg-[#fdf5e6] p-5">
+      <h2 className="text-base font-semibold text-ink">{data.length} tenant payment{data.length === 1 ? '' : 's'} to confirm</h2>
+      <p className="mt-0.5 text-sm text-muted">Check each M-Pesa code against your statement, then confirm. Confirming records the payment, oldest month first.</p>
+      <ul className="mt-3 divide-y divide-[#f1dcae] rounded-control bg-white">
+        {data.map((c) => (
+          <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
+            <div>
+              <p className="font-medium text-ink">{c.tenantName} · <span className="tabular-nums">{kes(c.amount)}</span></p>
+              <p className="text-xs text-muted">{c.propertyTitle} · M-Pesa <span className="font-mono">{c.mpesaCode}</span> · {new Date(c.createdAt).toLocaleDateString('en-KE')}</p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="secondary" disabled={act.isPending} onClick={() => act.mutate({ id: c.id, kind: 'reject' })}>Not found</Button>
+              <Button disabled={act.isPending} onClick={() => act.mutate({ id: c.id, kind: 'confirm' })}>Confirm</Button>
+            </div>
+          </li>
+        ))}
+      </ul>
+      {error && <p className="mt-2 text-sm text-danger" role="alert">{error}</p>}
+    </div>
   );
 }
 

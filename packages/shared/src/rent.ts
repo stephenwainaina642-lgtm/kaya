@@ -306,7 +306,25 @@ export interface MpesaApplyResult {
 }
 
 /** What a tenant sees on their private, read-only link. */
+/** A tenant's "I have paid" note, waiting for the agency to check it against M-Pesa. */
+export interface PaymentClaim {
+  id: string;
+  tenantName: string;
+  propertyTitle: string;
+  amount: number;
+  mpesaCode: string;
+  status: 'PENDING' | 'CONFIRMED' | 'REJECTED';
+  createdAt: string;
+}
+
+export interface TenantClaim { amount: number; mpesaCode: string; status: PaymentClaim['status']; createdAt: string }
+
 export interface TenantPortalView {
+  /** The agency has set up M-Pesa collection, so the portal can send a PIN prompt to the tenant's phone. */
+  canPayNow: boolean;
+  /** How to pay this agency (Paybill/Till, account number, bank). Null until the agency sets it. */
+  payInfo: string | null;
+  claims: TenantClaim[];
   agencyName: string;
   currency: string;
   /** The agency's public slug, used to link to its "report a problem" page. */
@@ -316,6 +334,22 @@ export interface TenantPortalView {
   rentAmount: number;
   dueDay: number;
   statement: TenantStatement;
+}
+
+export interface MpesaSettingsView {
+  configured: boolean;
+  mode: 'sandbox' | 'production';
+  accountType: 'PAYBILL' | 'TILL';
+  shortcode: string | null;
+  callbackUrl: string | null;
+}
+
+export interface TenantPayStatus {
+  id: string;
+  status: 'PENDING' | 'PAID' | 'FAILED';
+  amount: number;
+  message: string | null;
+  receipt: string | null;
 }
 
 export interface ReminderResult {

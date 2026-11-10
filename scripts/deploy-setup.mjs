@@ -173,6 +173,10 @@ async function main() {
     UNION ALL
     SELECT 'owners_portal_token_idx' WHERE to_regclass('owners') IS NOT NULL AND to_regclass('owners_portal_token_idx') IS NULL
     UNION ALL
+    SELECT 'org_mpesa' WHERE to_regclass('org_mpesa') IS NULL AND to_regclass('organizations') IS NOT NULL
+    UNION ALL
+    SELECT 'rent_stk_requests' WHERE to_regclass('rent_stk_requests') IS NULL AND to_regclass('leases') IS NOT NULL
+    UNION ALL
     SELECT 'role.CARETAKER' WHERE EXISTS (SELECT 1 FROM pg_type WHERE typname = 'role') AND NOT EXISTS (
       SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid WHERE t.typname = 'role' AND e.enumlabel = 'CARETAKER'
     )
@@ -210,6 +214,12 @@ async function main() {
     SELECT 'rent_charges' WHERE to_regclass('rent_charges') IS NULL
     UNION ALL
     SELECT 'rent_payments' WHERE to_regclass('rent_payments') IS NULL
+    UNION ALL
+    SELECT 'payment_claims' WHERE to_regclass('leases') IS NOT NULL AND to_regclass('payment_claims') IS NULL
+    UNION ALL
+    SELECT 'organizations.rent_payment_info' WHERE NOT EXISTS (
+      SELECT 1 FROM information_schema.columns WHERE table_name = 'organizations' AND column_name = 'rent_payment_info'
+    )
     UNION ALL
     SELECT 'password_reset_tokens' WHERE to_regclass('password_reset_tokens') IS NULL
     UNION ALL
@@ -347,6 +357,20 @@ async function applyKnownFixups(c) {
             created_at timestamptz NOT NULL DEFAULT now()
           );
         END IF;
+        ALTER TABLE organizations ADD COLUMN IF NOT EXISTS rent_payment_info text;
+        IF to_regclass('leases') IS NOT NULL THEN
+          CREATE TABLE IF NOT EXISTS payment_claims (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            organization_id uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+            lease_id uuid NOT NULL REFERENCES leases(id) ON DELETE CASCADE,
+            amount integer NOT NULL,
+            mpesa_code text NOT NULL,
+            status text NOT NULL DEFAULT 'PENDING',
+            resolved_at timestamptz,
+            resolved_by_id uuid REFERENCES users(id) ON DELETE SET NULL,
+            created_at timestamptz NOT NULL DEFAULT now()
+          );
+        END IF;
         IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'role') THEN
           ALTER TYPE role ADD VALUE IF NOT EXISTS 'CARETAKER';
         END IF;
@@ -358,6 +382,38 @@ async function applyKnownFixups(c) {
           ALTER TABLE properties ADD COLUMN IF NOT EXISTS building text;
           ALTER TABLE properties ADD COLUMN IF NOT EXISTS unit_number text;
           ALTER TABLE properties ADD COLUMN IF NOT EXISTS advertised boolean NOT NULL DEFAULT false;
+        END IF;
+        IF to_regclass('organizations') IS NOT NULL THEN
+          CREATE TABLE IF NOT EXISTS org_mpesa (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            organization_id uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+            mode text NOT NULL DEFAULT 'sandbox',
+            account_type text NOT NULL DEFAULT 'PAYBILL',
+            shortcode text NOT NULL,
+            consumer_key text NOT NULL,
+            consumer_secret_enc text NOT NULL,
+            passkey_enc text NOT NULL,
+            callback_secret text NOT NULL,
+            updated_at timestamptz NOT NULL DEFAULT now()
+          );
+          CREATE UNIQUE INDEX IF NOT EXISTS org_mpesa_org_idx ON org_mpesa (organization_id);
+          CREATE UNIQUE INDEX IF NOT EXISTS org_mpesa_callback_idx ON org_mpesa (callback_secret);
+        END IF;
+        IF to_regclass('leases') IS NOT NULL THEN
+          CREATE TABLE IF NOT EXISTS rent_stk_requests (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            organization_id uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+            lease_id uuid NOT NULL REFERENCES leases(id) ON DELETE CASCADE,
+            amount integer NOT NULL,
+            phone text NOT NULL,
+            checkout_request_id text NOT NULL,
+            status text NOT NULL DEFAULT 'PENDING',
+            result_desc text,
+            receipt text,
+            created_at timestamptz NOT NULL DEFAULT now(),
+            settled_at timestamptz
+          );
+          CREATE UNIQUE INDEX IF NOT EXISTS rent_stk_checkout_idx ON rent_stk_requests (checkout_request_id);
         END IF;
         IF to_regclass('users') IS NOT NULL THEN
           CREATE TABLE IF NOT EXISTS password_reset_tokens (
@@ -400,9 +456,13 @@ async function applyKnownFixups(c) {
 
   console.log('[deploy-setup] Pre-applying known schema fixups (avoids push confirmation prompts)');
   await applyKnownFixups(client);
+  await client.query('DROP TABLE IF EXISTS kaya_deploy_state');
 
   await client.end();
 
+  // drizzle-kit push treats any table it doesn't know (our own kaya_deploy_state) as a possible rename source and
+  // stops to ask "created or renamed?" whenever the schema gains a table, which hangs or skips the push on a
+  // deploy. Remove it now; it is recreated, with the new fingerprint, once setup succeeds.
   console.log('[deploy-setup] Pushing schema');
   // Run up to 3 times — see the long comment above for why one run can
   // leave things incomplete even with --force.

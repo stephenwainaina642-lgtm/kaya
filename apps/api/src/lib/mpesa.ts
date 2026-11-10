@@ -9,7 +9,24 @@ export function mpesaConfigured(): boolean {
   return !!(env.MPESA_CONSUMER_KEY && env.MPESA_CONSUMER_SECRET && env.MPESA_SHORTCODE && env.MPESA_PASSKEY && env.MPESA_CALLBACK_SECRET);
 }
 
-const host = () => (env.MPESA_ENV === 'production' ? 'https://api.safaricom.co.ke' : 'https://sandbox.safaricom.co.ke');
+/** Daraja credentials. Defaults to Kaya's own (billing); a letting agency passes its own to collect rent. */
+export interface MpesaCreds {
+  env: 'sandbox' | 'production';
+  consumerKey: string;
+  consumerSecret: string;
+  shortcode: string;
+  passkey: string;
+  callbackUrl: string;
+  /** Till numbers use BuyGoods; paybills use PayBill. */
+  transactionType: 'CustomerPayBillOnline' | 'CustomerBuyGoodsOnline';
+}
+
+const platformCreds = (): MpesaCreds => ({
+  env: env.MPESA_ENV, consumerKey: env.MPESA_CONSUMER_KEY!, consumerSecret: env.MPESA_CONSUMER_SECRET!, shortcode: env.MPESA_SHORTCODE!,
+  passkey: env.MPESA_PASSKEY!, callbackUrl: `${appUrl}/api/billing/mpesa/callback/${env.MPESA_CALLBACK_SECRET}`, transactionType: 'CustomerPayBillOnline',
+});
+
+const host = (c: MpesaCreds) => (c.env === 'production' ? 'https://api.safaricom.co.ke' : 'https://sandbox.safaricom.co.ke');
 
 /** 07XXXXXXXX / 7XXXXXXXX / +2547XXXXXXXX -> 2547XXXXXXXX, or null if it isn't a Kenyan mobile number. */
 export function toMsisdn(raw: string): string | null {
@@ -20,9 +37,9 @@ export function toMsisdn(raw: string): string | null {
 
 const timestamp = () => new Date().toISOString().replace(/\D/g, '').slice(0, 14);
 
-async function token(): Promise<string> {
-  const basic = Buffer.from(`${env.MPESA_CONSUMER_KEY}:${env.MPESA_CONSUMER_SECRET}`).toString('base64');
-  const res = await fetch(`${host()}/oauth/v1/generate?grant_type=client_credentials`, {
+async function token(c: MpesaCreds): Promise<string> {
+  const basic = Buffer.from(`${c.consumerKey}:${c.consumerSecret}`).toString('base64');
+  const res = await fetch(`${host(c)}/oauth/v1/generate?grant_type=client_credentials`, {
     headers: { Authorization: `Basic ${basic}` },
     signal: AbortSignal.timeout(15_000),
   });
@@ -30,31 +47,36 @@ async function token(): Promise<string> {
   return ((await res.json()) as { access_token: string }).access_token;
 }
 
-function credentials() {
+/** True when Safaricom accepts these keys. Used to reject typos when an agency saves its credentials. */
+export async function checkCredentials(c: MpesaCreds): Promise<boolean> {
+  try { await token(c); return true; } catch { return false; }
+}
+
+function credentials(c: MpesaCreds) {
   const ts = timestamp();
-  const password = Buffer.from(`${env.MPESA_SHORTCODE}${env.MPESA_PASSKEY}${ts}`).toString('base64');
+  const password = Buffer.from(`${c.shortcode}${c.passkey}${ts}`).toString('base64');
   return { ts, password };
 }
 
 export interface StkPushInput { msisdn: string; amount: number; reference: string; description: string }
 export interface StkPushResult { merchantRequestId: string; checkoutRequestId: string }
 
-export async function stkPush(input: StkPushInput): Promise<StkPushResult> {
-  const { ts, password } = credentials();
-  const res = await fetch(`${host()}/mpesa/stkpush/v1/processrequest`, {
+export async function stkPush(input: StkPushInput, c: MpesaCreds = platformCreds()): Promise<StkPushResult> {
+  const { ts, password } = credentials(c);
+  const res = await fetch(`${host(c)}/mpesa/stkpush/v1/processrequest`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${await token()}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${await token(c)}`, 'Content-Type': 'application/json' },
     signal: AbortSignal.timeout(20_000),
     body: JSON.stringify({
-      BusinessShortCode: env.MPESA_SHORTCODE,
+      BusinessShortCode: c.shortcode,
       Password: password,
       Timestamp: ts,
-      TransactionType: 'CustomerPayBillOnline',
+      TransactionType: c.transactionType,
       Amount: input.amount,
       PartyA: input.msisdn,
-      PartyB: env.MPESA_SHORTCODE,
+      PartyB: c.shortcode,
       PhoneNumber: input.msisdn,
-      CallBackURL: `${appUrl}/api/billing/mpesa/callback/${env.MPESA_CALLBACK_SECRET}`,
+      CallBackURL: c.callbackUrl,
       AccountReference: input.reference.slice(0, 12),
       TransactionDesc: input.description.slice(0, 13),
     }),
@@ -69,13 +91,13 @@ export async function stkPush(input: StkPushInput): Promise<StkPushResult> {
 export interface StkQueryResult { resultCode: number; resultDesc: string }
 
 /** Asks Safaricom what happened to a push whose callback we never received. Returns null while still processing. */
-export async function stkQuery(checkoutRequestId: string): Promise<StkQueryResult | null> {
-  const { ts, password } = credentials();
-  const res = await fetch(`${host()}/mpesa/stkpushquery/v1/query`, {
+export async function stkQuery(checkoutRequestId: string, c: MpesaCreds = platformCreds()): Promise<StkQueryResult | null> {
+  const { ts, password } = credentials(c);
+  const res = await fetch(`${host(c)}/mpesa/stkpushquery/v1/query`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${await token()}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${await token(c)}`, 'Content-Type': 'application/json' },
     signal: AbortSignal.timeout(15_000),
-    body: JSON.stringify({ BusinessShortCode: env.MPESA_SHORTCODE, Password: password, Timestamp: ts, CheckoutRequestID: checkoutRequestId }),
+    body: JSON.stringify({ BusinessShortCode: c.shortcode, Password: password, Timestamp: ts, CheckoutRequestID: checkoutRequestId }),
   });
   const body = (await res.json().catch(() => ({}))) as Record<string, string>;
   if (body.ResultCode === undefined) return null; // still processing, or rate-limited

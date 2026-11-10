@@ -4,13 +4,14 @@ import { and, desc, eq, inArray, notInArray, sql } from 'drizzle-orm';
 import { effectivePlan, periodLabel, planHasModule, type PortalUnit, type PortalView, type TenantPortalView } from '@kaya/shared';
 import { withTenant } from '../../db/client';
 import { systemDb } from '../../db/system';
-import { clients, leases, maintenanceRequests, organizations, owners, properties, propertyImages } from '../../db/schema';
+import { clients, leases, maintenanceRequests, organizations, owners, paymentClaims, properties, propertyImages } from '../../db/schema';
 import { notFound } from '../../lib/errors';
 import { parse } from '../../lib/validate';
 import { recordAudit } from '../../lib/audit';
 import { type Auth, uuidField } from '../crm/common';
 import { ownerStatement, currentPeriod, tenantStatement } from './rent.service';
 import { appUrl } from '../../config/env';
+import { canCollectByMpesa } from './mpesa-pay.service';
 import { ownerStatementEmail, sendMail } from '../../lib/mailer';
 import { AppError } from '../../lib/errors';
 
@@ -257,11 +258,15 @@ export async function getTenantPortal(token: string): Promise<TenantPortalView> 
   const [hit] = await systemDb.select({
     leaseId: leases.id, organizationId: leases.organizationId, rentAmount: leases.rentAmount, dueDay: leases.dueDay,
     agencyName: organizations.name, currency: organizations.currency, agencySlug: organizations.slug,
-    plan: organizations.plan, planExpiresAt: organizations.planExpiresAt, suspendedAt: organizations.suspendedAt,
+    plan: organizations.plan, planExpiresAt: organizations.planExpiresAt, suspendedAt: organizations.suspendedAt, payInfo: organizations.rentPaymentInfo,
   }).from(leases).innerJoin(organizations, eq(organizations.id, leases.organizationId)).where(eq(leases.portalToken, token));
   if (!hit || hit.suspendedAt || !planHasModule(effectivePlan(hit.plan, hit.planExpiresAt), 'rentManagement')) throw notFound('Page');
   const statement = await tenantStatement({ organizationId: hit.organizationId } as Auth, hit.leaseId);
+  const claims = await withTenant(hit.organizationId, (tx) => tx.select({
+    amount: paymentClaims.amount, mpesaCode: paymentClaims.mpesaCode, status: paymentClaims.status, createdAt: paymentClaims.createdAt,
+  }).from(paymentClaims).where(eq(paymentClaims.leaseId, hit.leaseId)).orderBy(desc(paymentClaims.createdAt)).limit(5));
   return {
+    canPayNow: await canCollectByMpesa(hit.organizationId), payInfo: hit.payInfo, claims: claims.map((c) => ({ ...c, status: c.status as 'PENDING' | 'CONFIRMED' | 'REJECTED', createdAt: c.createdAt.toISOString() })),
     agencyName: hit.agencyName, currency: hit.currency, agencySlug: hit.agencySlug, tenantName: statement.tenantName, propertyTitle: statement.propertyTitle,
     rentAmount: hit.rentAmount, dueDay: hit.dueDay, statement,
   };

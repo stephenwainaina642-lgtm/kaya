@@ -22,6 +22,8 @@ export const organizations = pgTable('organizations', {
   // Kaya's default cypress/brass palette.
   brandColor: text('brand_color'),
   phone: text('phone'),
+  // Free-text instructions tenants see on their rent link (Paybill/Till, account format, bank details).
+  rentPaymentInfo: text('rent_payment_info'),
   // Set when an org admin dismisses the dashboard's getting-started checklist.
   onboardingDismissedAt: timestamp('onboarding_dismissed_at', { withTimezone: true }),
   // Set by a platform admin to lock an agency out of signing in without

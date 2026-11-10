@@ -53,7 +53,7 @@ const lastDayOf = (period: string) => {
 };
 const bps = (amount: number, rate: number) => Math.round((amount * rate) / 10_000);
 
-function chargeStatus(amount: number, paid: number): ChargeStatus {
+export function chargeStatus(amount: number, paid: number): ChargeStatus {
   return paid <= 0 ? 'UNPAID' : paid >= amount ? 'PAID' : 'PARTIAL';
 }
 

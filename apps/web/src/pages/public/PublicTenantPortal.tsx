@@ -1,11 +1,128 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { periodLabel, type TenantPortalView } from '@kaya/shared';
-import { api } from '../../lib/api';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { periodLabel, type TenantPortalView, type TenantPayStatus } from '@kaya/shared';
+import { api, ApiError } from '../../lib/api';
+import { Button } from '../../components/ui/Button';
 import { Spinner } from '../../components/ui/Spinner';
 import { Badge } from '../../components/ui/Badge';
-import { money as kes, setCurrency } from '../../lib/currency';
+import { money as kes, money, setCurrency } from '../../lib/currency';
+import { PhoneInput } from '../../components/ui/PhoneInput';
+
+function PayNow({ token, owing, currency }: { token: string; owing: number; currency: string }) {
+  const qc = useQueryClient();
+  const [amount, setAmount] = useState(String(owing));
+  const [phone, setPhone] = useState('');
+  const [other, setOther] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [reqId, setReqId] = useState<string | null>(null);
+
+  const start = useMutation({
+    mutationFn: () => api.post<TenantPayStatus>(`/public/tenant-portal/${token}/pay`, { amount: Number(amount), ...(other && phone ? { phone } : {}) }),
+    onSuccess: (r) => { setError(null); setReqId(r.id); },
+    onError: (err) => setError(err instanceof ApiError ? err.message : 'Could not start the payment. Try again.'),
+  });
+  const status = useQuery({
+    queryKey: ['tenant-pay', token, reqId],
+    queryFn: () => api.get<TenantPayStatus>(`/public/tenant-portal/${token}/pay/${reqId}`),
+    enabled: !!reqId,
+    refetchInterval: (q) => (q.state.data?.status === 'PENDING' || !q.state.data ? 3000 : false),
+  });
+  useEffect(() => { if (status.data?.status === 'PAID') qc.invalidateQueries({ queryKey: ['tenant-portal', token] }); }, [status.data?.status, qc, token]);
+
+  const s = status.data;
+  if (reqId && s?.status === 'PAID') {
+    return (
+      <div className="rounded-control bg-[#edf5f0] px-4 py-3 text-sm text-ok" role="status">
+        <p className="font-medium">Payment received: {money(s.amount)}</p>
+        {s.receipt && <p className="mt-0.5">M-Pesa code {s.receipt}. Your balance has been updated.</p>}
+      </div>
+    );
+  }
+  if (reqId && (!s || s.status === 'PENDING')) {
+    return (
+      <div className="rounded-control bg-sunk px-4 py-3 text-sm text-ink" role="status">
+        <p className="font-medium">Check your phone</p>
+        <p className="mt-0.5 text-muted">Enter your M-Pesa PIN to pay {money(Number(amount))}. This page updates by itself.</p>
+        <button type="button" className="mt-2 text-xs text-accent hover:underline" onClick={() => setReqId(null)}>Cancel</button>
+      </div>
+    );
+  }
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); setError(null); start.mutate(); }}>
+      {reqId && s?.status === 'FAILED' && <p className="mb-3 rounded-control bg-[#fbeeee] px-3 py-2 text-sm text-danger" role="alert">{s.message ?? 'The payment was not completed.'} You can try again.</p>}
+      <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+        <label className="text-xs text-muted">Amount ({currency})
+          <input inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))} required
+            className="mt-1 w-full rounded-control border border-line px-3 py-2 text-sm text-ink" />
+        </label>
+        <Button type="submit" className="self-end" disabled={start.isPending || !amount || Number(amount) < 10 || (other && phone.length < 9)}>{start.isPending ? 'Sending…' : 'Pay with M-Pesa'}</Button>
+      </div>
+      {other ? (
+        <label className="mt-3 block text-xs text-muted">M-Pesa number
+          <PhoneInput value={phone} onChange={setPhone} placeholder="0712345678" className="mt-1" />
+        </label>
+      ) : (
+        <button type="button" className="mt-2 text-xs text-accent hover:underline" onClick={() => setOther(true)}>Pay from a different number</button>
+      )}
+      {error && <p className="mt-2 text-sm text-danger" role="alert">{error}</p>}
+      <p className="mt-2 text-xs text-faint">You will get an M-Pesa PIN prompt on your phone. The money goes straight to your agent and is recorded automatically.</p>
+    </form>
+  );
+}
+
+function PayCard({ token, data, owing }: { token: string; data: TenantPortalView; owing: number }) {
+  const qc = useQueryClient();
+  const [amount, setAmount] = useState(owing > 0 ? String(owing) : '');
+  const [code, setCode] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const send = useMutation({
+    mutationFn: () => api.post(`/public/tenant-portal/${token}/claims`, { amount: Number(amount), mpesaCode: code }),
+    onSuccess: () => { setCode(''); setError(null); qc.invalidateQueries({ queryKey: ['tenant-portal', token] }); },
+    onError: (err) => setError(err instanceof ApiError ? err.message : 'Could not send. Try again.'),
+  });
+  const pending = data.claims.filter((c) => c.status === 'PENDING');
+  return (
+    <section className="rounded-panel border border-line bg-white p-5">
+      <h2 className="font-display text-lg font-semibold text-ink">Pay your rent</h2>
+      {data.canPayNow && owing > 0 && <div className="mt-3"><PayNow token={token} owing={owing} currency={data.currency} /></div>}
+      {data.canPayNow && owing > 0 && <p className="mt-5 text-sm font-medium text-ink">Paid another way?</p>}
+      {data.payInfo ? (
+        <p className="mt-2 whitespace-pre-line rounded-control bg-sunk px-4 py-3 text-sm text-ink">{data.payInfo}</p>
+      ) : (
+        <p className="mt-2 text-sm text-muted">Ask {data.agencyName} how to pay. Once you have paid, tell them below.</p>
+      )}
+      <form className="mt-4" onSubmit={(e) => { e.preventDefault(); setError(null); send.mutate(); }}>
+        <p className="mb-2 text-sm font-medium text-ink">Already paid? Tell {data.agencyName}</p>
+        <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
+          <label className="text-xs text-muted">Amount ({data.currency})
+            <input inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))} required
+              className="mt-1 w-full rounded-control border border-line px-3 py-2 text-sm text-ink" />
+          </label>
+          <label className="text-xs text-muted">M-Pesa code
+            <input value={code} maxLength={10} autoCapitalize="characters" placeholder="e.g. SHK4ABC123"
+              onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} required
+              className="mt-1 w-full rounded-control border border-line px-3 py-2 text-sm uppercase text-ink" />
+          </label>
+          <Button type="submit" className="self-end" disabled={send.isPending || !amount || code.length !== 10}>{send.isPending ? 'Sending…' : 'Send'}</Button>
+        </div>
+        {error && <p className="mt-2 text-sm text-danger" role="alert">{error}</p>}
+        <p className="mt-2 text-xs text-faint">Your agent checks the code against M-Pesa and your balance updates once it is confirmed.</p>
+      </form>
+      {data.claims.length > 0 && (
+        <ul className="mt-4 divide-y divide-line border-t border-line text-sm">
+          {data.claims.map((c) => (
+            <li key={c.mpesaCode + c.createdAt} className="flex items-center justify-between py-2">
+              <span className="text-ink">{kes(c.amount)} <span className="text-muted">· {c.mpesaCode}</span></span>
+              <Badge tone={c.status === 'CONFIRMED' ? 'ok' : c.status === 'REJECTED' ? 'danger' : 'warn'}>{c.status === 'PENDING' ? 'Waiting for your agent' : c.status === 'CONFIRMED' ? 'Confirmed' : 'Not matched'}</Badge>
+            </li>
+          ))}
+        </ul>
+      )}
+      {pending.length > 0 && <p className="sr-only">{pending.length} payment waiting for confirmation</p>}
+    </section>
+  );
+}
 
 /** Private, read-only page for a tenant. The secret in the address is the only credential. */
 export function PublicTenantPortal() {
@@ -54,6 +171,8 @@ export function PublicTenantPortal() {
             </div>
           ))}
         </section>
+
+        <PayCard token={token!} data={data} owing={owing} />
 
         <section>
           <h2 className="mb-3 font-display text-lg font-semibold text-ink">Rent history</h2>
