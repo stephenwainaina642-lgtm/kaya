@@ -63,3 +63,14 @@ export const portalLimiter = rateLimit({
   skip: skipInTest,
   message: { error: { code: 'RATE_LIMITED', message: 'Too many requests. Please try again shortly.' } },
 });
+
+/** Each question to the in-app guide may cost an AI call, so cap it per signed-in user (falling back to IP). */
+export const aiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 12,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: skipInTest,
+  keyGenerator: (req) => req.auth?.userId ?? 'anonymous',
+  message: { error: { code: 'RATE_LIMITED', message: 'Slow down a little and try again in a minute.' } },
+});

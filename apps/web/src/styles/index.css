@@ -82,3 +82,6 @@ table tbody tr:hover {
   .fill-in { animation: none; }
   * { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
 }
+
+/* The sidebar entry being explained by the guided tour. */
+.tour-glow { background: #eef2fd !important; box-shadow: inset 0 0 0 2px #2451d6; color: #0f1419 !important; }

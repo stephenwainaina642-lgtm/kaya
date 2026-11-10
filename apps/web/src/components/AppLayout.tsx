@@ -8,6 +8,7 @@ import {
 import { can, planHasModule, type Permission } from '@kaya/shared';
 import { useAuth } from '../auth/AuthContext';
 import { Avatar } from './ui/Avatar';
+import { GuideAssistant } from './GuideAssistant';
 import { BrandMark } from './BrandMark';
 
 type NavItem = { to: string; labelKey: string; icon: typeof LayoutDashboard; end?: boolean; module?: 'dealsPipeline' | 'rentManagement' | 'analytics' | 'automation' | 'auditLog'; permission?: Permission };
@@ -78,6 +79,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                   key={to}
                   to={to}
                   end={end}
+                  data-nav={to}
                   onClick={onNavigate}
                   className={({ isActive }) =>
                     `group relative mb-px flex items-center focus-visible:outline-offset-[-2px] gap-3 rounded-control py-[7px] pl-3 pr-3 text-[0.875rem] transition-colors ${
@@ -120,6 +122,7 @@ export function AppLayout() {
 
   return (
     <div className="flex h-screen bg-ground">
+      <GuideAssistant />
       {/* Desktop sidebar */}
       <aside className="hidden w-[15.5rem] shrink-0 flex-col border-r border-line bg-white lg:flex">
         <SidebarContent />

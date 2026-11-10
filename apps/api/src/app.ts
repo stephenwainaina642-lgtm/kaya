@@ -43,6 +43,7 @@ import { documentsRouter } from './modules/documents/documents.routes';
 import { analyticsRouter } from './modules/analytics/analytics.routes';
 import { auditRouter } from './modules/audit/audit.routes';
 import { aiRouter } from './modules/ai/ai.routes';
+import { guideRouter } from './modules/guide/guide.routes';
 import { automationRouter } from './modules/automation/automation.routes';
 import { viewingRequestsRouter } from './modules/portal/portal.routes';
 import { orgSettingsRouter } from './modules/org-settings/org-settings.routes';
@@ -128,6 +129,7 @@ export function createApp(): Express {
   app.use('/api/documents', documentsRouter);
   app.use('/api/audit', auditRouter);
   app.use('/api/analytics', analyticsRouter);
+  app.use('/api/guide', guideRouter);
   app.use('/api/ai', aiRouter);
   app.use('/api/automation', automationRouter);
   app.use('/api/viewing-requests', viewingRequestsRouter);
