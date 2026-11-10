@@ -403,3 +403,27 @@ export interface RenewalSuggestion {
   /** A ready-to-send renewal offer; the agent reviews and sends it. */
   message: string;
 }
+
+export interface HealthComponent {
+  key: 'COLLECTION' | 'OCCUPANCY' | 'REPAIRS' | 'LEASES';
+  label: string;
+  /** 0-100, or null when there is nothing to measure yet (it is then left out of the overall score). */
+  score: number | null;
+  weight: number;
+  detail: string;
+}
+
+export interface HealthAction {
+  text: string;
+  /** Points the overall score would gain if this were fully fixed. */
+  gain: number;
+  to: string;
+}
+
+export interface PortfolioHealth {
+  /** 0-100, or null when no component can be measured yet. */
+  score: number | null;
+  label: 'Excellent' | 'Healthy' | 'Needs attention' | 'At risk' | 'Not enough data';
+  components: HealthComponent[];
+  actions: HealthAction[];
+}

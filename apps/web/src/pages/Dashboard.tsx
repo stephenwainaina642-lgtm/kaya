@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { can, formatMoney, planHasModule, periodLabel } from '@kaya/shared';
-import type { DashboardData, AttentionItem, RentSummary } from '@kaya/shared';
+import type { DashboardData, AttentionItem, RentSummary, PortfolioHealth } from '@kaya/shared';
 import { Link } from 'react-router-dom';
 import { CalendarClock, Users, UserCircle, Handshake } from 'lucide-react';
 import { api } from '../lib/api';
@@ -20,6 +20,62 @@ const ATTENTION_ACCENT: Record<AttentionItem['kind'], string> = {
   OVERDUE_TASK: 'border-l-danger',
   UNASSIGNED_LEAD: 'border-l-cypress-500',
 };
+
+function HealthCard() {
+  const { user } = useAuth();
+  const allowed = !!user && planHasModule(user.plan, 'rentManagement') && can(user.role, 'rent:view');
+  const { data } = useQuery({ queryKey: ['rent', 'health'], queryFn: () => api.get<PortfolioHealth>('/rent/health'), enabled: allowed });
+  if (!allowed || !data || data.score === null) return null;
+  const R = 44;
+  const C = 2 * Math.PI * R;
+  const tone = data.score >= 85 ? 'text-ok' : data.score >= 70 ? 'text-ink' : data.score >= 50 ? 'text-warn' : 'text-danger';
+  return (
+    <Card className="p-6">
+      <div className="flex flex-wrap items-center gap-8">
+        <div className="flex items-center gap-5">
+          <div className="relative h-[108px] w-[108px] shrink-0" role="img" aria-label={`Portfolio health ${data.score} out of 100, ${data.label}`}>
+            <svg viewBox="0 0 108 108" className="-rotate-90">
+              <circle cx="54" cy="54" r={R} fill="none" stroke="#eceef1" strokeWidth="9" />
+              <circle cx="54" cy="54" r={R} fill="none" stroke="currentColor" strokeWidth="9" strokeLinecap="round" className={tone}
+                strokeDasharray={C} strokeDashoffset={C * (1 - data.score / 100)} />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-[1.75rem] font-semibold leading-none tabular-nums text-ink">{data.score}</span>
+              <span className="mt-0.5 text-[0.7rem] text-faint">out of 100</span>
+            </div>
+          </div>
+          <div>
+            <p className="text-sm text-muted">Portfolio health</p>
+            <p className={`text-xl font-semibold ${tone}`}>{data.label}</p>
+          </div>
+        </div>
+        <ul className="grid min-w-[240px] flex-1 gap-3 sm:grid-cols-2">
+          {data.components.map((c) => (
+            <li key={c.key}>
+              <div className="flex items-baseline justify-between text-sm"><span className="text-ink">{c.label}</span><span className="tabular-nums text-muted">{c.score ?? '–'}</span></div>
+              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-sunk"><div className="h-full rounded-full bg-ink" style={{ width: `${c.score ?? 0}%` }} /></div>
+              <p className="mt-1 text-xs text-muted">{c.detail}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+      {data.actions.length > 0 && (
+        <div className="mt-5 border-t border-line pt-4">
+          <p className="mb-2 text-sm font-medium text-ink">Biggest ways to improve</p>
+          <ul className="space-y-1">
+            {data.actions.map((a) => (
+              <li key={a.text}>
+                <Link to={a.to} className="flex items-center justify-between gap-3 rounded-control px-2 py-1.5 text-sm text-ink hover:bg-sunk">
+                  <span>{a.text}</span><span className="shrink-0 text-xs font-medium text-ok">+{a.gain} points</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </Card>
+  );
+}
 
 function RentCard() {
   const { user } = useAuth();
@@ -106,6 +162,7 @@ export function Dashboard() {
       />
       <div className="space-y-6 p-8">
         <OnboardingChecklist />
+        <HealthCard />
         <RentCard />
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <Card className="p-6 lg:col-span-1">

@@ -93,7 +93,7 @@ export function OnboardingChecklist() {
                 <Check size={12} strokeWidth={3} />
               </span>
               <div className="min-w-0 flex-1">
-                <p className={`text-sm font-medium ${s.done ? 'text-faint line-through' : 'text-ink'}`}>{c.title}</p>
+                <p className={`text-sm font-medium ${s.done ? 'text-muted' : 'text-ink'}`}>{c.title}</p>
                 {!s.done && <p className="mt-0.5 text-sm text-muted">{c.hint}</p>}
               </div>
               {!s.done && (
