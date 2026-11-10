@@ -6,6 +6,7 @@ import { Field } from '../components/ui/Field';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
+import { currencyCode } from '../lib/currency';
 
 export function NewLeaseForm({ onDone }: { onDone: () => void }) {
   const qc = useQueryClient();
@@ -63,10 +64,10 @@ export function NewLeaseForm({ onDone }: { onDone: () => void }) {
         </Select>
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Monthly rent (KES)">
+        <Field label={`Monthly rent (${currencyCode()})`}>
           <Input type="number" min={1} value={rentAmount} onChange={(e) => setRentAmount(e.target.value)} required />
         </Field>
-        <Field label="Deposit held (KES)">
+        <Field label={`Deposit held (${currencyCode()})`}>
           <Input type="number" min={0} value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} />
         </Field>
         <Field label="Rent due on day of month (1–28)">

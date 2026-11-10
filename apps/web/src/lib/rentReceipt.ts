@@ -1,8 +1,8 @@
 import { periodLabel, type RentChargeItem, type RentPaymentItem } from '@kaya/shared';
+import { money as kes } from '../lib/currency';
 
 const esc = (v: string) =>
   v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-const kes = (n: number) => `KES ${n.toLocaleString('en-KE')}`;
 
 export const receiptNumber = (paymentId: string) => `RCT-${paymentId.replace(/-/g, '').slice(0, 8).toUpperCase()}`;
 

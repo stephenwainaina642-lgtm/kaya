@@ -11,6 +11,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Modal } from '../../components/ui/Modal';
 import { MaintenanceForm } from '../../forms/MaintenanceForm';
+import { currencyCode } from '../../lib/currency';
 
 const nice = (s: string) => s[0] + s.slice(1).toLowerCase().replace('_', ' ');
 const PRIORITY_TONE = { URGENT: 'danger', HIGH: 'warn', MEDIUM: 'neutral', LOW: 'neutral' } as const;
@@ -81,7 +82,7 @@ export function MaintenancePage() {
                     <td className="px-4 py-3"><Badge tone={STATUS_TONE[r.status]}>{nice(r.status)}</Badge></td>
                     <td className="px-4 py-3">{r.vendorName ?? '—'}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-right">
-                      {r.actualCost != null ? `KES ${r.actualCost.toLocaleString('en-KE')}` : r.estimatedCost != null ? `~ KES ${r.estimatedCost.toLocaleString('en-KE')}` : '—'}
+                      {r.actualCost != null ? `${currencyCode()} ${r.actualCost.toLocaleString('en-KE')}` : r.estimatedCost != null ? `~ ${currencyCode()} ${r.estimatedCost.toLocaleString('en-KE')}` : '—'}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">{new Date(r.createdAt).toLocaleDateString('en-KE')}</td>
                   </tr>

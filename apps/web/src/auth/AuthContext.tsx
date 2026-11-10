@@ -1,3 +1,4 @@
+import { setCurrency } from '../lib/currency';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Plan, Role } from '@kaya/shared';
 import { api, setAccessToken, setUnauthorizedHandler } from '../lib/api';
@@ -37,6 +38,7 @@ const AuthCtx = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  setCurrency(user?.currency);
   const [loading, setLoading] = useState(true);
 
   const clear = useCallback(() => {

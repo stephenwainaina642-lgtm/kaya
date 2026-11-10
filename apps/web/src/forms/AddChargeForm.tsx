@@ -5,8 +5,8 @@ import { api, ApiError } from '../lib/api';
 import { Field } from '../components/ui/Field';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
-
-const kes = (n: number) => `KES ${n.toLocaleString('en-KE')}`;
+import { money as kes } from '../lib/currency';
+import { currencyCode } from '../lib/currency';
 const QUICK = ['Water', 'Garbage', 'Service charge', 'Late fee'];
 
 export function AddChargeForm({ charge, onDone }: { charge: RentChargeItem; onDone: () => void }) {
@@ -48,7 +48,7 @@ export function AddChargeForm({ charge, onDone }: { charge: RentChargeItem; onDo
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Item"><Input value={label} onChange={(e) => setLabel(e.target.value)} required maxLength={80} /></Field>
-          <Field label="Amount (KES)"><Input type="number" min={1} value={amount} onChange={(e) => setAmount(e.target.value)} required /></Field>
+          <Field label={`Amount (${currencyCode()})`}><Input type="number" min={1} value={amount} onChange={(e) => setAmount(e.target.value)} required /></Field>
         </div>
         <p className="mb-3 text-xs text-muted">This is added to what the tenant owes this month. It is not part of the landlord's rent, so no management fee is taken on it and it stays out of their statement.</p>
         {error && <p className="mb-3 text-sm text-danger">{error}</p>}

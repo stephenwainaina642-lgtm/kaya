@@ -5,6 +5,8 @@ import { api, ApiError } from '../lib/api';
 import { Field } from '../components/ui/Field';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
+import { currencyCode } from '../lib/currency';
+import { money as kes } from '../lib/currency';
 
 const plusYear = (d: string | null) => {
   const base = d ? new Date(d) : new Date();
@@ -37,15 +39,15 @@ export function RenewLeaseForm({ lease, onDone }: { lease: LeaseItem; onDone: ()
       </p>
       <div className="grid grid-cols-2 gap-3">
         <Field label="New end date"><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required /></Field>
-        <Field label="Monthly rent (KES)"><Input type="number" min={1} value={rent} onChange={(e) => setRent(e.target.value)} required /></Field>
+        <Field label={`Monthly rent (${currencyCode()})`}><Input type="number" min={1} value={rent} onChange={(e) => setRent(e.target.value)} required /></Field>
       </div>
       <div className="mb-3">
         <Button type="button" variant="secondary" disabled={suggest.isPending} onClick={() => suggest.mutate()}>{suggest.isPending ? 'Thinking…' : 'Suggest with AI'}</Button>
         {suggest.isError && <p className="mt-2 text-sm text-danger">{suggest.error instanceof ApiError ? suggest.error.message : 'Could not get a suggestion'}</p>}
         {s && (
           <div className="mt-2 space-y-2 rounded-panel border border-line p-3 text-sm">
-            <p className="text-ink">Suggested rent: <span className="font-medium">KES {s.suggestedRent.toLocaleString('en-KE')}</span>{s.suggestedRent === s.currentRent ? ' (no change)' : ` (+${Math.round((s.suggestedRent / s.currentRent - 1) * 1000) / 10}%)`}</p>
-            <p className="text-xs text-muted">{s.paymentSummary}{s.comparables ? ` Similar units you manage (${s.comparables.count}) rent for about KES ${s.comparables.median.toLocaleString('en-KE')}.` : ''}</p>
+            <p className="text-ink">Suggested rent: <span className="font-medium">{kes(s.suggestedRent)}</span>{s.suggestedRent === s.currentRent ? ' (no change)' : ` (+${Math.round((s.suggestedRent / s.currentRent - 1) * 1000) / 10}%)`}</p>
+            <p className="text-xs text-muted">{s.paymentSummary}{s.comparables ? ` Similar units you manage (${s.comparables.count}) rent for about ${kes(s.comparables.median)}.` : ''}</p>
             {s.rationale && <p className="text-xs text-ink">{s.rationale}</p>}
             {s.message && (
               <>

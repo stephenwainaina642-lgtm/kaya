@@ -6,6 +6,8 @@ import { Field } from '../components/ui/Field';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
+import { currencyCode } from '../lib/currency';
+import { money as kes } from '../lib/currency';
 
 export function RecordRentPaymentForm({ charge, onDone }: { charge: RentChargeItem; onDone: () => void }) {
   const qc = useQueryClient();
@@ -26,10 +28,10 @@ export function RecordRentPaymentForm({ charge, onDone }: { charge: RentChargeIt
   return (
     <form onSubmit={(e) => { e.preventDefault(); setError(null); pay.mutate(); }}>
       <p className="mb-4 text-sm text-muted">
-        {charge.tenantName} · {charge.propertyTitle} · {charge.period}. Balance KES {charge.balance.toLocaleString('en-KE')}.
+        {charge.tenantName} · {charge.propertyTitle} · {charge.period}. Balance {kes(charge.balance)}.
       </p>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Amount received (KES)">
+        <Field label={`Amount received (${currencyCode()})`}>
           <Input type="number" min={1} max={charge.balance} value={amount} onChange={(e) => setAmount(e.target.value)} required />
         </Field>
         <Field label="Method">

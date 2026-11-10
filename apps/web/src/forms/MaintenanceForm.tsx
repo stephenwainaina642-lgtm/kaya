@@ -10,6 +10,7 @@ import { Input } from '../components/ui/Input';
 import { PhoneInput } from '../components/ui/PhoneInput';
 import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
+import { currencyCode } from '../lib/currency';
 
 const nice = (s: string) => s[0] + s.slice(1).toLowerCase().replace('_', ' ');
 const num = (v: string) => (v.trim() === '' ? null : Math.round(Number(v)));
@@ -75,9 +76,9 @@ export function MaintenanceForm({ item, onDone }: { item?: MaintenanceItem; onDo
         </Field>
         <Field label="Vendor / fundi"><Input value={vendorName} onChange={(e) => setVendorName(e.target.value)} /></Field>
         <Field label="Vendor phone"><PhoneInput value={vendorPhone} onChange={setVendorPhone} /></Field>
-        <Field label="Estimated cost (KES)"><Input type="number" min={0} value={estimated} onChange={(e) => setEstimated(e.target.value)} /></Field>
+        <Field label={`Estimated cost (${currencyCode()})`}><Input type="number" min={0} value={estimated} onChange={(e) => setEstimated(e.target.value)} /></Field>
         {editing && (
-          <Field label="Final cost (KES)"><Input type="number" min={0} value={actual} onChange={(e) => setActual(e.target.value)} /></Field>
+          <Field label={`Final cost (${currencyCode()})`}><Input type="number" min={0} value={actual} onChange={(e) => setActual(e.target.value)} /></Field>
         )}
       </div>
       {editing && (

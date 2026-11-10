@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Phone, MessageCircle, Megaphone, Copy, Check, ExternalLink, Share2 } from 'lucide-react';
+import { Printer, Phone, MessageCircle, Megaphone, Copy, Check, ExternalLink, Share2 } from 'lucide-react';
 import type { PropertyDetail, PropertyNetwork as Net, InquiryLink } from '@kaya/shared';
 import { formatMoney, whatsappLink } from '@kaya/shared';
 import { api } from '../lib/api';
+import { printListingFlyer } from '../lib/listingFlyer';
 import { Card } from './ui/Card';
 import { Badge } from './ui/Badge';
 import { Button } from './ui/Button';
@@ -113,6 +114,11 @@ export function AdvertiseCard({ property }: { property: PropertyDetail }) {
           <div className="flex flex-wrap gap-2">
             <a href={`https://wa.me/?text=${encodeURIComponent(message)}`} target="_blank" rel="noreferrer"><Button type="button" variant="secondary"><Share2 size={14} /> Share on WhatsApp</Button></a>
             <a href={url} target="_blank" rel="noreferrer"><Button type="button" variant="secondary"><ExternalLink size={14} /> Preview</Button></a>
+            {available && link && (
+              <Button type="button" variant="secondary" onClick={() => printListingFlyer(link.slug, property.id).catch((e) => alert(e.message))}>
+                <Printer size={14} /> Print flyer
+              </Button>
+            )}
           </div>
           <a href={catalogue} target="_blank" rel="noreferrer" className="inline-block pt-1 text-sm text-accent hover:underline">Your full listings page</a>
         </div>

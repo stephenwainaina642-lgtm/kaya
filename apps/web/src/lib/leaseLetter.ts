@@ -1,8 +1,8 @@
 import type { LeaseItem } from '@kaya/shared';
+import { money as kes } from '../lib/currency';
 
 const esc = (v: string) =>
   v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-const kes = (n: number) => `KES ${n.toLocaleString('en-KE')}`;
 const longDate = (d: string) => new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'long', year: 'numeric' });
 
 export type LetterKind = 'RENEWAL' | 'INCREASE';

@@ -74,6 +74,12 @@ function ProtectedPlatformRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// Caretakers have no dashboard; their home is the repairs list.
+function Home() {
+  const { user } = useAuth();
+  return user?.role === 'CARETAKER' ? <Navigate to="/maintenance" replace /> : <Dashboard />;
+}
+
 export default function App() {
   return (
     <Routes>
@@ -119,7 +125,7 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<Dashboard />} />
+        <Route index element={<Home />} />
         <Route path="leads" element={<LeadsList />} />
         <Route path="leads/:id" element={<LeadDetail />} />
         <Route path="clients" element={<ClientsList />} />

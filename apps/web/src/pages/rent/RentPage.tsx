@@ -27,8 +27,7 @@ import { AddChargeForm } from '../../forms/AddChargeForm';
 import { SettleDepositForm } from '../../forms/SettleDepositForm';
 import { RenewLeaseForm } from '../../forms/RenewLeaseForm';
 import { RecordRentPaymentForm } from '../../forms/RecordRentPaymentForm';
-
-const kes = (n: number) => `KES ${n.toLocaleString('en-KE')}`;
+import { money as kes } from '../../lib/currency';
 const thisMonth = () => new Date().toISOString().slice(0, 7);
 const TONE = { UNPAID: 'danger', PARTIAL: 'warn', PAID: 'ok' } as const;
 type Tab = 'roll' | 'leases' | 'arrears' | 'vacancies' | 'statements';

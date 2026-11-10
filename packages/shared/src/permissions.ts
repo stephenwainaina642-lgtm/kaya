@@ -13,7 +13,7 @@ export const WORK_RESOURCES: Resource[] = [
 
 export type Permission = `${Resource}:${'view' | 'create' | 'edit' | 'delete'}`;
 
-const ROLE_RANK: Record<Role, number> = { VIEWER: 0, AGENT: 1, MANAGER: 2, ORG_ADMIN: 3 };
+const ROLE_RANK: Record<Role, number> = { CARETAKER: -1, VIEWER: 0, AGENT: 1, MANAGER: 2, ORG_ADMIN: 3 };
 
 const RESOURCE_MIN_ROLE: Partial<Record<Resource, Record<'view' | 'create' | 'edit' | 'delete', Role>>> = {
   billing: { view: 'ORG_ADMIN', create: 'ORG_ADMIN', edit: 'ORG_ADMIN', delete: 'ORG_ADMIN' },
@@ -28,7 +28,11 @@ const RESOURCE_MIN_ROLE: Partial<Record<Resource, Record<'view' | 'create' | 'ed
   reports: { view: 'AGENT', create: 'MANAGER', edit: 'MANAGER', delete: 'MANAGER' },
 };
 
+/** On-site caretakers log and update repairs and see the units assigned to them. Nothing else. */
+const CARETAKER_PERMISSIONS: Permission[] = ['maintenance:view', 'maintenance:create', 'maintenance:edit', 'properties:view'];
+
 export function can(role: Role, permission: Permission): boolean {
+  if (role === 'CARETAKER') return CARETAKER_PERMISSIONS.includes(permission);
   const [resource, action] = permission.split(':') as [Resource, 'view' | 'create' | 'edit' | 'delete'];
   if (role === 'VIEWER' && action !== 'view') return false;
   const override = RESOURCE_MIN_ROLE[resource]?.[action];
@@ -38,6 +42,7 @@ export function can(role: Role, permission: Permission): boolean {
 
 /** 'own' = user may only act on records assigned to them; 'organization' = scoped to the whole org. */
 export function dataScope(role: Role, resource: Resource): 'own' | 'organization' {
+  if (role === 'CARETAKER') return resource === 'maintenance' ? 'organization' : 'own';
   if (role === 'ORG_ADMIN' || role === 'MANAGER') return 'organization';
   if (resource === 'team' || resource === 'settings' || resource === 'billing' || resource === 'reports' || resource === 'automation' || resource === 'rent' || resource === 'maintenance') {
     return 'organization';

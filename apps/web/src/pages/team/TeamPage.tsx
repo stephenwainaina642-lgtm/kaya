@@ -46,9 +46,9 @@ export function TeamPage() {
                 <Avatar name={m.name} size={40} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium text-ink">{m.name}</p>
-                  <p className="truncate text-xs text-muted">{m.jobTitle ?? m.role.replace('_', ' ')}</p>
+                  <p className="truncate text-xs text-muted">{m.jobTitle ?? m.role.replace('_', ' ').toLowerCase()}</p>
                 </div>
-                <Badge>{m.role.replace('_', ' ')}</Badge>
+                <Badge>{m.role.replace('_', ' ').toLowerCase()}</Badge>
               </Card>
             ))}
           </div>

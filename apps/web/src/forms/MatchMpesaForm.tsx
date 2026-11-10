@@ -6,8 +6,7 @@ import { api, ApiError } from '../lib/api';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { TextArea } from '../components/ui/TextArea';
-
-const kes = (n: number) => `KES ${n.toLocaleString('en-KE')}`;
+import { money as kes } from '../lib/currency';
 
 export function MatchMpesaForm({ onDone }: { onDone: () => void }) {
   const qc = useQueryClient();

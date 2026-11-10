@@ -5,8 +5,7 @@ import { periodLabel, type TenantPortalView } from '@kaya/shared';
 import { api } from '../../lib/api';
 import { Spinner } from '../../components/ui/Spinner';
 import { Badge } from '../../components/ui/Badge';
-
-const kes = (n: number) => `KES ${n.toLocaleString('en-KE')}`;
+import { money as kes, setCurrency } from '../../lib/currency';
 
 /** Private, read-only page for a tenant. The secret in the address is the only credential. */
 export function PublicTenantPortal() {
@@ -22,6 +21,7 @@ export function PublicTenantPortal() {
     queryFn: () => api.get<TenantPortalView>(`/public/tenant-portal/${token}`),
     retry: false,
   });
+  setCurrency(data?.currency);
 
   if (isLoading) return <div className="flex min-h-screen items-center justify-center bg-ground"><Spinner /></div>;
   if (isError || !data) {

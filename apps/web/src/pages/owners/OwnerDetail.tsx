@@ -11,6 +11,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { Modal } from '../../components/ui/Modal';
 import { PageHeader } from '../../components/PageHeader';
 import { EditOwnerForm } from '../../forms/EditOwnerForm';
+import { currencyCode } from '../../lib/currency';
 
 export function OwnerDetail() {
   const { id } = useParams<{ id: string }>();
@@ -75,7 +76,7 @@ export function OwnerDetail() {
             <Card className="p-5">
               <h2 className="mb-2 font-display text-lg font-semibold text-ink">Commission agreement</h2>
               <p className="text-sm text-ink">
-                {owner.commissionArrangement === 'PERCENTAGE' ? `${owner.commissionRate}%` : `KES ${owner.commissionFixedAmount}`}
+                {owner.commissionArrangement === 'PERCENTAGE' ? `${owner.commissionRate}%` : `${currencyCode()} ${owner.commissionFixedAmount}`}
               </p>
             </Card>
           )}

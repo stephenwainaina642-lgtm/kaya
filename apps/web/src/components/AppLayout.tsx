@@ -14,7 +14,7 @@ type NavItem = { to: string; labelKey: string; icon: typeof LayoutDashboard; end
 
 // Grouped so a 20-item list reads as three short ones. Titles are quiet, sentence case.
 const NAV_GROUPS: { titleKey?: string; title?: string; items: NavItem[] }[] = [
-  { items: [{ to: '/', labelKey: 'nav.dashboard', icon: LayoutDashboard, end: true }] },
+  { items: [{ to: '/', labelKey: 'nav.dashboard', icon: LayoutDashboard, end: true, permission: 'dashboard:view' }] },
   {
     titleKey: 'nav.group.sales', title: 'Sales',
     items: [
@@ -57,7 +57,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { user, logout } = useAuth();
   const { t } = useTranslation();
   const visible = (item: NavItem) =>
-    (!item.module || !user || planHasModule(user.plan, item.module)) && (!item.permission || !user || can(user.role, item.permission));
+    (!item.module || !user || planHasModule(user.plan, item.module)) && (item.permission ? !user || can(user.role, item.permission) : user?.role !== 'CARETAKER');
   return (
     <>
       <div className="px-5 pb-4 pt-5">

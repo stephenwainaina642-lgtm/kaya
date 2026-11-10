@@ -12,6 +12,7 @@ import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { NextActionsWidget } from '../components/ai/NextActionsWidget';
 import { OnboardingChecklist } from '../components/OnboardingChecklist';
+import { money as kes } from '../lib/currency';
 
 const ATTENTION_ACCENT: Record<AttentionItem['kind'], string> = {
   STALLED_DEAL: 'border-l-accent',
@@ -25,7 +26,6 @@ function RentCard() {
   const allowed = !!user && planHasModule(user.plan, 'rentManagement') && can(user.role, 'rent:view');
   const { data } = useQuery({ queryKey: ['rent', 'summary'], queryFn: () => api.get<RentSummary>('/rent/summary'), enabled: allowed });
   if (!allowed || !data) return null;
-  const kes = (n: number) => `KES ${n.toLocaleString('en-KE')}`;
   const pct = Math.round(data.collectionRate * 100);
   const tiles: { label: string; value: string; note: string; to: string; tone?: 'danger' | 'warn' }[] = [
     { label: 'Overdue', value: kes(data.overdueTotal), note: data.overdueTenants ? `${data.overdueTenants} tenant${data.overdueTenants === 1 ? '' : 's'}` : 'All paid up', to: '/rent', tone: data.overdueTotal > 0 ? 'danger' : undefined },

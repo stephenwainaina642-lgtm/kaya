@@ -6,6 +6,8 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
 import { printLeaseLetter, type LetterKind } from '../lib/leaseLetter';
+import { currencyCode } from '../lib/currency';
+import { money as kes } from '../lib/currency';
 
 const plus = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
 const plusYear = (d: string | null) => {
@@ -30,7 +32,7 @@ export function LeaseLetterForm({ lease, onDone }: { lease: LeaseItem; onDone: (
       printLeaseLetter(user?.organizationName ?? 'Your agent', lease, { kind, newRent: Math.round(Number(rent)), date, replyBy, signedBy });
       onDone();
     }}>
-      <p className="mb-4 text-sm text-muted">{lease.tenantName} · {lease.propertyTitle}. Currently {`KES ${lease.rentAmount.toLocaleString('en-KE')}`} a month.</p>
+      <p className="mb-4 text-sm text-muted">{lease.tenantName} · {lease.propertyTitle}. Currently {kes(lease.rentAmount)} a month.</p>
       <Field label="Letter">
         <Select value={kind} onChange={(e) => onKind(e.target.value as LetterKind)}>
           <option value="RENEWAL">Offer to renew the tenancy</option>
@@ -38,7 +40,7 @@ export function LeaseLetterForm({ lease, onDone }: { lease: LeaseItem; onDone: (
         </Select>
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="New monthly rent (KES)"><Input type="number" min={1} value={rent} onChange={(e) => setRent(e.target.value)} required /></Field>
+        <Field label={`New monthly rent (${currencyCode()})`}><Input type="number" min={1} value={rent} onChange={(e) => setRent(e.target.value)} required /></Field>
         <Field label={kind === 'RENEWAL' ? 'New end date' : 'New rent starts on'}><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required /></Field>
         <Field label="Reply by"><Input type="date" value={replyBy} onChange={(e) => setReplyBy(e.target.value)} required /></Field>
         <Field label="Signed by"><Input value={signedBy} onChange={(e) => setSignedBy(e.target.value)} required /></Field>

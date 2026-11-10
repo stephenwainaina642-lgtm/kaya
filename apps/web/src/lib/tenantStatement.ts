@@ -1,8 +1,8 @@
 import { periodLabel, type TenantStatement } from '@kaya/shared';
+import { money as kes } from '../lib/currency';
 
 const esc = (v: string) =>
   v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-const kes = (n: number) => `KES ${n.toLocaleString('en-KE')}`;
 
 /** Opens a print-ready statement of account for one tenant. */
 export function printTenantStatement(agencyName: string, st: TenantStatement): void {

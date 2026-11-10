@@ -6,8 +6,8 @@ import { Field } from '../components/ui/Field';
 import { Input } from '../components/ui/Input';
 import { TextArea } from '../components/ui/TextArea';
 import { Button } from '../components/ui/Button';
-
-const kes = (n: number) => `KES ${n.toLocaleString('en-KE')}`;
+import { money as kes } from '../lib/currency';
+import { currencyCode } from '../lib/currency';
 
 export function SettleDepositForm({ lease, onDone }: { lease: LeaseItem; onDone: () => void }) {
   const qc = useQueryClient();
@@ -26,11 +26,11 @@ export function SettleDepositForm({ lease, onDone }: { lease: LeaseItem; onDone:
   return (
     <form onSubmit={(e) => { e.preventDefault(); setError(null); settle.mutate(); }}>
       <p className="mb-4 text-sm text-muted">{lease.tenantName} · {lease.propertyTitle}. Deposit held: <strong className="text-ink">{kes(lease.depositAmount)}</strong></p>
-      <Field label="Deductions (KES): damage, unpaid rent, utilities">
+      <Field label={`Deductions (${currencyCode()}): damage, unpaid rent, utilities`}>
         <Input type="number" min={0} max={lease.depositAmount} value={deduction} onChange={(e) => setDeduction(e.target.value)} required />
       </Field>
       <Field label="What was deducted for (optional)">
-        <TextArea rows={3} maxLength={1000} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Repainting living room, KES 8,000" />
+        <TextArea rows={3} maxLength={1000} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Repainting living room, 8,000" />
       </Field>
       <p className={`mb-3 text-sm ${refund < 0 ? 'text-danger' : 'text-ink'}`}>
         Refund to tenant: <strong>{kes(Math.max(0, refund))}</strong>

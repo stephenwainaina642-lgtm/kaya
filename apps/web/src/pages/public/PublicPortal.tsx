@@ -6,8 +6,7 @@ import { api } from '../../lib/api';
 import { Spinner } from '../../components/ui/Spinner';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
-
-const kes = (n: number) => `KES ${n.toLocaleString('en-KE')}`;
+import { money as kes, setCurrency } from '../../lib/currency';
 const thisMonth = () => new Date().toISOString().slice(0, 7);
 const nice = (s: string) => s[0] + s.slice(1).toLowerCase().replace('_', ' ');
 
@@ -28,6 +27,7 @@ export function PublicPortal() {
     retry: false,
     placeholderData: (prev) => prev,
   });
+  setCurrency(data?.currency);
 
   if (isLoading) return <div className="flex min-h-screen items-center justify-center bg-ground"><Spinner /></div>;
   if (isError || !data) {

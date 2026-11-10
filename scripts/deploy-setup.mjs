@@ -173,6 +173,10 @@ async function main() {
     UNION ALL
     SELECT 'owners_portal_token_idx' WHERE to_regclass('owners') IS NOT NULL AND to_regclass('owners_portal_token_idx') IS NULL
     UNION ALL
+    SELECT 'role.CARETAKER' WHERE EXISTS (SELECT 1 FROM pg_type WHERE typname = 'role') AND NOT EXISTS (
+      SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid WHERE t.typname = 'role' AND e.enumlabel = 'CARETAKER'
+    )
+    UNION ALL
     SELECT 'properties.building' WHERE to_regclass('properties') IS NOT NULL AND NOT EXISTS (
       SELECT 1 FROM information_schema.columns WHERE table_name = 'properties' AND column_name = 'building'
     )
@@ -334,6 +338,9 @@ async function applyKnownFixups(c) {
             recorded_by_id uuid REFERENCES users(id) ON DELETE SET NULL,
             created_at timestamptz NOT NULL DEFAULT now()
           );
+        END IF;
+        IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'role') THEN
+          ALTER TYPE role ADD VALUE IF NOT EXISTS 'CARETAKER';
         END IF;
         IF to_regclass('properties') IS NOT NULL THEN
           ALTER TABLE properties ADD COLUMN IF NOT EXISTS building text;

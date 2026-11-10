@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { authenticate, ctx } from '../../middleware/auth';
+import { authenticate, ctx, requirePermission } from '../../middleware/auth';
 import { getDashboard } from './dashboard.service';
 
 export const dashboardRouter = Router();
-dashboardRouter.use(authenticate);
+dashboardRouter.use(authenticate, requirePermission('dashboard:view'));
 
 dashboardRouter.get('/', async (req, res, next) => {
   try {

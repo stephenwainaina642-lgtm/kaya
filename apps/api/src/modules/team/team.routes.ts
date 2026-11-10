@@ -16,7 +16,7 @@ import { nameField, textField } from '../crm/common';
 export const teamRouter = Router();
 teamRouter.use(authenticate);
 
-teamRouter.get('/members', async (req, res, next) => {
+teamRouter.get('/members', requirePermission('leads:view'), async (req, res, next) => {
   try {
     const a = ctx(req);
     const items: TeamMember[] = await withTenant(a.organizationId, (tx) =>
