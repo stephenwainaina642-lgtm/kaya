@@ -41,6 +41,9 @@ export interface PropertyListItem {
   status: PropertyStatus;
   coverImageUrl: string | null;
   assignedAgent: AgentRef | null;
+  building?: string | null;
+  unitNumber?: string | null;
+  advertised?: boolean;
 }
 
 export interface PropertyDetail extends PropertyListItem {

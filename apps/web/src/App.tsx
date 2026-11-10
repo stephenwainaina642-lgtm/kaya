@@ -1,3 +1,6 @@
+import { PublicListings, PublicListing } from './pages/public/PublicListings';
+import { BuildingsList } from './pages/buildings/BuildingsList';
+import { BuildingDetail } from './pages/buildings/BuildingDetail';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useAuth } from './auth/AuthContext';
 import { AppLayout } from './components/AppLayout';
@@ -79,6 +82,8 @@ export default function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/share/:token" element={<PublicShortlist />} />
+      <Route path="/listings/:slug" element={<PublicListings />} />
+      <Route path="/listings/:slug/:id" element={<PublicListing />} />
       <Route path="/inquire/:slug" element={<PublicInquiry />} />
       <Route path="/report/:slug" element={<PublicRepair />} />
       <Route path="/portal/:token" element={<PublicPortal />} />
@@ -119,6 +124,8 @@ export default function App() {
         <Route path="leads/:id" element={<LeadDetail />} />
         <Route path="clients" element={<ClientsList />} />
         <Route path="clients/:id" element={<ClientDetail />} />
+        <Route path="buildings" element={<BuildingsList />} />
+        <Route path="buildings/:name" element={<BuildingDetail />} />
         <Route path="properties" element={<PropertiesList />} />
         <Route path="properties/:id" element={<PropertyDetail />} />
         <Route path="owners" element={<OwnersList />} />

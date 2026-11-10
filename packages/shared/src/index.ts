@@ -19,3 +19,4 @@ export * from './whatsapp';
 export * from './platform';
 export * from './public-inquiry';
 export * from './onboarding';
+export * from './estate';

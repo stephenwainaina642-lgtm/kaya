@@ -4,6 +4,7 @@ import { createPublicViewingRequest, getPortalDocumentFile, signPortalDocument }
 import { getPortal, getTenantPortal } from '../rent/portal.service';
 import { portalLimiter, repairReportLimiter } from '../../middleware/rateLimit';
 import { submitRepairReport } from '../maintenance/public-report.service';
+import { getPublicListings, getPublicListing } from '../properties/listings.service';
 import { getPublicOrgInfo, submitPublicInquiry } from '../leads/public-inquiry.service';
 import { getLogoStorageKeyBySlug } from '../org-settings/org-settings.service';
 import { sendFile } from '../../lib/storage';
@@ -53,6 +54,14 @@ platformRouter.post('/shortlists/:token/documents/:documentId/sign', async (req,
   } catch (err) {
     next(err);
   }
+});
+
+platformRouter.get('/listings/:slug', async (req, res, next) => {
+  try { res.json(await getPublicListings(req.params.slug!)); } catch (err) { next(err); }
+});
+
+platformRouter.get('/listings/:slug/:id', async (req, res, next) => {
+  try { res.json(await getPublicListing(req.params.slug!, req.params.id!)); } catch (err) { next(err); }
 });
 
 // An agency's own public "contact us" page — see modules/leads/public-inquiry.service.ts.

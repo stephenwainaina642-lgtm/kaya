@@ -42,6 +42,9 @@ export const propertyCreate = z.object({
   internalNotes: z.string().trim().max(2000).nullable().optional(),
   ownerId: uuidField,
   assignedAgentId: uuidField.nullable().optional(),
+  building: z.string().trim().max(120).nullable().optional(),
+  unitNumber: z.string().trim().max(20).nullable().optional(),
+  advertised: z.boolean().optional(),
 });
 
 export const propertyUpdate = propertyCreate.partial().extend({
@@ -88,6 +91,9 @@ function mapProperty(row: typeof properties.$inferSelect, agentName: string | nu
     status: row.status,
     coverImageUrl,
     assignedAgent: agentRef(row.assignedAgentId, agentName),
+    building: row.building,
+    unitNumber: row.unitNumber,
+    advertised: row.advertised,
   };
 }
 
@@ -196,6 +202,9 @@ export async function createProperty(a: Auth, body: unknown): Promise<PropertyDe
       virtualTourUrl: input.virtualTourUrl ?? null,
       internalNotes: input.internalNotes ?? null,
       ownerId: input.ownerId,
+      building: input.building ?? null,
+      unitNumber: input.unitNumber ?? null,
+      advertised: input.advertised ?? false,
       assignedAgentId: input.assignedAgentId ?? a.userId,
       listedAt: new Date(),
       createdById: a.userId,

@@ -11,6 +11,7 @@ import { Button } from '../../components/ui/Button';
 import { Spinner } from '../../components/ui/Spinner';
 import { Modal } from '../../components/ui/Modal';
 import { PageHeader } from '../../components/PageHeader';
+import { PropertyPeople, AdvertiseCard } from '../../components/PropertyNetwork';
 import { ContactMatchesPanel } from '../../components/ContactMatchesPanel';
 import { EditPropertyForm } from '../../forms/EditPropertyForm';
 
@@ -71,12 +72,16 @@ export function PropertyDetail() {
               </div>
             </Card>
           )}
+          <PropertyPeople propertyId={p.id} />
           <ContactMatchesPanel propertyId={p.id} />
         </div>
         <div className="space-y-6">
           <Card className="p-5">
-            <Badge tone="ok">{p.status.replace(/_/g, ' ')}</Badge>
-            <p className="mt-3 font-display text-2xl font-semibold text-cypress-700">
+            <Badge tone={p.status === 'AVAILABLE' ? 'ok' : 'neutral'}>{p.status}</Badge>
+            {p.building && (
+              <Link to={`/buildings/${encodeURIComponent(p.building)}`} className="ml-2 text-sm text-accent hover:underline">{p.building}{p.unitNumber ? ` · Unit ${p.unitNumber}` : ''}</Link>
+            )}
+            <p className="mt-3 text-2xl font-semibold tabular-nums text-ink">
               {formatMoney(p.price, p.currency, { compact: true })}{p.listingType === 'RENT' ? '/mo' : ''}
             </p>
             <p className="mb-4 flex items-center gap-1 text-sm text-muted"><MapPin size={14} /> {p.location}</p>
@@ -86,18 +91,7 @@ export function PropertyDetail() {
               {p.sizeSqm != null && <span className="flex items-center gap-1"><Ruler size={15} /> {p.sizeSqm}m²</span>}
             </div>
           </Card>
-          {p.ownerId && (
-            <Card className="p-5">
-              <h2 className="mb-2 font-display text-lg font-semibold text-ink">Owner</h2>
-              <Link to={`/owners/${p.ownerId}`} className="text-sm text-cypress-700 hover:underline">View owner</Link>
-            </Card>
-          )}
-          {p.assignedAgent && (
-            <Card className="p-5">
-              <h2 className="mb-2 font-display text-lg font-semibold text-ink">Listing agent</h2>
-              <p className="text-sm text-ink">{p.assignedAgent.name}</p>
-            </Card>
-          )}
+          <AdvertiseCard property={p} />
         </div>
       </div>
     </>

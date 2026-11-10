@@ -173,6 +173,18 @@ async function main() {
     UNION ALL
     SELECT 'owners_portal_token_idx' WHERE to_regclass('owners') IS NOT NULL AND to_regclass('owners_portal_token_idx') IS NULL
     UNION ALL
+    SELECT 'properties.building' WHERE to_regclass('properties') IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM information_schema.columns WHERE table_name = 'properties' AND column_name = 'building'
+    )
+    UNION ALL
+    SELECT 'properties.unit_number' WHERE to_regclass('properties') IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM information_schema.columns WHERE table_name = 'properties' AND column_name = 'unit_number'
+    )
+    UNION ALL
+    SELECT 'properties.advertised' WHERE to_regclass('properties') IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM information_schema.columns WHERE table_name = 'properties' AND column_name = 'advertised'
+    )
+    UNION ALL
     SELECT 'organizations.statement_email_day' WHERE NOT EXISTS (
       SELECT 1 FROM information_schema.columns WHERE table_name = 'organizations' AND column_name = 'statement_email_day'
     )
@@ -322,6 +334,11 @@ async function applyKnownFixups(c) {
             recorded_by_id uuid REFERENCES users(id) ON DELETE SET NULL,
             created_at timestamptz NOT NULL DEFAULT now()
           );
+        END IF;
+        IF to_regclass('properties') IS NOT NULL THEN
+          ALTER TABLE properties ADD COLUMN IF NOT EXISTS building text;
+          ALTER TABLE properties ADD COLUMN IF NOT EXISTS unit_number text;
+          ALTER TABLE properties ADD COLUMN IF NOT EXISTS advertised boolean NOT NULL DEFAULT false;
         END IF;
         IF to_regclass('users') IS NOT NULL THEN
           CREATE TABLE IF NOT EXISTS password_reset_tokens (

@@ -6,6 +6,8 @@ import {
   addImage, removeImage, addFeature, removeFeature,
 } from './properties.service';
 
+import { createBulkUnits, listBuildings, getBuilding, getPropertyNetwork, setAdvertised, setBuildingAdvertised } from './estate.service';
+
 export const propertiesRouter = Router();
 propertiesRouter.use(authenticate);
 
@@ -19,6 +21,30 @@ propertiesRouter.post('/', requirePermission('properties:create'), async (req, r
 
 propertiesRouter.post('/import', requirePermission('properties:create'), async (req, res, next) => {
   try { res.status(201).json(await importProperties(ctx(req), req.body)); } catch (err) { next(err); }
+});
+
+propertiesRouter.post('/bulk', requirePermission('properties:create'), async (req, res, next) => {
+  try { res.status(201).json(await createBulkUnits(ctx(req), req.body)); } catch (err) { next(err); }
+});
+
+propertiesRouter.get('/buildings', requirePermission('properties:view'), async (req, res, next) => {
+  try { res.json(await listBuildings(ctx(req))); } catch (err) { next(err); }
+});
+
+propertiesRouter.get('/buildings/:name', requirePermission('properties:view'), async (req, res, next) => {
+  try { res.json(await getBuilding(ctx(req), req.params.name!)); } catch (err) { next(err); }
+});
+
+propertiesRouter.post('/buildings/:name/advertise', requirePermission('properties:edit'), async (req, res, next) => {
+  try { res.json(await setBuildingAdvertised(ctx(req), req.params.name!, req.body?.advertised !== false)); } catch (err) { next(err); }
+});
+
+propertiesRouter.get('/:id/network', requirePermission('properties:view'), async (req, res, next) => {
+  try { res.json(await getPropertyNetwork(ctx(req), req.params.id!)); } catch (err) { next(err); }
+});
+
+propertiesRouter.post('/:id/advertise', requirePermission('properties:edit'), async (req, res, next) => {
+  try { res.json(await setAdvertised(ctx(req), req.params.id!, req.body?.advertised !== false)); } catch (err) { next(err); }
 });
 
 propertiesRouter.get('/:id', requirePermission('properties:view'), async (req, res, next) => {

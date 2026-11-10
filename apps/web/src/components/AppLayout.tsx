@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, Users, UserCircle, Building2, Landmark, CalendarClock, ListChecks,
-  Handshake, Wallet, Calendar, MessageSquare, FileText, BarChart3, UsersRound, Settings, LogOut, Menu, X, ShieldCheck, LineChart, Workflow, KeyRound, Wrench,
+  Handshake, Wallet, Calendar, MessageSquare, FileText, BarChart3, UsersRound, Settings, LogOut, Menu, X, ShieldCheck, LineChart, Workflow, KeyRound, Wrench, Hotel,
 } from 'lucide-react';
 import { can, planHasModule, type Permission } from '@kaya/shared';
 import { useAuth } from '../auth/AuthContext';
@@ -31,6 +31,7 @@ const NAV_GROUPS: { titleKey?: string; title?: string; items: NavItem[] }[] = [
     titleKey: 'nav.group.portfolio', title: 'Portfolio',
     items: [
       { to: '/properties', labelKey: 'nav.properties', icon: Building2 },
+      { to: '/buildings', labelKey: 'nav.buildings', icon: Hotel },
       { to: '/owners', labelKey: 'nav.owners', icon: Landmark },
       { to: '/rent', labelKey: 'nav.rent', icon: KeyRound, module: 'rentManagement', permission: 'rent:view' },
       { to: '/maintenance', labelKey: 'nav.maintenance', icon: Wrench, module: 'rentManagement', permission: 'maintenance:view' },

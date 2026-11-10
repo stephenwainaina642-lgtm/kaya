@@ -48,6 +48,11 @@ export const properties = pgTable('properties', {
   neighborhood: text('neighborhood'),
   city: text('city').notNull().default('Nairobi'),
   address: text('address'),
+  // Large estates: units share a building name; unit_number is the door/flat label.
+  building: text('building'),
+  unitNumber: text('unit_number'),
+  // Opt-in to the agency's public listings page.
+  advertised: boolean('advertised').notNull().default(false),
   lat: doublePrecision('lat'),
   lng: doublePrecision('lng'),
   bedrooms: integer('bedrooms'),

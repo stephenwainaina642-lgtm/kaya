@@ -42,6 +42,10 @@ function InquiryLinkCard() {
           <Button type="button" variant="secondary"><ExternalLink size={15} /></Button>
         </a>
       </div>
+      <p className="mt-3 text-sm text-muted">
+        Properties you switch on to advertise appear on your{' '}
+        <a href={`${window.location.origin}/listings/${data.slug}`} target="_blank" rel="noreferrer" className="text-accent hover:underline">public listings page</a>.
+      </p>
     </Card>
   );
 }
