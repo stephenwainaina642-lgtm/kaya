@@ -4,6 +4,7 @@ import { createPublicViewingRequest, getPortalDocumentFile, signPortalDocument }
 import { getPortal, getTenantPortal } from '../rent/portal.service';
 import { portalLimiter, repairReportLimiter } from '../../middleware/rateLimit';
 import { submitRepairReport } from '../maintenance/public-report.service';
+import { servePhoto } from '../properties/photos.service';
 import { getPublicListings, getPublicListing } from '../properties/listings.service';
 import { getPublicOrgInfo, submitPublicInquiry } from '../leads/public-inquiry.service';
 import { getLogoStorageKeyBySlug } from '../org-settings/org-settings.service';
@@ -54,6 +55,10 @@ platformRouter.post('/shortlists/:token/documents/:documentId/sign', async (req,
   } catch (err) {
     next(err);
   }
+});
+
+platformRouter.get('/photos/:id', async (req, res, next) => {
+  try { await servePhoto(req.params.id!, res); } catch (err) { next(err); }
 });
 
 platformRouter.get('/listings/:slug', async (req, res, next) => {

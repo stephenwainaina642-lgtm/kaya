@@ -1,5 +1,7 @@
 import { importProperties } from './import.service';
 import { Router } from 'express';
+import multer from 'multer';
+import { addPhotos, MAX_PHOTO_BYTES, MAX_PHOTOS_PER_UPLOAD } from './photos.service';
 import { authenticate, ctx, requirePermission } from '../../middleware/auth';
 import {
   listProperties, getProperty, createProperty, updateProperty, deleteProperty,
@@ -9,6 +11,7 @@ import {
 import { createBulkUnits, listBuildings, getBuilding, getPropertyNetwork, setAdvertised, setBuildingAdvertised } from './estate.service';
 
 export const propertiesRouter = Router();
+const photoUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_PHOTO_BYTES, files: MAX_PHOTOS_PER_UPLOAD } });
 propertiesRouter.use(authenticate);
 
 propertiesRouter.get('/', requirePermission('properties:view'), async (req, res, next) => {
@@ -25,6 +28,24 @@ propertiesRouter.post('/import', requirePermission('properties:create'), async (
 
 propertiesRouter.post('/bulk', requirePermission('properties:create'), async (req, res, next) => {
   try { res.status(201).json(await createBulkUnits(ctx(req), req.body)); } catch (err) { next(err); }
+});
+
+propertiesRouter.post('/buildings/:name/photos', requirePermission('properties:edit'), photoUpload.array('files', MAX_PHOTOS_PER_UPLOAD), async (req, res, next) => {
+  try {
+    const a = ctx(req);
+    const building = await getBuilding(a, req.params.name!);
+    const only = typeof req.body?.unitIds === 'string' && req.body.unitIds ? new Set(String(req.body.unitIds).split(',')) : null;
+    const ids = building.unitList.filter((u) => !only || only.has(u.id)).map((u) => u.id);
+    res.json(await addPhotos(a, ids, (req.files as Express.Multer.File[]) ?? []));
+  } catch (err) { next(err); }
+});
+
+propertiesRouter.post('/:id/photos', requirePermission('properties:edit'), photoUpload.array('files', MAX_PHOTOS_PER_UPLOAD), async (req, res, next) => {
+  try {
+    const a = ctx(req);
+    await addPhotos(a, [req.params.id!], (req.files as Express.Multer.File[]) ?? []);
+    res.json(await getProperty(a, req.params.id!));
+  } catch (err) { next(err); }
 });
 
 propertiesRouter.get('/buildings', requirePermission('properties:view'), async (req, res, next) => {

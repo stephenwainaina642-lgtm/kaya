@@ -1,3 +1,4 @@
+import { releaseFile } from './photos.service';
 import { z } from 'zod';
 import { eq, and, desc, ilike, sql as dsql } from 'drizzle-orm';
 import {
@@ -255,11 +256,16 @@ export async function addImage(a: Auth, id: string, body: unknown): Promise<Prop
 export async function removeImage(a: Auth, id: string, imageId: string): Promise<PropertyDetail> {
   parse(uuidField, id);
   parse(uuidField, imageId);
-  return withTenant(a.organizationId, async (tx) => {
+  const removedKeys: string[] = [];
+  const result = await withTenant(a.organizationId, async (tx) => {
     await requireProperty(tx, a.organizationId, id);
-    await tx.delete(propertyImages).where(and(eq(propertyImages.id, imageId), eq(propertyImages.propertyId, id)));
-    return hydrate(tx, a.organizationId, id);
+    const gone = await tx.delete(propertyImages).where(and(eq(propertyImages.id, imageId), eq(propertyImages.propertyId, id))).returning({ key: propertyImages.storageKey });
+    const detail = await hydrate(tx, a.organizationId, id);
+    removedKeys.push(...gone.map((g) => g.key).filter((k): k is string => !!k));
+    return detail;
   });
+  for (const k of removedKeys) await releaseFile(k);
+  return result;
 }
 
 export async function addFeature(a: Auth, id: string, body: unknown): Promise<PropertyDetail> {

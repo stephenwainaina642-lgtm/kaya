@@ -79,6 +79,9 @@ export const propertyImages = pgTable('property_images', {
   id: uuid('id').primaryKey().defaultRandom(),
   propertyId: uuid('property_id').notNull().references(() => properties.id, { onDelete: 'cascade' }),
   url: text('url').notNull(),
+  // Set for uploaded photos: where the bytes live (lib/storage) and their sniffed type.
+  storageKey: text('storage_key'),
+  mime: text('mime'),
   alt: text('alt'),
   isCover: boolean('is_cover').notNull().default(false),
   position: integer('position').notNull().default(0),

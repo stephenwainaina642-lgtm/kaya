@@ -96,13 +96,35 @@ export function PublicPortal() {
         </section>
 
         <section>
-          <h2 className="mb-3 font-display text-lg font-semibold text-ink">Your properties</h2>
+          <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+            <h2 className="font-display text-lg font-semibold text-ink">Your properties</h2>
+            {data.units.length > 0 && (
+              <p className="text-sm text-muted">
+                {data.units.filter((u) => u.state === 'LET').length} of {data.units.length} let
+                {data.units.some((u) => u.advertised) ? ` · ${data.units.filter((u) => u.advertised).length} being advertised` : ''}
+              </p>
+            )}
+          </div>
           <ul className="divide-y divide-line rounded-panel border border-line bg-white">
             {data.units.map((u) => (
-              <li key={u.propertyTitle + u.location} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
-                <div><p className="font-medium text-ink">{u.propertyTitle}</p><p className="text-xs text-muted">{u.location}</p></div>
-                <div className="text-right">
-                  {u.tenantName ? <><p className="text-ink">{u.tenantName}</p><p className="text-xs text-muted">{kes(u.rent ?? 0)} a month</p></> : <Badge tone="warn">Vacant</Badge>}
+              <li key={u.propertyTitle + u.location + (u.unitNumber ?? '')} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                <div className="flex min-w-0 items-center gap-3">
+                  {u.coverImageUrl && <img src={u.coverImageUrl} alt="" loading="lazy" className="h-11 w-14 shrink-0 rounded-control object-cover" />}
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-ink">{u.propertyTitle}</p>
+                    <p className="truncate text-xs text-muted">{u.location}</p>
+                  </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  {u.state === 'LET' ? (
+                    <><p className="text-ink">{u.tenantName}</p><p className="text-xs text-muted">{kes(u.rent ?? 0)} a month</p></>
+                  ) : (
+                    <>
+                      <Badge tone={u.state === 'VACANT' ? 'warn' : 'neutral'}>{u.state === 'VACANT' ? 'Vacant' : 'Not available'}</Badge>
+                      <p className="mt-1 text-xs text-muted">Listed at {kes(u.listPrice)}{u.listingType === 'RENT' ? ' a month' : ''}</p>
+                      {u.listingPath && <a href={u.listingPath} target="_blank" rel="noreferrer" className="text-xs text-accent hover:underline">Advertised: view listing</a>}
+                    </>
+                  )}
                 </div>
               </li>
             ))}

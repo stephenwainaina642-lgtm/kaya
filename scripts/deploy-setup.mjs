@@ -177,6 +177,14 @@ async function main() {
       SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid WHERE t.typname = 'role' AND e.enumlabel = 'CARETAKER'
     )
     UNION ALL
+    SELECT 'property_images.storage_key' WHERE to_regclass('property_images') IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM information_schema.columns WHERE table_name = 'property_images' AND column_name = 'storage_key'
+    )
+    UNION ALL
+    SELECT 'property_images.mime' WHERE to_regclass('property_images') IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM information_schema.columns WHERE table_name = 'property_images' AND column_name = 'mime'
+    )
+    UNION ALL
     SELECT 'properties.building' WHERE to_regclass('properties') IS NOT NULL AND NOT EXISTS (
       SELECT 1 FROM information_schema.columns WHERE table_name = 'properties' AND column_name = 'building'
     )
@@ -341,6 +349,10 @@ async function applyKnownFixups(c) {
         END IF;
         IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'role') THEN
           ALTER TYPE role ADD VALUE IF NOT EXISTS 'CARETAKER';
+        END IF;
+        IF to_regclass('property_images') IS NOT NULL THEN
+          ALTER TABLE property_images ADD COLUMN IF NOT EXISTS storage_key text;
+          ALTER TABLE property_images ADD COLUMN IF NOT EXISTS mime text;
         END IF;
         IF to_regclass('properties') IS NOT NULL THEN
           ALTER TABLE properties ADD COLUMN IF NOT EXISTS building text;

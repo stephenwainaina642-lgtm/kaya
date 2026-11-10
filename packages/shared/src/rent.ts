@@ -214,6 +214,19 @@ export interface PortalUnit {
   /** The tenant's name while the unit is let; null when vacant. */
   tenantName: string | null;
   rent: number | null;
+  /** Unit label inside a building, when it has one. */
+  building: string | null;
+  unitNumber: string | null;
+  /** What the unit is listed at (rent per month, or sale price). */
+  listPrice: number;
+  listingType: 'RENT' | 'SALE';
+  /** Let (active lease), vacant, or off the market for another reason. */
+  state: 'LET' | 'VACANT' | 'OTHER';
+  /** Live on the agency's public listings page right now. */
+  advertised: boolean;
+  /** Path of the public listing page while advertised, otherwise null. */
+  listingPath: string | null;
+  coverImageUrl: string | null;
 }
 
 export interface PortalRepair {
@@ -227,6 +240,7 @@ export interface PortalRepair {
 /** What a landlord sees on their private, read-only link. */
 export interface PortalView {
   agencyName: string;
+  agencySlug: string;
   currency: string;
   ownerName: string;
   period: string;

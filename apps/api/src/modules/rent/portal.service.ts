@@ -1,10 +1,10 @@
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
-import { and, eq, inArray, notInArray, sql } from 'drizzle-orm';
-import { effectivePlan, periodLabel, planHasModule, type PortalView, type TenantPortalView } from '@kaya/shared';
+import { and, desc, eq, inArray, notInArray, sql } from 'drizzle-orm';
+import { effectivePlan, periodLabel, planHasModule, type PortalUnit, type PortalView, type TenantPortalView } from '@kaya/shared';
 import { withTenant } from '../../db/client';
 import { systemDb } from '../../db/system';
-import { clients, leases, maintenanceRequests, organizations, owners, properties } from '../../db/schema';
+import { clients, leases, maintenanceRequests, organizations, owners, properties, propertyImages } from '../../db/schema';
 import { notFound } from '../../lib/errors';
 import { parse } from '../../lib/validate';
 import { recordAudit } from '../../lib/audit';
@@ -59,7 +59,7 @@ export async function getPortal(token: string, periodInput?: string): Promise<Po
   if (!/^[A-Za-z0-9_-]{20,80}$/.test(token)) throw notFound('Page');
   const period = parse(periodField, periodInput ?? currentPeriod());
   const [hit] = await systemDb.select({
-    ownerId: owners.id, organizationId: owners.organizationId, agencyName: organizations.name, currency: organizations.currency,
+    ownerId: owners.id, organizationId: owners.organizationId, agencyName: organizations.name, agencySlug: organizations.slug, currency: organizations.currency,
     plan: organizations.plan, planExpiresAt: organizations.planExpiresAt, suspendedAt: organizations.suspendedAt,
   }).from(owners).innerJoin(organizations, eq(organizations.id, owners.organizationId)).where(eq(owners.portalToken, token));
   if (!hit || hit.suspendedAt || !planHasModule(effectivePlan(hit.plan, hit.planExpiresAt), 'rentManagement')) throw notFound('Page');
@@ -67,8 +67,10 @@ export async function getPortal(token: string, periodInput?: string): Promise<Po
   const auth = { organizationId: hit.organizationId } as Auth;
   const statement = await ownerStatement(auth, hit.ownerId, period);
   const { units, openRepairs } = await withTenant(hit.organizationId, async (tx) => {
-    const props = await tx.select({ id: properties.id, title: properties.title, location: properties.location })
-      .from(properties).where(eq(properties.ownerId, hit.ownerId));
+    const props = await tx.select({
+      id: properties.id, title: properties.title, location: properties.location, building: properties.building, unitNumber: properties.unitNumber,
+      price: properties.price, listingType: properties.listingType, status: properties.status, advertised: properties.advertised,
+    }).from(properties).where(eq(properties.ownerId, hit.ownerId)).orderBy(properties.building, properties.unitNumber, properties.title);
     if (!props.length) return { units: [], openRepairs: [] };
     const ids = props.map((p) => p.id);
     const active = await tx.select({ propertyId: leases.propertyId, rent: leases.rentAmount, tenantName: clients.fullName })
@@ -80,13 +82,26 @@ export async function getPortal(token: string, periodInput?: string): Promise<Po
       status: maintenanceRequests.status, createdAt: maintenanceRequests.createdAt,
     }).from(maintenanceRequests)
       .where(and(inArray(maintenanceRequests.propertyId, ids), notInArray(maintenanceRequests.status, ['DONE', 'CANCELLED'])));
+    const covers = await tx.select({ propertyId: propertyImages.propertyId, url: propertyImages.url, isCover: propertyImages.isCover, position: propertyImages.position })
+      .from(propertyImages).where(inArray(propertyImages.propertyId, ids)).orderBy(desc(propertyImages.isCover), propertyImages.position);
+    const cover = new Map<string, string>();
+    for (const c of covers) if (!cover.has(c.propertyId)) cover.set(c.propertyId, c.url);
     const title = new Map(props.map((p) => [p.id, p.title]));
     return {
-      units: props.map((p) => ({ propertyTitle: p.title, location: p.location, tenantName: byProp.get(p.id)?.tenantName ?? null, rent: byProp.get(p.id)?.rent ?? null })),
+      units: props.map((p): PortalUnit => {
+        const let_ = byProp.has(p.id);
+        const live = !let_ && p.advertised && p.status === 'AVAILABLE';
+        return {
+          propertyTitle: p.title, location: p.location, tenantName: byProp.get(p.id)?.tenantName ?? null, rent: byProp.get(p.id)?.rent ?? null,
+          building: p.building, unitNumber: p.unitNumber, listPrice: p.price, listingType: p.listingType as 'RENT' | 'SALE',
+          state: let_ ? 'LET' : p.status === 'AVAILABLE' ? 'VACANT' : 'OTHER', advertised: live,
+          listingPath: live ? `/listings/${hit.agencySlug}/${p.id}` : null, coverImageUrl: cover.get(p.id) ?? null,
+        };
+      }),
       openRepairs: repairs.map((r) => ({ title: r.title, propertyTitle: title.get(r.propertyId) ?? '', priority: r.priority, status: r.status, createdAt: r.createdAt.toISOString() })),
     };
   });
-  return { agencyName: hit.agencyName, currency: hit.currency, ownerName: statement.ownerName, period, statement, units, openRepairs };
+  return { agencyName: hit.agencyName, agencySlug: hit.agencySlug, currency: hit.currency, ownerName: statement.ownerName, period, statement, units, openRepairs };
 }
 
 export interface EmailStatementResult { sent: boolean; to: string }

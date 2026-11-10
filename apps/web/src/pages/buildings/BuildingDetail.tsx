@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Megaphone } from 'lucide-react';
+import { ArrowLeft, Megaphone, ImagePlus } from 'lucide-react';
 import type { BuildingDetail as BuildingDetailT } from '@kaya/shared';
 import { formatMoney } from '@kaya/shared';
 import { api } from '../../lib/api';
@@ -8,6 +9,8 @@ import { PageHeader } from '../../components/PageHeader';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Spinner } from '../../components/ui/Spinner';
+import { Modal } from '../../components/ui/Modal';
+import { PhotoUploader } from '../../components/PhotoUploader';
 import { OccupancyBar } from './BuildingsList';
 
 const TILE: Record<string, string> = {
@@ -18,6 +21,9 @@ const TILE: Record<string, string> = {
 export function BuildingDetail() {
   const { name = '' } = useParams<{ name: string }>();
   const qc = useQueryClient();
+  const [showPhotos, setShowPhotos] = useState(false);
+  const [vacantOnly, setVacantOnly] = useState(false);
+  const [done, setDone] = useState<string | null>(null);
   const { data: b, isLoading } = useQuery({
     queryKey: ['buildings', name],
     queryFn: () => api.get<BuildingDetailT>(`/properties/buildings/${encodeURIComponent(name)}`),
@@ -46,6 +52,7 @@ export function BuildingDetail() {
         subtitle={`${b.location}, ${b.city}${b.ownerNames.length ? ` · ${b.ownerNames.join(', ')}` : ''}`}
         actions={
           <div className="flex items-center gap-3">
+            <Button variant="secondary" onClick={() => { setDone(null); setShowPhotos(true); }}><ImagePlus size={14} /> Add photos</Button>
             <Button variant="secondary" disabled={advertise.isPending} onClick={() => advertise.mutate(live === 0)}>
               <Megaphone size={14} /> {live === 0 ? 'Advertise vacant units' : `Advertising ${live} unit${live === 1 ? '' : 's'} · stop`}
             </Button>
@@ -53,6 +60,32 @@ export function BuildingDetail() {
           </div>
         }
       />
+      <Modal open={showPhotos} onClose={() => setShowPhotos(false)} title="Add photos to units">
+        {done ? (
+          <div className="py-2 text-center">
+            <p className="text-base font-medium text-ink">{done}</p>
+            <Button className="mt-4" onClick={() => setShowPhotos(false)}>Done</Button>
+          </div>
+        ) : (
+          <>
+            <p className="mb-4 text-sm text-muted">Upload once and the photos are added to every unit you choose. The first photo becomes the cover. Open a single unit to add photos only to it.</p>
+            <label className="mb-4 flex items-center gap-2 text-sm text-ink">
+              <input type="checkbox" disabled={!b.unitList.some((u) => u.status === 'AVAILABLE')} checked={vacantOnly} onChange={(e) => setVacantOnly(e.target.checked)} />
+              Only vacant units ({b.unitList.filter((u) => u.status === 'AVAILABLE').length} of {b.units})
+            </label>
+            <PhotoUploader
+              endpoint={`/properties/buildings/${encodeURIComponent(name)}/photos`}
+              fields={vacantOnly ? { unitIds: b.unitList.filter((u) => u.status === 'AVAILABLE').map((u) => u.id).join(',') } : undefined}
+              submitLabel="Add to units"
+              onDone={(r) => {
+                const res = r as { units: number; photos: number };
+                setDone(`Added ${res.photos} photo${res.photos === 1 ? '' : 's'} to ${res.units} unit${res.units === 1 ? '' : 's'}.`);
+                qc.invalidateQueries({ queryKey: ['properties'] });
+              }}
+            />
+          </>
+        )}
+      </Modal>
       <div className="space-y-6 p-8">
         <div className="grid grid-cols-2 gap-px overflow-hidden rounded-panel border border-line bg-line lg:grid-cols-4">
           {[
