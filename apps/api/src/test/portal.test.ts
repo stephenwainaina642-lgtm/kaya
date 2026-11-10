@@ -40,7 +40,8 @@ describe('landlord portal', () => {
     expect(view.headers['cache-control']).toBe('no-store');
     expect(view.body).toMatchObject({ ownerName: 'Grace Wanjiru', period: '2026-03' });
     expect(view.body.statement.totals).toMatchObject({ collected: 50_000, managementFee: 5_000, netToLandlord: 45_000 });
-    expect(view.body.units).toEqual([{ propertyTitle: 'Kilimani 2BR', location: 'Kilimani', tenantName: 'Tenant Tom', rent: 50_000 }]);
+    expect(view.body.units).toHaveLength(1);
+    expect(view.body.units[0]).toMatchObject({ propertyTitle: 'Kilimani 2BR', location: 'Kilimani', tenantName: 'Tenant Tom', rent: 50_000, state: 'LET', advertised: false, listingPath: null });
     expect(view.body.openRepairs).toHaveLength(1);
     // Nothing that identifies tenants beyond a name, and no internal ids of other records.
     expect(JSON.stringify(view.body)).not.toContain('254733000009');
