@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { CheckCircle2 } from 'lucide-react';
@@ -12,11 +13,11 @@ import { Select } from '../../components/ui/Select';
 import { TextArea } from '../../components/ui/TextArea';
 import { Button } from '../../components/ui/Button';
 import { BrandMark } from '../../components/BrandMark';
-
-const nice = (s: string) => s[0] + s.slice(1).toLowerCase();
+import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 
 /** Public page where a tenant reports a fault. Linked from the agency's Settings. */
 export function PublicRepair() {
+  const { t } = useTranslation();
   const { slug } = useParams<{ slug: string }>();
   const { data, isLoading, isError } = useQuery({
     queryKey: ['public-org', slug],
@@ -41,8 +42,8 @@ export function PublicRepair() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-ground px-4">
         <div className="text-center">
-          <h1 className="font-display text-xl font-semibold text-ink">Page not found</h1>
-          <p className="mt-2 text-sm text-muted">This link doesn't match an agency on Kaya.</p>
+          <h1 className="font-display text-xl font-semibold text-ink">{t('repair.notFound')}</h1>
+          <p className="mt-2 text-sm text-muted">{t('repair.notFoundBody')}</p>
         </div>
       </div>
     );
@@ -53,10 +54,10 @@ export function PublicRepair() {
       <div className="flex min-h-screen items-center justify-center bg-ground px-4">
         <div className="max-w-sm text-center">
           <CheckCircle2 size={36} className="mx-auto text-cypress-600" />
-          <h1 className="mt-4 font-display text-xl font-semibold text-ink">Report received</h1>
+          <h1 className="mt-4 font-display text-xl font-semibold text-ink">{t('repair.received')}</h1>
           <p className="mt-2 text-sm leading-relaxed text-muted">
-            Thanks, {fullName.split(' ')[0]}. {data.name} has been told and will follow up with you.
-            {urgent && ' For a real emergency such as a burst pipe or fire, please also call them directly.'}
+            {t('repair.thanks', { name: fullName.split(' ')[0], agency: data.name })}
+            {urgent && t('repair.emergency')}
           </p>
         </div>
       </div>
@@ -65,35 +66,36 @@ export function PublicRepair() {
 
   return (
     <div className="min-h-screen bg-ground">
-      <header className="border-b border-line bg-white px-6 py-10 text-center sm:px-10">
+      <header className="relative border-b border-line bg-white px-6 py-10 text-center sm:px-10">
+        <div className="absolute right-4 top-4"><LanguageSwitcher /></div>
         <div className="flex justify-center">
           <BrandMark logoUrl={data.logoUrl} name={data.name} brandColor={data.brandColor} size={48} />
         </div>
         <p className="mt-3 text-xs font-medium uppercase tracking-wide text-faint">{data.name}</p>
-        <h1 className="mx-auto mt-2 max-w-md font-display text-2xl font-semibold text-ink sm:text-3xl">Report a problem</h1>
+        <h1 className="mx-auto mt-2 max-w-md font-display text-2xl font-semibold text-ink sm:text-3xl">{t('repair.title')}</h1>
         <p className="mx-auto mt-2 max-w-sm text-sm text-muted">
-          Something broken at your home? Tell us and your agent will arrange a fix.
+          {t('repair.intro')}
         </p>
       </header>
       <main className="mx-auto max-w-md px-4 py-10 sm:px-6">
         <form onSubmit={(e) => { e.preventDefault(); submit.mutate(); }} className="rounded-panel border border-line bg-white p-6 shadow-card">
-          <Field label="Your name">
+          <Field label={t('repair.name')}>
             <Input value={fullName} onChange={(e) => setFullName(e.target.value)} required />
           </Field>
-          <Field label="Phone number">
-            <PhoneInput value={phone} onChange={setPhone} placeholder="The number you gave your agent" required />
+          <Field label={t('repair.phone')}>
+            <PhoneInput value={phone} onChange={setPhone} placeholder={t('repair.phonePh')} required />
           </Field>
-          <Field label="What kind of problem?">
+          <Field label={t('repair.kind')}>
             <Select value={category} onChange={(e) => setCategory(e.target.value)}>
-              {MAINTENANCE_CATEGORIES.map((c) => <option key={c} value={c}>{nice(c)}</option>)}
+              {MAINTENANCE_CATEGORIES.map((c) => <option key={c} value={c}>{t(`repair.categories.${c}`)}</option>)}
             </Select>
           </Field>
-          <Field label="What is wrong?">
-            <TextArea rows={4} value={message} onChange={(e) => setMessage(e.target.value)} minLength={5} maxLength={2000} required placeholder="e.g. Water is leaking under the kitchen sink" />
+          <Field label={t('repair.what')}>
+            <TextArea rows={4} value={message} onChange={(e) => setMessage(e.target.value)} minLength={5} maxLength={2000} required placeholder={t('repair.whatPh')} />
           </Field>
           <label className="mb-4 flex items-start gap-2 text-sm text-ink">
             <input type="checkbox" className="mt-0.5" checked={urgent} onChange={(e) => setUrgent(e.target.checked)} />
-            <span>This is urgent (flooding, no power, a security risk)</span>
+            <span>{t('repair.urgent')}</span>
           </label>
           <div className="hidden" aria-hidden="true">
             <label htmlFor="website">Leave this field empty</label>
@@ -101,10 +103,10 @@ export function PublicRepair() {
           </div>
           {submit.isError && (
             <p className="mb-3 text-sm text-danger">
-              {submit.error instanceof ApiError ? submit.error.message : 'Something went wrong. Please try again.'}
+              {submit.error instanceof ApiError ? submit.error.message : t('repair.error')}
             </p>
           )}
-          <Button type="submit" disabled={submit.isPending} className="w-full">{submit.isPending ? 'Sending…' : 'Send report'}</Button>
+          <Button type="submit" disabled={submit.isPending} className="w-full">{submit.isPending ? t('repair.sending') : t('repair.send')}</Button>
         </form>
       </main>
     </div>

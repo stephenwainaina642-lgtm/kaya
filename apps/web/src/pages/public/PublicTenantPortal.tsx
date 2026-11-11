@@ -1,15 +1,19 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { periodLabel, type TenantPortalView, type TenantPayStatus } from '@kaya/shared';
+import { useTranslation } from 'react-i18next';
+import { type TenantPortalView, type TenantPayStatus } from '@kaya/shared';
 import { api, ApiError } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
 import { Spinner } from '../../components/ui/Spinner';
 import { Badge } from '../../components/ui/Badge';
 import { money as kes, money, setCurrency } from '../../lib/currency';
 import { PhoneInput } from '../../components/ui/PhoneInput';
+import { LanguageSwitcher } from '../../components/LanguageSwitcher';
+import { localDay, localPeriod } from '../../lib/localDate';
 
 function PayNow({ token, owing, currency }: { token: string; owing: number; currency: string }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [amount, setAmount] = useState(String(owing));
   const [phone, setPhone] = useState('');
@@ -20,7 +24,7 @@ function PayNow({ token, owing, currency }: { token: string; owing: number; curr
   const start = useMutation({
     mutationFn: () => api.post<TenantPayStatus>(`/public/tenant-portal/${token}/pay`, { amount: Number(amount), ...(other && phone ? { phone } : {}) }),
     onSuccess: (r) => { setError(null); setReqId(r.id); },
-    onError: (err) => setError(err instanceof ApiError ? err.message : 'Could not start the payment. Try again.'),
+    onError: (err) => setError(err instanceof ApiError ? err.message : t('tenant.payError')),
   });
   const status = useQuery({
     queryKey: ['tenant-pay', token, reqId],
@@ -34,44 +38,45 @@ function PayNow({ token, owing, currency }: { token: string; owing: number; curr
   if (reqId && s?.status === 'PAID') {
     return (
       <div className="rounded-control bg-[#edf5f0] px-4 py-3 text-sm text-ok" role="status">
-        <p className="font-medium">Payment received: {money(s.amount)}</p>
-        {s.receipt && <p className="mt-0.5">M-Pesa code {s.receipt}. Your balance has been updated.</p>}
+        <p className="font-medium">{t('tenant.received', { amount: money(s.amount) })}</p>
+        {s.receipt && <p className="mt-0.5">{t('tenant.receivedCode', { code: s.receipt })}</p>}
       </div>
     );
   }
   if (reqId && (!s || s.status === 'PENDING')) {
     return (
       <div className="rounded-control bg-sunk px-4 py-3 text-sm text-ink" role="status">
-        <p className="font-medium">Check your phone</p>
-        <p className="mt-0.5 text-muted">Enter your M-Pesa PIN to pay {money(Number(amount))}. This page updates by itself.</p>
-        <button type="button" className="mt-2 text-xs text-accent hover:underline" onClick={() => setReqId(null)}>Cancel</button>
+        <p className="font-medium">{t('tenant.checkPhone')}</p>
+        <p className="mt-0.5 text-muted">{t('tenant.enterPin', { amount: money(Number(amount)) })}</p>
+        <button type="button" className="mt-2 text-xs text-accent hover:underline" onClick={() => setReqId(null)}>{t('tenant.cancel')}</button>
       </div>
     );
   }
   return (
     <form onSubmit={(e) => { e.preventDefault(); setError(null); start.mutate(); }}>
-      {reqId && s?.status === 'FAILED' && <p className="mb-3 rounded-control bg-[#fbeeee] px-3 py-2 text-sm text-danger" role="alert">{s.message ?? 'The payment was not completed.'} You can try again.</p>}
+      {reqId && s?.status === 'FAILED' && <p className="mb-3 rounded-control bg-[#fbeeee] px-3 py-2 text-sm text-danger" role="alert">{s.message ?? t('tenant.notCompleted')} {t('tenant.tryAgain')}</p>}
       <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-        <label className="text-xs text-muted">Amount ({currency})
+        <label className="text-xs text-muted">{t('tenant.amount', { currency })}
           <input inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))} required
             className="mt-1 w-full rounded-control border border-line px-3 py-2 text-sm text-ink" />
         </label>
-        <Button type="submit" className="self-end" disabled={start.isPending || !amount || Number(amount) < 10 || (other && phone.length < 9)}>{start.isPending ? 'Sending…' : 'Pay with M-Pesa'}</Button>
+        <Button type="submit" className="self-end" disabled={start.isPending || !amount || Number(amount) < 10 || (other && phone.length < 9)}>{start.isPending ? t('tenant.sending') : t('tenant.payMpesa')}</Button>
       </div>
       {other ? (
-        <label className="mt-3 block text-xs text-muted">M-Pesa number
+        <label className="mt-3 block text-xs text-muted">{t('tenant.otherNumber')}
           <PhoneInput value={phone} onChange={setPhone} placeholder="0712345678" className="mt-1" />
         </label>
       ) : (
-        <button type="button" className="mt-2 text-xs text-accent hover:underline" onClick={() => setOther(true)}>Pay from a different number</button>
+        <button type="button" className="mt-2 text-xs text-accent hover:underline" onClick={() => setOther(true)}>{t('tenant.otherNumberLink')}</button>
       )}
       {error && <p className="mt-2 text-sm text-danger" role="alert">{error}</p>}
-      <p className="mt-2 text-xs text-faint">You will get an M-Pesa PIN prompt on your phone. The money goes straight to your agent and is recorded automatically.</p>
+      <p className="mt-2 text-xs text-faint">{t('tenant.pinNote')}</p>
     </form>
   );
 }
 
 function PayCard({ token, data, owing }: { token: string; data: TenantPortalView; owing: number }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [amount, setAmount] = useState(owing > 0 ? String(owing) : '');
   const [code, setCode] = useState('');
@@ -79,42 +84,42 @@ function PayCard({ token, data, owing }: { token: string; data: TenantPortalView
   const send = useMutation({
     mutationFn: () => api.post(`/public/tenant-portal/${token}/claims`, { amount: Number(amount), mpesaCode: code }),
     onSuccess: () => { setCode(''); setError(null); qc.invalidateQueries({ queryKey: ['tenant-portal', token] }); },
-    onError: (err) => setError(err instanceof ApiError ? err.message : 'Could not send. Try again.'),
+    onError: (err) => setError(err instanceof ApiError ? err.message : t('tenant.sendError')),
   });
   const pending = data.claims.filter((c) => c.status === 'PENDING');
   return (
     <section className="rounded-panel border border-line bg-white p-5">
-      <h2 className="font-display text-lg font-semibold text-ink">Pay your rent</h2>
+      <h2 className="font-display text-lg font-semibold text-ink">{t('tenant.payTitle')}</h2>
       {data.canPayNow && owing > 0 && <div className="mt-3"><PayNow token={token} owing={owing} currency={data.currency} /></div>}
-      {data.canPayNow && owing > 0 && <p className="mt-5 text-sm font-medium text-ink">Paid another way?</p>}
+      {data.canPayNow && owing > 0 && <p className="mt-5 text-sm font-medium text-ink">{t('tenant.paidAnother')}</p>}
       {data.payInfo ? (
         <p className="mt-2 whitespace-pre-line rounded-control bg-sunk px-4 py-3 text-sm text-ink">{data.payInfo}</p>
       ) : (
-        <p className="mt-2 text-sm text-muted">Ask {data.agencyName} how to pay. Once you have paid, tell them below.</p>
+        <p className="mt-2 text-sm text-muted">{t('tenant.askHow', { agency: data.agencyName })}</p>
       )}
       <form className="mt-4" onSubmit={(e) => { e.preventDefault(); setError(null); send.mutate(); }}>
-        <p className="mb-2 text-sm font-medium text-ink">Already paid? Tell {data.agencyName}</p>
+        <p className="mb-2 text-sm font-medium text-ink">{t('tenant.alreadyPaid', { agency: data.agencyName })}</p>
         <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
-          <label className="text-xs text-muted">Amount ({data.currency})
+          <label className="text-xs text-muted">{t('tenant.amount', { currency: data.currency })}
             <input inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))} required
               className="mt-1 w-full rounded-control border border-line px-3 py-2 text-sm text-ink" />
           </label>
-          <label className="text-xs text-muted">M-Pesa code
-            <input value={code} maxLength={10} autoCapitalize="characters" placeholder="e.g. SHK4ABC123"
+          <label className="text-xs text-muted">{t('tenant.mpesaCode')}
+            <input value={code} maxLength={10} autoCapitalize="characters" placeholder={t('tenant.codePlaceholder')}
               onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} required
               className="mt-1 w-full rounded-control border border-line px-3 py-2 text-sm uppercase text-ink" />
           </label>
-          <Button type="submit" className="self-end" disabled={send.isPending || !amount || code.length !== 10}>{send.isPending ? 'Sending…' : 'Send'}</Button>
+          <Button type="submit" className="self-end" disabled={send.isPending || !amount || code.length !== 10}>{send.isPending ? t('tenant.sending') : t('tenant.send')}</Button>
         </div>
         {error && <p className="mt-2 text-sm text-danger" role="alert">{error}</p>}
-        <p className="mt-2 text-xs text-faint">Your agent checks the code against M-Pesa and your balance updates once it is confirmed.</p>
+        <p className="mt-2 text-xs text-faint">{t('tenant.codeNote')}</p>
       </form>
       {data.claims.length > 0 && (
         <ul className="mt-4 divide-y divide-line border-t border-line text-sm">
           {data.claims.map((c) => (
             <li key={c.mpesaCode + c.createdAt} className="flex items-center justify-between py-2">
               <span className="text-ink">{kes(c.amount)} <span className="text-muted">· {c.mpesaCode}</span></span>
-              <Badge tone={c.status === 'CONFIRMED' ? 'ok' : c.status === 'REJECTED' ? 'danger' : 'warn'}>{c.status === 'PENDING' ? 'Waiting for your agent' : c.status === 'CONFIRMED' ? 'Confirmed' : 'Not matched'}</Badge>
+              <Badge tone={c.status === 'CONFIRMED' ? 'ok' : c.status === 'REJECTED' ? 'danger' : 'warn'}>{c.status === 'PENDING' ? t('tenant.waiting') : c.status === 'CONFIRMED' ? t('tenant.confirmed') : t('tenant.notMatched')}</Badge>
             </li>
           ))}
         </ul>
@@ -126,6 +131,8 @@ function PayCard({ token, data, owing }: { token: string; data: TenantPortalView
 
 /** Private, read-only page for a tenant. The secret in the address is the only credential. */
 export function PublicTenantPortal() {
+  const { t, i18n } = useTranslation();
+  const lang = i18n.resolvedLanguage ?? 'en';
   const { token } = useParams<{ token: string }>();
   useEffect(() => {
     const tags = [['robots', 'noindex, nofollow'], ['referrer', 'no-referrer']].map(([name, content]) => {
@@ -145,8 +152,8 @@ export function PublicTenantPortal() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-ground px-4">
         <div className="max-w-sm text-center">
-          <h1 className="font-display text-xl font-semibold text-ink">This link is not active</h1>
-          <p className="mt-2 text-sm text-muted">It may have been turned off or replaced. Ask your agent for a new one.</p>
+          <h1 className="font-display text-xl font-semibold text-ink">{t('tenant.inactiveTitle')}</h1>
+          <p className="mt-2 text-sm text-muted">{t('tenant.inactiveBody')}</p>
         </div>
       </div>
     );
@@ -158,13 +165,16 @@ export function PublicTenantPortal() {
   return (
     <div className="min-h-screen bg-ground">
       <header className="border-b border-line bg-white px-6 py-8 sm:px-10">
-        <p className="text-xs font-medium uppercase tracking-wide text-faint">{data.agencyName}</p>
-        <h1 className="mt-1 font-display text-2xl font-semibold text-ink">Hello, {data.tenantName.split(' ')[0]}</h1>
-        <p className="mt-1 text-sm text-muted">{data.propertyTitle} · {kes(data.rentAmount)} a month, due on day {data.dueDay}</p>
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-faint">{data.agencyName}</p>
+          <LanguageSwitcher />
+        </div>
+        <h1 className="mt-1 font-display text-2xl font-semibold text-ink">{t('tenant.hello', { name: data.tenantName.split(' ')[0] })}</h1>
+        <p className="mt-1 text-sm text-muted">{t('tenant.summary', { property: data.propertyTitle, rent: kes(data.rentAmount), day: data.dueDay })}</p>
       </header>
       <main className="mx-auto max-w-3xl space-y-8 px-4 py-8 sm:px-6">
         <section className="grid grid-cols-3 gap-3">
-          {[['Charged', s.totals.charged], ['Paid', s.totals.paid], [owing > 0 ? 'You owe' : 'Balance', owing]].map(([label, value]) => (
+          {[[t('tenant.charged'), s.totals.charged], [t('tenant.paid'), s.totals.paid], [owing > 0 ? t('tenant.owe') : t('tenant.balance'), owing]].map(([label, value]) => (
             <div key={label as string} className="rounded-panel border border-line bg-white p-4">
               <p className="text-xs uppercase tracking-wide text-muted">{label}</p>
               <p className="mt-1 font-display text-lg font-semibold text-ink sm:text-xl">{kes(value as number)}</p>
@@ -175,9 +185,9 @@ export function PublicTenantPortal() {
         <PayCard token={token!} data={data} owing={owing} />
 
         <section>
-          <h2 className="mb-3 font-display text-lg font-semibold text-ink">Rent history</h2>
+          <h2 className="mb-3 font-display text-lg font-semibold text-ink">{t('tenant.history')}</h2>
           {rows.length === 0 ? (
-            <p className="rounded-panel border border-line bg-white p-5 text-sm text-muted">No rent has been raised yet.</p>
+            <p className="rounded-panel border border-line bg-white p-5 text-sm text-muted">{t('tenant.noRent')}</p>
           ) : (
             <ul className="divide-y divide-line rounded-panel border border-line bg-white">
               {rows.map((r) => {
@@ -186,16 +196,16 @@ export function PublicTenantPortal() {
                   <li key={r.period} className="px-4 py-3 text-sm">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="font-medium text-ink">{periodLabel(r.period)}</p>
+                        <p className="font-medium text-ink">{localPeriod(r.period, lang)}</p>
                         <p className="text-xs text-muted">
-                          {kes(r.charged)} charged{r.extras.length > 0 ? ` (incl. ${r.extras.map((x) => x.label).join(', ')})` : ''}
+                          {t('tenant.chargedAmount', { amount: kes(r.charged) })}{r.extras.length > 0 ? t('tenant.including', { items: r.extras.map((x) => x.label).join(', ') }) : ''}
                         </p>
                       </div>
-                      {due <= 0 ? <Badge tone="ok">Paid</Badge> : <Badge tone={r.paid > 0 ? 'warn' : 'danger'}>{kes(due)} due</Badge>}
+                      {due <= 0 ? <Badge tone="ok">{t('tenant.paidBadge')}</Badge> : <Badge tone={r.paid > 0 ? 'warn' : 'danger'}>{t('tenant.dueBadge', { amount: kes(due) })}</Badge>}
                     </div>
                     {r.payments.map((p) => (
                       <p key={p.id} className="mt-1 text-xs text-muted">
-                        {new Date(p.paidAt).toLocaleDateString('en-KE')} · {kes(p.amount)} by {p.method.toLowerCase().replace('_', ' ')}{p.reference ? ` (${p.reference})` : ''}
+                        {t('tenant.byMethod', { date: localDay(p.paidAt, lang), amount: kes(p.amount), method: t(`tenant.methods.${p.method}`, { defaultValue: p.method.toLowerCase() }) })}{p.reference ? ` (${p.reference})` : ''}
                       </p>
                     ))}
                   </li>
@@ -206,11 +216,11 @@ export function PublicTenantPortal() {
         </section>
 
         <section className="rounded-panel border border-line bg-white p-5">
-          <h2 className="font-display text-lg font-semibold text-ink">Something needs fixing?</h2>
-          <p className="mt-1 text-sm text-muted">Tell {data.agencyName} about a repair and they will follow up.</p>
-          <Link to={`/report/${data.agencySlug}`} className="mt-3 inline-block text-sm font-medium text-brand underline">Report a problem</Link>
+          <h2 className="font-display text-lg font-semibold text-ink">{t('tenant.fixTitle')}</h2>
+          <p className="mt-1 text-sm text-muted">{t('tenant.fixBody', { agency: data.agencyName })}</p>
+          <Link to={`/report/${data.agencySlug}`} className="mt-3 inline-block text-sm font-medium text-brand underline">{t('tenant.report')}</Link>
         </section>
-        <p className="pb-6 text-center text-xs text-faint">This page is private to you. Please do not share the link.</p>
+        <p className="pb-6 text-center text-xs text-faint">{t('tenant.private')}</p>
       </main>
     </div>
   );
