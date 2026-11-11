@@ -437,6 +437,18 @@ async function applyKnownFixups(c) {
         END IF;
       END $$;
     `);
+    // Data fix, safe to repeat: a property with an active lease is let, not available. Older leases
+    // were created before the app kept the two in step. Sold and withdrawn properties are left alone.
+    await c.query(`
+      DO $$
+      BEGIN
+        IF to_regclass('leases') IS NOT NULL AND to_regclass('properties') IS NOT NULL THEN
+          UPDATE properties SET status = 'LET'
+          WHERE status IN ('AVAILABLE', 'UNDER_OFFER')
+            AND id IN (SELECT property_id FROM leases WHERE status = 'ACTIVE');
+        END IF;
+      END $$;
+    `);
     for (const table of ['users', 'platform_admins']) {
       await c.query(`
         DO $$
