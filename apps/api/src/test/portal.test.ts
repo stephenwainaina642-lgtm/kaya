@@ -43,6 +43,12 @@ describe('landlord portal', () => {
     expect(view.body.units).toHaveLength(1);
     expect(view.body.units[0]).toMatchObject({ propertyTitle: 'Kilimani 2BR', location: 'Kilimani', tenantName: 'Tenant Tom', rent: 50_000, state: 'LET', advertised: false, listingPath: null });
     expect(view.body.openRepairs).toHaveLength(1);
+    // The business summary: a six-month trend ending at the chosen month, occupancy, and who is behind.
+    expect(view.body.trend.map((x: { period: string }) => x.period)).toEqual(['2025-10', '2025-11', '2025-12', '2026-01', '2026-02', '2026-03']);
+    expect(view.body.trend[5]).toMatchObject({ expected: 50_000, collected: 50_000, net: 45_000 });
+    expect(view.body.trend[0]).toMatchObject({ expected: 0, collected: 0, net: 0 });
+    expect(view.body.portfolio).toMatchObject({ units: 1, let: 1, vacant: 0, occupancy: 1, monthlyRent: 50_000, owedByTenants: 0 });
+    expect(view.body.owing).toEqual([]);
     // Nothing that identifies tenants beyond a name, and no internal ids of other records.
     expect(JSON.stringify(view.body)).not.toContain('254733000009');
 
@@ -54,6 +60,20 @@ describe('landlord portal', () => {
     // Revoking removes it.
     expect((await request(app).delete(`/api/rent/owners/${owner.id}/portal-link`).set(h)).status).toBe(204);
     expect((await request(app).get(`/api/public/portal/${second}`)).status).toBe(404);
+  });
+
+  it('lists tenants who are behind, with how much and for how many months', async () => {
+    const t = await setupTenant('ORG_ADMIN', 'GROWTH');
+    const h = t.authHeader;
+    const { owner } = await seed(h);
+    await request(app).post('/api/rent/charges/generate').set(h).send({ period: '2026-02' });
+    await request(app).post('/api/rent/charges/generate').set(h).send({ period: '2026-03' });
+    const first = (await request(app).get('/api/rent/charges').set(h).query({ period: '2026-02' })).body[0];
+    await request(app).post(`/api/rent/charges/${first.id}/payments`).set(h).send({ amount: 20_000, method: 'CASH' });
+    const { token } = (await request(app).post(`/api/rent/owners/${owner.id}/portal-link`).set(h)).body;
+    const view = (await request(app).get(`/api/public/portal/${token}`).query({ period: '2026-03' })).body;
+    expect(view.owing).toEqual([{ propertyTitle: 'Kilimani 2BR', tenantName: 'Tenant Tom', amount: 80_000, months: 2 }]);
+    expect(view.portfolio.owedByTenants).toBe(80_000);
   });
 
   it('refuses guesses, other plans and agents', async () => {

@@ -238,6 +238,26 @@ export interface PortalRepair {
 }
 
 /** What a landlord sees on their private, read-only link. */
+/** One month of the landlord's business: rent due, rent actually collected, and what reaches them after fees. */
+export interface PortalTrendPoint { period: string; expected: number; collected: number; net: number }
+
+/** A tenant of this landlord who is behind, with how much and for how many months. */
+export interface PortalOwing { propertyTitle: string; tenantName: string; amount: number; months: number }
+
+export interface PortalPortfolio {
+  units: number;
+  let: number;
+  vacant: number;
+  /** let / units, 0..1. */
+  occupancy: number;
+  /** Rent per month across all active leases. */
+  monthlyRent: number;
+  /** What tenants currently owe across the landlord's units. */
+  owedByTenants: number;
+  /** Active leases ending within 60 days. */
+  leasesEndingSoon: number;
+}
+
 export interface PortalView {
   agencyName: string;
   agencySlug: string;
@@ -247,6 +267,10 @@ export interface PortalView {
   statement: OwnerStatement;
   units: PortalUnit[];
   openRepairs: PortalRepair[];
+  /** The six months up to and including `period`, oldest first. */
+  trend: PortalTrendPoint[];
+  owing: PortalOwing[];
+  portfolio: PortalPortfolio;
 }
 
 /** The numbers an agency wants on the home screen each morning. */

@@ -10,6 +10,10 @@ import { Badge } from '../../components/ui/Badge';
 import { money as kes, money, setCurrency } from '../../lib/currency';
 import { PhoneInput } from '../../components/ui/PhoneInput';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
+import { PairedBars, Tile } from '../../components/portal/charts';
+import { summariseTenant } from '../../lib/tenantSummary';
+import { printTenantStatement } from '../../lib/tenantStatement';
+import { Banknote, CheckCircle2, FileText, Landmark, Printer, Smartphone } from 'lucide-react';
 import { localDay, localPeriod } from '../../lib/localDate';
 
 function PayNow({ token, owing, currency }: { token: string; owing: number; currency: string }) {
@@ -161,53 +165,110 @@ export function PublicTenantPortal() {
 
   const { statement: s } = data;
   const owing = s.totals.balance;
-  const rows = [...s.rows].reverse();
+  const sum = summariseTenant(s, data.dueDay);
+  // Always the last six calendar months, so a young lease still reads as a timeline rather than two lonely bars.
+  const rowBy = new Map(s.rows.map((r) => [r.period, r]));
+  const bars = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() - (5 - i), 1));
+    const period = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+    const r = rowBy.get(period);
+    return { label: localPeriod(period, lang).split(' ')[0]!.slice(0, 3), a: r?.charged ?? 0, b: r?.paid ?? 0 };
+  });
+  const dateFmt = (d: Date) => d.toLocaleDateString(lang === 'en' ? 'en-KE' : lang, { day: 'numeric', month: 'long', timeZone: 'UTC' });
+  const behindText = sum.monthsBehind === 1 ? t('tenant.behindOne') : t('tenant.behind', { count: sum.monthsBehind });
+  const MethodIcon = ({ m }: { m: string }) => m === 'MPESA' ? <Smartphone size={16} /> : m === 'BANK' ? <Landmark size={16} /> : m === 'CHEQUE' ? <FileText size={16} /> : <Banknote size={16} />;
+  const monthly = [...s.rows].reverse();
   return (
     <div className="min-h-screen bg-ground">
-      <header className="border-b border-line bg-white px-6 py-8 sm:px-10">
-        <div className="flex items-start justify-between gap-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-faint">{data.agencyName}</p>
-          <LanguageSwitcher />
+      <header className="bg-ink px-5 pb-24 pt-6 text-white sm:px-10">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
+          <p className="text-xs font-medium uppercase tracking-[0.14em] text-white/60">{data.agencyName}</p>
+          <LanguageSwitcher dark />
         </div>
-        <h1 className="mt-1 font-display text-2xl font-semibold text-ink">{t('tenant.hello', { name: data.tenantName.split(' ')[0] })}</h1>
-        <p className="mt-1 text-sm text-muted">{t('tenant.summary', { property: data.propertyTitle, rent: kes(data.rentAmount), day: data.dueDay })}</p>
+        <div className="mx-auto mt-8 max-w-3xl">
+          <p className="text-sm text-white/70">{t('tenant.hello', { name: data.tenantName.split(' ')[0] })}</p>
+          <p className="mt-1 text-sm text-white/50">{t('tenant.summary', { property: data.propertyTitle, rent: kes(data.rentAmount), day: data.dueDay })}</p>
+          {owing > 0 ? (
+            <>
+              <p className="mt-8 text-xs font-medium uppercase tracking-[0.14em] text-white/60">{t('tenant.dueNow')}</p>
+              <p className="mt-1 font-display text-5xl font-semibold tabular-nums sm:text-6xl">{kes(owing)}</p>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                {sum.monthsBehind > 0 && <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white">{behindText}</span>}
+                <a href="#pay" className="rounded-control bg-white px-4 py-2 text-sm font-semibold text-ink hover:bg-white/90">{t('tenant.payNow')}</a>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="mt-8 flex items-center gap-2.5 font-display text-3xl font-semibold sm:text-4xl"><CheckCircle2 size={30} className="text-[#7be0a6]" />{t('tenant.allPaid')}</p>
+              <p className="mt-2 text-sm text-white/60">{t('tenant.allPaidSub')}</p>
+              {sum.nextDue && <p className="mt-4 text-sm text-white/80">{t('tenant.nextRent', { amount: kes(data.rentAmount), date: dateFmt(sum.nextDue) })}</p>}
+            </>
+          )}
+        </div>
       </header>
-      <main className="mx-auto max-w-3xl space-y-8 px-4 py-8 sm:px-6">
-        <section className="grid grid-cols-3 gap-3">
-          {[[t('tenant.charged'), s.totals.charged], [t('tenant.paid'), s.totals.paid], [owing > 0 ? t('tenant.owe') : t('tenant.balance'), owing]].map(([label, value]) => (
-            <div key={label as string} className="rounded-panel border border-line bg-white p-4">
-              <p className="text-xs uppercase tracking-wide text-muted">{label}</p>
-              <p className="mt-1 font-display text-lg font-semibold text-ink sm:text-xl">{kes(value as number)}</p>
-            </div>
-          ))}
+
+      <main className="mx-auto -mt-14 max-w-3xl space-y-8 px-4 pb-10 sm:px-6">
+        <section aria-labelledby="sum-h">
+          <h2 id="sum-h" className="sr-only">{t('tenant.yourSummary')}</h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Tile label={t('tenant.totalPaid')} value={kes(sum.totalPaid)} sub={t('tenant.totalPaidSub')} />
+            <Tile label={t('tenant.onTime')} value={sum.monthsDue ? t('tenant.onTimeValue', { ok: sum.monthsOnTime, total: sum.monthsDue }) : '–'} sub={t('tenant.onTimeSub')} />
+            <Tile label={t('tenant.charged2')} value={kes(sum.chargedToDate)} />
+            <Tile label={t('tenant.lastPayment')} value={sum.lastPayment ? kes(sum.lastPayment.amount) : t('tenant.noPayments')} sub={sum.lastPayment ? localDay(sum.lastPayment.paidAt, lang) : undefined} />
+          </div>
         </section>
 
-        <PayCard token={token!} data={data} owing={owing} />
+        {s.rows.length > 0 && (
+          <section className="rounded-panel border border-line bg-white p-5">
+            <h2 className="mb-3 font-display text-lg font-semibold text-ink">{t('tenant.chart')}</h2>
+            <PairedBars data={bars} aLabel={t('tenant.chartDue')} bLabel={t('tenant.chartPaid')} />
+          </section>
+        )}
+
+        <div id="pay"><PayCard token={token!} data={data} owing={owing} /></div>
 
         <section>
-          <h2 className="mb-3 font-display text-lg font-semibold text-ink">{t('tenant.history')}</h2>
-          {rows.length === 0 ? (
+          <div className="mb-3 flex items-end justify-between gap-3">
+            <h2 className="font-display text-lg font-semibold text-ink">{t('tenant.payments')}</h2>
+            {s.rows.length > 0 && <button type="button" onClick={() => printTenantStatement(data.agencyName, s)} className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline"><Printer size={14} />{t('tenant.statement')}</button>}
+          </div>
+          {sum.payments.length === 0 ? (
+            <p className="rounded-panel border border-line bg-white p-5 text-sm text-muted">{t('tenant.paymentsEmpty')}</p>
+          ) : (
+            <ul className="divide-y divide-line rounded-panel border border-line bg-white">
+              {sum.payments.map((p) => (
+                <li key={p.id} className="flex items-center justify-between gap-3 px-4 py-3.5 text-sm">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sunk text-ink"><MethodIcon m={p.method} /></span>
+                    <div className="min-w-0">
+                      <p className="font-medium text-ink">{t(`tenant.methods.${p.method}`, { defaultValue: p.method.toLowerCase() })}{p.reference ? <span className="font-normal text-muted"> · {p.reference}</span> : null}</p>
+                      <p className="text-xs text-muted">{localDay(p.paidAt, lang)} · {t('tenant.forMonth', { month: localPeriod(p.period, lang) })}</p>
+                    </div>
+                  </div>
+                  <p className="shrink-0 font-semibold tabular-nums text-ink">{kes(p.amount)}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section>
+          <h2 className="mb-3 font-display text-lg font-semibold text-ink">{t('tenant.monthly')}</h2>
+          {monthly.length === 0 ? (
             <p className="rounded-panel border border-line bg-white p-5 text-sm text-muted">{t('tenant.noRent')}</p>
           ) : (
             <ul className="divide-y divide-line rounded-panel border border-line bg-white">
-              {rows.map((r) => {
+              {monthly.map((r) => {
                 const due = r.charged - r.paid;
                 return (
-                  <li key={r.period} className="px-4 py-3 text-sm">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="font-medium text-ink">{localPeriod(r.period, lang)}</p>
-                        <p className="text-xs text-muted">
-                          {t('tenant.chargedAmount', { amount: kes(r.charged) })}{r.extras.length > 0 ? t('tenant.including', { items: r.extras.map((x) => x.label).join(', ') }) : ''}
-                        </p>
-                      </div>
-                      {due <= 0 ? <Badge tone="ok">{t('tenant.paidBadge')}</Badge> : <Badge tone={r.paid > 0 ? 'warn' : 'danger'}>{t('tenant.dueBadge', { amount: kes(due) })}</Badge>}
-                    </div>
-                    {r.payments.map((p) => (
-                      <p key={p.id} className="mt-1 text-xs text-muted">
-                        {t('tenant.byMethod', { date: localDay(p.paidAt, lang), amount: kes(p.amount), method: t(`tenant.methods.${p.method}`, { defaultValue: p.method.toLowerCase() }) })}{p.reference ? ` (${p.reference})` : ''}
+                  <li key={r.period} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                    <div>
+                      <p className="font-medium text-ink">{localPeriod(r.period, lang)}</p>
+                      <p className="text-xs text-muted">
+                        {t('tenant.chargedAmount', { amount: kes(r.charged) })}{r.extras.length > 0 ? t('tenant.including', { items: r.extras.map((x) => x.label).join(', ') }) : ''}
                       </p>
-                    ))}
+                    </div>
+                    {due <= 0 ? <Badge tone="ok">{t('tenant.paidBadge')}</Badge> : <Badge tone={r.paid > 0 ? 'warn' : 'danger'}>{t('tenant.dueBadge', { amount: kes(due) })}</Badge>}
                   </li>
                 );
               })}

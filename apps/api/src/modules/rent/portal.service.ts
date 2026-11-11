@@ -1,10 +1,10 @@
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
-import { and, desc, eq, inArray, notInArray, sql } from 'drizzle-orm';
-import { effectivePlan, periodLabel, planHasModule, type PortalUnit, type PortalView, type TenantPortalView } from '@kaya/shared';
+import { and, desc, eq, gt, gte, inArray, lt, lte, notInArray, sql } from 'drizzle-orm';
+import { effectivePlan, periodLabel, planHasModule, type PortalOwing, type PortalTrendPoint, type PortalUnit, type PortalView, type TenantPortalView } from '@kaya/shared';
 import { withTenant } from '../../db/client';
 import { systemDb } from '../../db/system';
-import { clients, leases, maintenanceRequests, organizations, owners, paymentClaims, properties, propertyImages } from '../../db/schema';
+import { clients, leases, maintenanceRequests, organizations, owners, paymentClaims, properties, propertyImages, rentCharges } from '../../db/schema';
 import { notFound } from '../../lib/errors';
 import { parse } from '../../lib/validate';
 import { recordAudit } from '../../lib/audit';
@@ -67,12 +67,12 @@ export async function getPortal(token: string, periodInput?: string): Promise<Po
 
   const auth = { organizationId: hit.organizationId } as Auth;
   const statement = await ownerStatement(auth, hit.ownerId, period);
-  const { units, openRepairs } = await withTenant(hit.organizationId, async (tx) => {
+  const { units, openRepairs, owing, expiring } = await withTenant(hit.organizationId, async (tx) => {
     const props = await tx.select({
       id: properties.id, title: properties.title, location: properties.location, building: properties.building, unitNumber: properties.unitNumber,
       price: properties.price, listingType: properties.listingType, status: properties.status, advertised: properties.advertised,
     }).from(properties).where(eq(properties.ownerId, hit.ownerId)).orderBy(properties.building, properties.unitNumber, properties.title);
-    if (!props.length) return { units: [], openRepairs: [] };
+    if (!props.length) return { units: [], openRepairs: [], owing: [] as PortalOwing[], expiring: 0 };
     const ids = props.map((p) => p.id);
     const active = await tx.select({ propertyId: leases.propertyId, rent: leases.rentAmount, tenantName: clients.fullName })
       .from(leases).innerJoin(clients, eq(clients.id, leases.tenantId))
@@ -88,7 +88,22 @@ export async function getPortal(token: string, periodInput?: string): Promise<Po
     const cover = new Map<string, string>();
     for (const c of covers) if (!cover.has(c.propertyId)) cover.set(c.propertyId, c.url);
     const title = new Map(props.map((p) => [p.id, p.title]));
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const behind = await tx.select({
+      leaseId: leases.id, propertyTitle: properties.title, tenantName: clients.fullName, owed: sql<number>`sum(${rentCharges.amount} - ${rentCharges.paidAmount})::int`, months: sql<number>`count(*)::int`,
+    }).from(rentCharges)
+      .innerJoin(leases, eq(leases.id, rentCharges.leaseId))
+      .innerJoin(properties, eq(properties.id, leases.propertyId))
+      .innerJoin(clients, eq(clients.id, leases.tenantId))
+      .where(and(inArray(leases.propertyId, ids), eq(leases.status, 'ACTIVE'), lt(rentCharges.dueDate, todayIso), gt(rentCharges.amount, rentCharges.paidAmount)))
+      .groupBy(leases.id, properties.title, clients.fullName)
+      .orderBy(desc(sql`sum(${rentCharges.amount} - ${rentCharges.paidAmount})`));
+    const soon = new Date(Date.now() + 60 * 86_400_000).toISOString().slice(0, 10);
+    const [ending] = await tx.select({ n: sql<number>`count(*)::int` }).from(leases)
+      .where(and(inArray(leases.propertyId, ids), eq(leases.status, 'ACTIVE'), gte(leases.endDate, todayIso), lte(leases.endDate, soon)));
     return {
+      owing: behind.map((b): PortalOwing => ({ propertyTitle: b.propertyTitle, tenantName: b.tenantName, amount: b.owed, months: b.months })),
+      expiring: ending?.n ?? 0,
       units: props.map((p): PortalUnit => {
         const let_ = byProp.has(p.id);
         const live = !let_ && p.advertised && p.status === 'AVAILABLE';
@@ -102,7 +117,24 @@ export async function getPortal(token: string, periodInput?: string): Promise<Po
       openRepairs: repairs.map((r) => ({ title: r.title, propertyTitle: title.get(r.propertyId) ?? '', priority: r.priority, status: r.status, createdAt: r.createdAt.toISOString() })),
     };
   });
-  return { agencyName: hit.agencyName, agencySlug: hit.agencySlug, currency: hit.currency, ownerName: statement.ownerName, period, statement, units, openRepairs };
+  // The last six months, oldest first, so the landlord sees direction and not just one number.
+  const periods = Array.from({ length: 6 }, (_, i) => {
+    const [y, m] = period.split('-').map(Number) as [number, number];
+    const d = new Date(Date.UTC(y, m - 1 - (5 - i), 1));
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+  });
+  const trend: PortalTrendPoint[] = await Promise.all(periods.map(async (p) => {
+    const st = p === period ? statement : await ownerStatement(auth, hit.ownerId, p);
+    return { period: p, expected: st.totals.rentDue, collected: st.totals.collected, net: st.totals.netToLandlord };
+  }));
+  const let_ = units.filter((u) => u.state === 'LET').length;
+  const portfolio = {
+    units: units.length, let: let_, vacant: units.filter((u) => u.state === 'VACANT').length,
+    occupancy: units.length ? let_ / units.length : 0,
+    monthlyRent: units.reduce((s, u) => s + (u.state === 'LET' ? u.rent ?? 0 : 0), 0),
+    owedByTenants: owing.reduce((s, o) => s + o.amount, 0), leasesEndingSoon: expiring,
+  };
+  return { agencyName: hit.agencyName, agencySlug: hit.agencySlug, currency: hit.currency, ownerName: statement.ownerName, period, statement, units, openRepairs, trend, owing, portfolio };
 }
 
 export interface EmailStatementResult { sent: boolean; to: string }
