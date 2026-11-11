@@ -1,3 +1,4 @@
+import { sweepAutoReminders } from './reminders.service';
 import { sweepStatementEmails } from './portal.service';
 import { sweepLeaseExpiry, sweepRentCharges } from './rent.service';
 
@@ -10,6 +11,7 @@ export function startRentScheduler(): void {
   const run = () => {
     sweepRentCharges().catch((err) => console.error('[rent-scheduler] sweep failed:', err));
     sweepStatementEmails().catch((err) => console.error('[rent-scheduler] statement emails failed:', err));
+    sweepAutoReminders().catch((err) => console.error('[rent-scheduler] auto reminders failed:', err));
     sweepLeaseExpiry().catch((err) => console.error('[rent-scheduler] expiry sweep failed:', err));
   };
   timer = setInterval(run, INTERVAL_MS);

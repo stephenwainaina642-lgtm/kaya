@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../app';
 import { testSmsOutbox } from '../lib/sms';
-import { sendRentReminders } from '../modules/rent/reminders.service';
+import { sendRentReminders, sweepAutoReminders } from '../modules/rent/reminders.service';
 import type { Auth } from '../modules/crm/common';
 import { setupTenant, truncateAll, createUser } from './helpers';
 
@@ -62,5 +62,26 @@ describe('rent reminders', () => {
     expect(testSmsOutbox).toHaveLength(0);
     const agent = await createUser(t.org.id, { role: 'AGENT' });
     expect((await request(app).post('/api/rent/reminders').set({ Authorization: `Bearer ${agent.token}` })).status).toBe(403);
+  });
+
+  it('texts overdue tenants automatically once a day, never the day it is switched on, and only when enabled', async () => {
+    const t = await setupTenant('ORG_ADMIN', 'GROWTH');
+    const h = t.authHeader;
+    await lease(h, 'B1', 'Tom Otieno', '0722 111 222');
+    await request(app).post('/api/rent/charges/generate').set(h).send({ period: '2026-02' });
+    const day = (n: number) => { const d = new Date(Date.now() + n * 86_400_000); d.setUTCHours(12, 0, 0, 0); return d; };
+    testSmsOutbox.length = 0;
+
+    expect((await sweepAutoReminders(day(2))).sent).toBe(0); // off by default
+    expect((await request(app).put('/api/rent/auto-reminders').set(h).send({ enabled: true })).body.enabled).toBe(true);
+    expect((await sweepAutoReminders(new Date())).sent).toBe(0); // same day as switching on
+    const early = day(1); early.setUTCHours(1, 0, 0, 0); // 04:00 in Nairobi
+    expect((await sweepAutoReminders(early)).sent).toBe(0);
+    expect(await sweepAutoReminders(day(2))).toEqual({ organizations: 1, sent: 1 });
+    expect(testSmsOutbox).toHaveLength(1);
+    expect((await sweepAutoReminders(day(2))).sent).toBe(0); // already ran that day
+    expect((await request(app).put('/api/rent/auto-reminders').set(h).send({ enabled: 'yes' })).status).toBe(422);
+    const agent = await createUser(t.org.id, { role: 'AGENT' });
+    expect((await request(app).put('/api/rent/auto-reminders').set({ Authorization: `Bearer ${agent.token}` }).send({ enabled: false })).status).toBe(403);
   });
 });

@@ -201,6 +201,14 @@ async function main() {
       SELECT 1 FROM information_schema.columns WHERE table_name = 'properties' AND column_name = 'advertised'
     )
     UNION ALL
+    SELECT 'organizations.auto_reminders' WHERE NOT EXISTS (
+      SELECT 1 FROM information_schema.columns WHERE table_name = 'organizations' AND column_name = 'auto_reminders'
+    )
+    UNION ALL
+    SELECT 'organizations.reminder_last_run_on' WHERE NOT EXISTS (
+      SELECT 1 FROM information_schema.columns WHERE table_name = 'organizations' AND column_name = 'reminder_last_run_on'
+    )
+    UNION ALL
     SELECT 'organizations.statement_email_day' WHERE NOT EXISTS (
       SELECT 1 FROM information_schema.columns WHERE table_name = 'organizations' AND column_name = 'statement_email_day'
     )
@@ -267,6 +275,8 @@ async function applyKnownFixups(c) {
           ALTER TABLE organizations ADD COLUMN IF NOT EXISTS onboarding_dismissed_at timestamptz;
           ALTER TABLE organizations ADD COLUMN IF NOT EXISTS plan_expires_at timestamptz;
           ALTER TABLE organizations ADD COLUMN IF NOT EXISTS statement_email_day integer;
+          ALTER TABLE organizations ADD COLUMN IF NOT EXISTS auto_reminders boolean NOT NULL DEFAULT false;
+          ALTER TABLE organizations ADD COLUMN IF NOT EXISTS reminder_last_run_on text;
           ALTER TABLE organizations ADD COLUMN IF NOT EXISTS statement_email_last_period text;
           CREATE TABLE IF NOT EXISTS billing_payments (
             id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -441,6 +441,34 @@ function CollectionsCopilot() {
   );
 }
 
+function AutoReminders() {
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ['rent', 'auto-reminders'], queryFn: () => api.get<{ enabled: boolean; smsConfigured: boolean }>('/rent/auto-reminders') });
+  const save = useMutation({
+    mutationFn: (enabled: boolean) => api.put('/rent/auto-reminders', { enabled }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['rent', 'auto-reminders'] }),
+  });
+  if (q.isLoading || !q.data) return null;
+  const { enabled, smsConfigured } = q.data;
+  return (
+    <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium text-ink">Text overdue tenants automatically</p>
+        <p className="mt-0.5 text-xs text-muted">
+          {enabled
+            ? 'Every morning from 9:00, each tenant with overdue rent gets one text with their balance and payment link. Nobody is texted more than once every 3 days.'
+            : 'Off. Turn it on and overdue tenants are texted each morning from 9:00, at most once every 3 days. It never sends the day you switch it on.'}
+          {!smsConfigured && ' SMS is not set up on this server yet, so nothing will send until Africa\'s Talking keys are added.'}
+        </p>
+      </div>
+      <Select value={enabled ? 'on' : 'off'} onChange={(e) => save.mutate(e.target.value === 'on')} disabled={save.isPending} aria-label="Automatic reminders">
+        <option value="off">Off</option>
+        <option value="on">On</option>
+      </Select>
+    </Card>
+  );
+}
+
 function Arrears() {
   const { user } = useAuth();
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
@@ -453,9 +481,15 @@ function Arrears() {
   });
   const { data, isLoading } = useQuery({ queryKey: ['rent', 'arrears'], queryFn: () => api.get<ArrearsReport>('/rent/arrears') });
   if (isLoading) return <Spinner />;
-  if (!data?.rows.length) return <EmptyState icon={<KeyRound size={22} />} title="No overdue rent" body="Nothing is past its due date and unpaid." />;
+  if (!data?.rows.length) return (
+    <div className="space-y-4">
+      <AutoReminders />
+      <EmptyState icon={<KeyRound size={22} />} title="No overdue rent" body="Nothing is past its due date and unpaid." />
+    </div>
+  );
   return (
     <div className="space-y-4">
+      <AutoReminders />
       <div className="flex flex-wrap items-end justify-between gap-3">
         <Stat label="Total overdue" value={kes(data.total)} sub={`${data.rows.length} charge${data.rows.length === 1 ? '' : 's'}`} />
         <Button variant="secondary" disabled={remind.isPending} onClick={() => { if (confirm('Text every tenant with overdue rent? Anyone reminded in the last 3 days is skipped.')) remind.mutate(); }}>

@@ -1,4 +1,4 @@
-import { integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { boolean, integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { planEnum } from './enums';
 import { timestamps } from './base';
 
@@ -14,6 +14,9 @@ export const organizations = pgTable('organizations', {
   // statements, or null for off. The last period sent makes each month fire exactly once.
   statementEmailDay: integer('statement_email_day'),
   statementEmailLastPeriod: text('statement_email_last_period'),
+  // Automatic overdue-rent SMS: on/off, plus the local date it last ran so it fires at most once a day.
+  autoReminders: boolean('auto_reminders').notNull().default(false),
+  reminderLastRunOn: text('reminder_last_run_on'),
   timezone: text('timezone').notNull().default('Africa/Nairobi'),
   currency: text('currency').notNull().default('KES'),
   logoUrl: text('logo_url'),

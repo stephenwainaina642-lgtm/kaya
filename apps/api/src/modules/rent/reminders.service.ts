@@ -1,12 +1,14 @@
 import { randomBytes } from 'node:crypto';
-import { and, asc, eq, lt, ne } from 'drizzle-orm';
-import { periodLabel, type ReminderResult } from '@kaya/shared';
+import { and, asc, eq, lt, ne, sql } from 'drizzle-orm';
+import { effectivePlan, periodLabel, planHasModule, type ReminderResult } from '@kaya/shared';
 import { withTenant } from '../../db/client';
 import { systemDb } from '../../db/system';
 import { clients, leases, organizations, properties, rentCharges } from '../../db/schema';
 import { recordAudit } from '../../lib/audit';
 import { sendSms, smsConfigured } from '../../lib/sms';
 import { appUrl } from '../../config/env';
+import { z } from 'zod';
+import { parse } from '../../lib/validate';
 import type { Auth } from '../crm/common';
 
 /** A tenant is not texted again within this many days. */
@@ -66,4 +68,66 @@ export async function sendRentReminders(a: Auth, now = new Date()): Promise<Remi
     });
     return result;
   });
+}
+
+/** The hour (local) from which the daily automatic run may go out, so tenants are not texted at night. */
+export const AUTO_REMINDER_HOUR = 9;
+
+const localParts = (now: Date, timeZone: string) => {
+  let tz = timeZone;
+  try { new Intl.DateTimeFormat('en-CA', { timeZone: tz }); } catch { tz = 'Africa/Nairobi'; }
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' })
+    .formatToParts(now).map((x) => [x.type, x.value]));
+  return { date: `${p.year}-${p.month}-${p.day}`, hour: Number(p.hour) };
+};
+
+export async function getAutoReminders(a: Auth): Promise<{ enabled: boolean; smsConfigured: boolean }> {
+  const [o] = await systemDb.select({ on: organizations.autoReminders }).from(organizations).where(eq(organizations.id, a.organizationId));
+  return { enabled: o?.on ?? false, smsConfigured: smsConfigured() };
+}
+
+/** Turning it on never texts anyone the same day: today counts as already run. */
+export async function setAutoReminders(a: Auth, body: unknown, now = new Date()) {
+  const { enabled } = parse(z.object({ enabled: z.boolean() }), body);
+  const [org] = await systemDb.select({ tz: organizations.timezone }).from(organizations).where(eq(organizations.id, a.organizationId));
+  await systemDb.update(organizations).set({ autoReminders: enabled, reminderLastRunOn: enabled ? localParts(now, org?.tz ?? 'Africa/Nairobi').date : null })
+    .where(eq(organizations.id, a.organizationId));
+  await withTenant(a.organizationId, (tx) => recordAudit(tx, {
+    organizationId: a.organizationId, actorId: a.userId, action: 'UPDATE', entityType: 'organization', entityId: a.organizationId,
+    summary: enabled ? 'Turned on automatic overdue-rent SMS reminders' : 'Turned off automatic overdue-rent SMS reminders',
+  }));
+  return getAutoReminders(a);
+}
+
+/**
+ * Once per local day per agency, from 09:00 agency time, texts tenants with overdue rent.
+ * The day is claimed with one conditional UPDATE so two instances cannot both send, and the
+ * per-tenant cooldown still applies. If every send failed the claim is released to retry.
+ */
+export async function sweepAutoReminders(now = new Date()): Promise<{ organizations: number; sent: number }> {
+  if (!smsConfigured()) return { organizations: 0, sent: 0 };
+  const rows = await systemDb.select({
+    id: organizations.id, tz: organizations.timezone, plan: organizations.plan, planExpiresAt: organizations.planExpiresAt,
+    suspendedAt: organizations.suspendedAt, last: organizations.reminderLastRunOn,
+  }).from(organizations).where(eq(organizations.autoReminders, true));
+  let orgs = 0;
+  let sent = 0;
+  for (const o of rows) {
+    try {
+      const local = localParts(now, o.tz);
+      if (o.suspendedAt || local.hour < AUTO_REMINDER_HOUR || o.last === local.date) continue;
+      if (!planHasModule(effectivePlan(o.plan, o.planExpiresAt, now), 'rentManagement')) continue;
+      const claimed = await systemDb.update(organizations).set({ reminderLastRunOn: local.date })
+        .where(and(eq(organizations.id, o.id), sql`${organizations.reminderLastRunOn} IS DISTINCT FROM ${local.date}`))
+        .returning({ id: organizations.id });
+      if (!claimed.length) continue;
+      const r = await sendRentReminders({ organizationId: o.id, userId: null, role: 'ORG_ADMIN', name: 'Kaya' } as unknown as Auth, now);
+      if (r.sent === 0 && r.failed > 0) { await systemDb.update(organizations).set({ reminderLastRunOn: o.last }).where(eq(organizations.id, o.id)); continue; }
+      orgs++;
+      sent += r.sent;
+    } catch (err) {
+      console.error(`[auto-reminders] failed for organization ${o.id}`, err);
+    }
+  }
+  return { organizations: orgs, sent };
 }
