@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { KeyRound, Plus, RefreshCw, Download, MessageCircle, Printer, Mail, Upload } from 'lucide-react';
+import { KeyRound, Plus, RefreshCw, Download, MessageCircle, Printer, Mail, Upload, FileText } from 'lucide-react';
+import { downloadStatementPdf } from '../../lib/statementPdf';
 import { periodLabel, rentReminderMessage, whatsappLink } from '@kaya/shared';
 import type {
   TenantStatement, VacancyReport,
@@ -592,6 +593,7 @@ function PortalLink({ ownerId }: { ownerId: string }) {
 }
 
 function Statements() {
+  const { user } = useAuth();
   const [ownerId, setOwnerId] = useState('');
   const [period, setPeriod] = useState(thisMonth());
   const owners = useQuery({ queryKey: ['owners-picker'], queryFn: () => api.get<Page<OwnerListItem>>('/owners', { pageSize: 100 }) });
@@ -637,9 +639,14 @@ function Statements() {
           <Mail size={15} /> {emailAll.isPending ? 'Sending…' : 'Email all landlords'}
         </Button>
         {s && s.lines.length > 0 && (
-          <Button variant="secondary" onClick={() => api.download(`/rent/statements/${ownerId}?period=${period}&format=csv`, 'statement.csv')}>
-            <Download size={15} /> Download CSV
-          </Button>
+          <>
+            <Button variant="secondary" onClick={() => void downloadStatementPdf(s, user?.organizationName ?? 'Statement')}>
+              <FileText size={15} /> Download PDF
+            </Button>
+            <Button variant="secondary" onClick={() => api.download(`/rent/statements/${ownerId}?period=${period}&format=csv`, 'statement.csv')}>
+              <Download size={15} /> Download CSV
+            </Button>
+          </>
         )}
       </div>
       <AutoSend />

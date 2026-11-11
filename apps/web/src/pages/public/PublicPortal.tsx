@@ -7,6 +7,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { money as kes, setCurrency } from '../../lib/currency';
+import { downloadStatementPdf } from '../../lib/statementPdf';
 const thisMonth = () => new Date().toISOString().slice(0, 7);
 const nice = (s: string) => s[0] + s.slice(1).toLowerCase().replace('_', ' ');
 
@@ -53,7 +54,10 @@ export function PublicPortal() {
         <section>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <h2 className="font-display text-lg font-semibold text-ink">Statement · {periodLabel(data.period)}</h2>
-            <div className="w-44"><Input type="month" value={period} max={thisMonth()} onChange={(e) => e.target.value && setPeriod(e.target.value)} /></div>
+            <div className="flex items-center gap-2">
+              {s.lines.length > 0 && <button type="button" onClick={() => void downloadStatementPdf(s, data.agencyName)} className="rounded-control border border-line bg-white px-3 py-2 text-sm font-medium text-ink hover:bg-sunk">Download PDF</button>}
+              <div className="w-44"><Input type="month" value={period} max={thisMonth()} onChange={(e) => e.target.value && setPeriod(e.target.value)} /></div>
+            </div>
           </div>
           {s.lines.length === 0 ? (
             <p className="rounded-panel border border-line bg-white p-5 text-sm text-muted">No rent was raised for your properties in this month.</p>
