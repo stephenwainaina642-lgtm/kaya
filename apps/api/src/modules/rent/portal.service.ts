@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import { and, desc, eq, gt, gte, inArray, lt, lte, notInArray, sql } from 'drizzle-orm';
-import { effectivePlan, periodLabel, planHasModule, type PortalOwing, type PortalTrendPoint, type PortalUnit, type PortalView, type TenantPortalView } from '@kaya/shared';
+import { effectivePlan, formatMoney, periodLabel, planHasModule, type PortalOwing, type PortalTrendPoint, type PortalUnit, type PortalView, type TenantPortalView } from '@kaya/shared';
 import { withTenant } from '../../db/client';
 import { systemDb } from '../../db/system';
 import { clients, leases, maintenanceRequests, organizations, owners, paymentClaims, properties, propertyImages, rentCharges } from '../../db/schema';
@@ -13,6 +13,7 @@ import { ownerStatement, currentPeriod, tenantStatement } from './rent.service';
 import { appUrl } from '../../config/env';
 import { canCollectByMpesa } from './mpesa-pay.service';
 import { ownerStatementEmail, sendMail } from '../../lib/mailer';
+import { sendSms, smsConfigured } from '../../lib/sms';
 import { AppError } from '../../lib/errors';
 
 const periodField = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Use YYYY-MM');
@@ -164,22 +165,51 @@ export async function emailOwnerStatement(a: Auth, ownerId: string, periodInput:
   return { sent: true, to: o.email };
 }
 
-export interface EmailAllResult { sent: number; noEmail: number; nothingToSend: number; failed: number }
+export interface EmailAllResult { sent: number; noEmail: number; nothingToSend: number; failed: number; texted: number }
+
+/**
+ * Texts a landlord that their statement is ready, with the amount paid to them and their private link.
+ * Returns false (and sends nothing) when there is no rent to report, no phone, or SMS is not set up.
+ */
+async function textOwnerPayout(a: Auth, ownerId: string, period: string): Promise<boolean> {
+  if (!smsConfigured()) return false;
+  const [o] = await withTenant(a.organizationId, (tx) => tx.select({ phone: owners.phone, token: owners.portalToken }).from(owners).where(eq(owners.id, ownerId)));
+  if (!o?.phone) return false;
+  const st = await ownerStatement(a, ownerId, period);
+  if (st.lines.length === 0) return false;
+  const token = o.token ?? (await createPortalLink(a, ownerId)).token;
+  const [org] = await systemDb.select({ name: organizations.name, currency: organizations.currency }).from(organizations).where(eq(organizations.id, a.organizationId));
+  const text = `${org?.name ?? 'Your agent'}: your ${periodLabel(period)} statement is ready. Paid to you: ${formatMoney(st.totals.netToLandlord, org?.currency)}. View it: ${appUrl}/portal/${token}`;
+  const ok = await sendSms(o.phone, text);
+  if (ok) {
+    await withTenant(a.organizationId, (tx) => recordAudit(tx, {
+      organizationId: a.organizationId, actorId: a.userId, action: 'UPDATE', entityType: 'owner', entityId: ownerId, summary: `Texted ${periodLabel(period)} payout notice to ${st.ownerName}`,
+    }));
+  }
+  return ok;
+}
 
 /** Emails every landlord who has an address and rent activity in the month. One failure never stops the rest. */
 export async function emailAllStatements(a: Auth, periodInput: string | undefined): Promise<EmailAllResult> {
   const period = parse(periodField, periodInput ?? currentPeriod());
-  const all = await withTenant(a.organizationId, (tx) => tx.select({ id: owners.id, email: owners.email }).from(owners));
-  const out: EmailAllResult = { sent: 0, noEmail: 0, nothingToSend: 0, failed: 0 };
+  const all = await withTenant(a.organizationId, (tx) => tx.select({ id: owners.id, email: owners.email, phone: owners.phone }).from(owners));
+  const out: EmailAllResult = { sent: 0, noEmail: 0, nothingToSend: 0, failed: 0, texted: 0 };
+  const sms = smsConfigured();
   for (const o of all) {
-    if (!o.email) { out.noEmail++; continue; }
-    try {
-      await emailOwnerStatement(a, o.id, period);
-      out.sent++;
-    } catch (err) {
-      if (err instanceof AppError && err.code === 'NOTHING_TO_SEND') out.nothingToSend++;
-      else out.failed++;
-    }
+    if (o.email) {
+      try {
+        await emailOwnerStatement(a, o.id, period);
+        out.sent++;
+      } catch (err) {
+        if (err instanceof AppError && err.code === 'NOTHING_TO_SEND') { out.nothingToSend++; continue; }
+        out.failed++;
+      }
+    } else if (!(sms && o.phone)) { out.noEmail++; continue; }
+    // A text is an extra nudge, never a reason for the batch to fail.
+    let texted = false;
+    try { texted = !!o.phone && (await textOwnerPayout(a, o.id, period)); } catch (err) { console.error('[payout-sms] failed', err); }
+    if (texted) out.texted++;
+    else if (!o.email) out.noEmail++;
   }
   return out;
 }
@@ -238,7 +268,8 @@ export async function sweepStatementEmails(now: Date = new Date()): Promise<{ or
         .returning({ id: organizations.id });
       if (!claimed.length) continue;
       const result = await emailAllStatements({ organizationId: o.id, userId: null, role: 'ORG_ADMIN', name: 'Kaya' } as unknown as Auth, period);
-      if (result.sent === 0 && result.failed > 0) {
+      // Release the month only when nothing at all went out, or texts already sent would repeat on every retry.
+      if (result.sent === 0 && result.texted === 0 && result.failed > 0) {
         await systemDb.update(organizations).set({ statementEmailLastPeriod: o.last }).where(eq(organizations.id, o.id));
         continue;
       }

@@ -611,10 +611,10 @@ function Statements() {
     onError: fail,
   });
   const emailAll = useMutation({
-    mutationFn: () => api.post<{ sent: number; noEmail: number; nothingToSend: number; failed: number }>('/rent/statements/email-all', { period }),
+    mutationFn: () => api.post<{ sent: number; noEmail: number; nothingToSend: number; failed: number; texted: number }>('/rent/statements/email-all', { period }),
     onSuccess: (r) => setNotice({
       ok: r.failed === 0,
-      text: `${r.sent} sent` + (r.noEmail ? `, ${r.noEmail} landlords have no email` : '') + (r.nothingToSend ? `, ${r.nothingToSend} had no rent this month` : '') + (r.failed ? `, ${r.failed} failed (is email set up?)` : ''),
+      text: `${r.sent} emailed` + (r.texted ? `, ${r.texted} texted` : '') + (r.noEmail ? `, ${r.noEmail} landlords have no email` : '') + (r.nothingToSend ? `, ${r.nothingToSend} had no rent this month` : '') + (r.failed ? `, ${r.failed} failed (is email set up?)` : ''),
     }),
     onError: fail,
   });

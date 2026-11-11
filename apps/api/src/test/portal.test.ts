@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../app';
 import { testOutbox } from '../lib/mailer';
+import { testSmsOutbox } from '../lib/sms';
 import { setStatementSchedule, sweepStatementEmails } from '../modules/rent/portal.service';
 import type { Auth } from '../modules/crm/common';
 import { setupTenant, truncateAll, createUser } from './helpers';
@@ -119,9 +120,15 @@ describe('landlord portal', () => {
     await request(app).post('/api/owners').set(h).send({ fullName: 'No Email Owner', phone: '+254700000077' });
     await request(app).post('/api/owners').set(h).send({ fullName: 'Idle Owner', phone: '+254700000078', email: 'idle@example.com' });
     testOutbox.length = 0;
+    testSmsOutbox.length = 0;
     const all = await request(app).post('/api/rent/statements/email-all').set(h).send({ period: '2026-03' });
-    expect(all.body).toEqual({ sent: 1, noEmail: 1, nothingToSend: 1, failed: 0 });
+    // Grace is emailed and texted; the landlord with no email and no rent is left out; the idle one has nothing to send.
+    expect(all.body).toEqual({ sent: 1, noEmail: 1, nothingToSend: 1, failed: 0, texted: 1 });
     expect(testOutbox).toHaveLength(1);
+    expect(testSmsOutbox).toHaveLength(1);
+    expect(testSmsOutbox[0]).toMatchObject({ to: '+254722000001' });
+    expect(testSmsOutbox[0]!.text).toContain('Paid to you: KES 45,000');
+    expect(testSmsOutbox[0]!.text).toContain(`/portal/${token}`);
 
     // Agents cannot send.
     const agent = await createUser(t.org.id, { role: 'AGENT' });
