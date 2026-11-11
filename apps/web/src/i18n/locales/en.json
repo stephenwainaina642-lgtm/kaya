@@ -189,5 +189,13 @@
       "CLEANING": "Cleaning",
       "OTHER": "Other"
     }
+  },
+  "voice": {
+    "start": "Speak instead",
+    "stop": "Stop",
+    "listening": "Listening…",
+    "denied": "Microphone access was blocked. Allow it in your browser, or type instead.",
+    "none": "I did not hear anything. Try again.",
+    "failed": "Voice input is not working right now. Please type instead."
   }
 }

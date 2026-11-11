@@ -189,5 +189,13 @@
       "CLEANING": "Usafi",
       "OTHER": "Nyingine"
     }
+  },
+  "voice": {
+    "start": "Sema badala ya kuandika",
+    "stop": "Simamisha",
+    "listening": "Inasikiliza…",
+    "denied": "Ufikiaji wa kipaza sauti umezuiwa. Uruhusu kwenye kivinjari chako, au andika.",
+    "none": "Sikusikia chochote. Jaribu tena.",
+    "failed": "Kuingiza kwa sauti hakufanyi kazi sasa. Tafadhali andika."
   }
 }

@@ -189,5 +189,13 @@
       "CLEANING": "Nettoyage",
       "OTHER": "Autre"
     }
+  },
+  "voice": {
+    "start": "Dicter à la place",
+    "stop": "Arrêter",
+    "listening": "Écoute…",
+    "denied": "L'accès au micro est bloqué. Autorisez-le dans votre navigateur, ou écrivez.",
+    "none": "Je n'ai rien entendu. Réessayez.",
+    "failed": "La saisie vocale ne fonctionne pas pour le moment. Veuillez écrire."
   }
 }

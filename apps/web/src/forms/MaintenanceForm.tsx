@@ -5,6 +5,7 @@ import {
   type MaintenanceItem, type Page, type PropertyListItem,
 } from '@kaya/shared';
 import { api, ApiError } from '../lib/api';
+import { VoiceButton } from '../components/VoiceButton';
 import { Field } from '../components/ui/Field';
 import { Input } from '../components/ui/Input';
 import { PhoneInput } from '../components/ui/PhoneInput';
@@ -99,6 +100,7 @@ export function MaintenanceForm({ item, onDone }: { item?: MaintenanceItem; onDo
           className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-cypress-600 focus:outline-none"
           rows={3} maxLength={2000} value={description} onChange={(e) => setDescription(e.target.value)}
         />
+        <VoiceButton onText={(x) => setDescription((d) => (d ? `${d} ${x}` : x).slice(0, 2000))} />
       </Field>
       {error && <p className="mb-3 text-sm text-danger">{error}</p>}
       <Button type="submit" disabled={save.isPending}>{save.isPending ? 'Saving…' : editing ? 'Save changes' : 'Log repair'}</Button>

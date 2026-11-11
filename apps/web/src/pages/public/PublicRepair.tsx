@@ -13,6 +13,7 @@ import { Select } from '../../components/ui/Select';
 import { TextArea } from '../../components/ui/TextArea';
 import { Button } from '../../components/ui/Button';
 import { BrandMark } from '../../components/BrandMark';
+import { VoiceButton } from '../../components/VoiceButton';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 
 /** Public page where a tenant reports a fault. Linked from the agency's Settings. */
@@ -92,6 +93,7 @@ export function PublicRepair() {
           </Field>
           <Field label={t('repair.what')}>
             <TextArea rows={4} value={message} onChange={(e) => setMessage(e.target.value)} minLength={5} maxLength={2000} required placeholder={t('repair.whatPh')} />
+            <VoiceButton onText={(x) => setMessage((m) => (m ? `${m} ${x}` : x).slice(0, 2000))} />
           </Field>
           <label className="mb-4 flex items-start gap-2 text-sm text-ink">
             <input type="checkbox" className="mt-0.5" checked={urgent} onChange={(e) => setUrgent(e.target.checked)} />
