@@ -82,6 +82,8 @@ export interface ClientListItem {
 }
 
 export interface ClientDetail extends ClientListItem {
+  /** The language texts and links to this person are written in. */
+  language: 'en' | 'sw' | 'fr';
   whatsapp: string | null;
   tags: string[];
   notes: string | null;

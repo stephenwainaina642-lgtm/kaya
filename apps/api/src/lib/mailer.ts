@@ -1,3 +1,5 @@
+import type { Language } from '@kaya/shared';
+import { STATEMENT_WORDS, money } from './messages';
 import { env } from '../config/env';
 
 export interface Mail {
@@ -109,30 +111,32 @@ export interface OwnerStatementEmailData {
   lines: { property: string; tenant: string; rentDue: number; collected: number }[];
   portalUrl: string | null;
   currency?: string;
+  lang?: Language;
 }
 
 export function ownerStatementEmail(d: OwnerStatementEmailData): Omit<Mail, 'to'> {
-  const kes = (n: number) => `${d.currency ?? 'KES'} ${n.toLocaleString('en-US')}`;
-  const subject = `Your rent statement for ${d.periodLabel}: ${d.agencyName}`;
+  const w = STATEMENT_WORDS[d.lang ?? 'en'];
+  const kes = (n: number) => money(n, d.currency, d.lang ?? 'en');
+  const subject = w.subject(d.agencyName, d.periodLabel);
   const summary: [string, string][] = [
-    ['Rent collected', kes(d.collected)],
-    ['Management fee and tax', `− ${kes(d.feeAndTax)}`],
-    ...(d.repairs > 0 ? [['Repairs', `− ${kes(d.repairs)}`] as [string, string]] : []),
-    ['Paid to you', kes(d.net)],
+    [w.collected, kes(d.collected)],
+    [w.fee, `− ${kes(d.feeAndTax)}`],
+    ...(d.repairs > 0 ? [[w.repairs, `− ${kes(d.repairs)}`] as [string, string]] : []),
+    [w.paid, kes(d.net)],
   ];
-  const text = `Hi ${d.ownerName},\n\nHere is your rent statement for ${d.periodLabel}.\n\n${summary.map(([k, v]) => `${k}: ${v}`).join('\n')}\n\n${
-    d.lines.map((l) => `${l.property} (${l.tenant}): due ${kes(l.rentDue)}, collected ${kes(l.collected)}`).join('\n')
-  }${d.portalUrl ? `\n\nSee everything, including past months and repairs, here: ${d.portalUrl}` : ''}\n\n${d.agencyName}`;
+  const text = `${w.hi(d.ownerName)},\n\n${w.label} - ${d.periodLabel}.\n\n${summary.map(([k, v]) => `${k}: ${v}`).join('\n')}\n\n${
+    d.lines.map((l) => `${l.property} (${l.tenant}): ${w.due} ${kes(l.rentDue)}, ${w.collected.toLowerCase()} ${kes(l.collected)}`).join('\n')
+  }${d.portalUrl ? `\n\n${w.see} ${d.portalUrl}` : ''}\n\n${d.agencyName}`;
   const row = (k: string, v: string, bold = false) =>
     `<tr><td style="padding:8px 0;border-bottom:1px solid #e3e8e5;color:#5b6a61">${escHtml(k)}</td><td style="padding:8px 0;border-bottom:1px solid #e3e8e5;text-align:right;${bold ? 'font-weight:700' : ''}">${escHtml(v)}</td></tr>`;
   const html = `<div style="font-family:Inter,Arial,sans-serif;max-width:520px;margin:auto;color:#1c2420">
 <h2 style="font-family:Georgia,serif;margin:0 0 4px">${escHtml(d.agencyName)}</h2>
-<p style="color:#5b6a61;font-size:13px;margin:0 0 20px">Rent statement · ${escHtml(d.periodLabel)}</p>
-<p>Hi ${escHtml(d.ownerName)}, here is how ${escHtml(d.periodLabel)} went.</p>
+<p style="color:#5b6a61;font-size:13px;margin:0 0 20px">${escHtml(w.label)} · ${escHtml(d.periodLabel)}</p>
+<p>${escHtml(w.hi(d.ownerName))}, ${escHtml(w.intro(d.periodLabel))}</p>
 <table style="width:100%;border-collapse:collapse;font-size:14px">${summary.map(([k, v], i) => row(k, v, i === summary.length - 1)).join('')}</table>
-<p style="margin:20px 0 6px;font-size:13px;color:#5b6a61">By property</p>
-<table style="width:100%;border-collapse:collapse;font-size:13px">${d.lines.map((l) => row(`${l.property} (${l.tenant})`, `${kes(l.collected)} of ${kes(l.rentDue)}`)).join('')}</table>
-${d.portalUrl ? `<p style="margin-top:24px"><a href="${escHtml(d.portalUrl)}" style="background:#2f5d4e;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;display:inline-block">See all your statements</a></p><p style="font-size:12px;color:#5b6a61">This link is private to you. Please do not share it.</p>` : ''}
+<p style="margin:20px 0 6px;font-size:13px;color:#5b6a61">${escHtml(w.byProperty)}</p>
+<table style="width:100%;border-collapse:collapse;font-size:13px">${d.lines.map((l) => row(`${l.property} (${l.tenant})`, `${kes(l.collected)} ${w.of} ${kes(l.rentDue)}`)).join('')}</table>
+${d.portalUrl ? `<p style="margin-top:24px"><a href="${escHtml(d.portalUrl)}" style="background:#2f5d4e;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;display:inline-block">${escHtml(w.seeAll)}</a></p><p style="font-size:12px;color:#5b6a61">${escHtml(w.private)}</p>` : ''}
 </div>`;
   return { subject, text, html };
 }

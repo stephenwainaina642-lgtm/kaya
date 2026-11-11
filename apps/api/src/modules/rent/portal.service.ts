@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import { and, desc, eq, gt, gte, inArray, lt, lte, notInArray, sql } from 'drizzle-orm';
-import { effectivePlan, formatMoney, periodLabel, planHasModule, type PortalOwing, type PortalTrendPoint, type PortalUnit, type PortalView, type TenantPortalView } from '@kaya/shared';
+import { effectivePlan, periodLabel, planHasModule, type PortalOwing, type PortalTrendPoint, type PortalUnit, type PortalView, type TenantPortalView } from '@kaya/shared';
 import { withTenant } from '../../db/client';
 import { systemDb } from '../../db/system';
 import { clients, leases, maintenanceRequests, organizations, owners, paymentClaims, properties, propertyImages, rentCharges } from '../../db/schema';
@@ -14,6 +14,7 @@ import { appUrl } from '../../config/env';
 import { canCollectByMpesa } from './mpesa-pay.service';
 import { ownerStatementEmail, sendMail } from '../../lib/mailer';
 import { sendSms, smsConfigured } from '../../lib/sms';
+import { langOf, linkIn, monthName, money, payoutSms } from '../../lib/messages';
 import { AppError } from '../../lib/errors';
 
 const periodField = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Use YYYY-MM');
@@ -144,7 +145,7 @@ export interface EmailStatementResult { sent: boolean; to: string }
 export async function emailOwnerStatement(a: Auth, ownerId: string, periodInput: string | undefined, includeLink = true): Promise<EmailStatementResult> {
   parse(uuidField, ownerId);
   const period = parse(periodField, periodInput ?? currentPeriod());
-  const [o] = await withTenant(a.organizationId, (tx) => tx.select({ email: owners.email, token: owners.portalToken }).from(owners).where(eq(owners.id, ownerId)));
+  const [o] = await withTenant(a.organizationId, (tx) => tx.select({ email: owners.email, token: owners.portalToken, language: owners.language }).from(owners).where(eq(owners.id, ownerId)));
   if (!o) throw notFound('Owner');
   if (!o.email) throw new AppError(422, 'VALIDATION_FAILED', 'This landlord has no email address. Add one to their owner record first.');
   const st = await ownerStatement(a, ownerId, period);
@@ -152,10 +153,10 @@ export async function emailOwnerStatement(a: Auth, ownerId: string, periodInput:
   const token = includeLink ? (o.token ?? (await createPortalLink(a, ownerId)).token) : null;
   const [org] = await systemDb.select({ name: organizations.name, currency: organizations.currency }).from(organizations).where(eq(organizations.id, a.organizationId));
   const mail = ownerStatementEmail({
-    currency: org?.currency, agencyName: org?.name ?? 'Your agent', ownerName: st.ownerName, periodLabel: periodLabel(period),
+    lang: langOf(o.language), currency: org?.currency, agencyName: org?.name ?? 'Your agent', ownerName: st.ownerName, periodLabel: monthName(period, langOf(o.language)),
     collected: st.totals.collected, feeAndTax: st.totals.managementFee + st.totals.withholding, repairs: st.totals.maintenance, net: st.totals.netToLandlord,
     lines: st.lines.map((l) => ({ property: l.propertyTitle, tenant: l.tenantName, rentDue: l.rentDue, collected: l.collected })),
-    portalUrl: token ? `${appUrl}/portal/${token}` : null,
+    portalUrl: token ? linkIn(`${appUrl}/portal/${token}`, langOf(o.language)) : null,
   });
   const sent = await sendMail({ to: o.email, ...mail });
   if (!sent) throw new AppError(503, 'EMAIL_NOT_SENT', 'The email could not be sent right now. Check that email is set up, then try again.');
@@ -173,13 +174,14 @@ export interface EmailAllResult { sent: number; noEmail: number; nothingToSend: 
  */
 async function textOwnerPayout(a: Auth, ownerId: string, period: string): Promise<boolean> {
   if (!smsConfigured()) return false;
-  const [o] = await withTenant(a.organizationId, (tx) => tx.select({ phone: owners.phone, token: owners.portalToken }).from(owners).where(eq(owners.id, ownerId)));
+  const [o] = await withTenant(a.organizationId, (tx) => tx.select({ phone: owners.phone, token: owners.portalToken, language: owners.language }).from(owners).where(eq(owners.id, ownerId)));
   if (!o?.phone) return false;
   const st = await ownerStatement(a, ownerId, period);
   if (st.lines.length === 0) return false;
   const token = o.token ?? (await createPortalLink(a, ownerId)).token;
   const [org] = await systemDb.select({ name: organizations.name, currency: organizations.currency }).from(organizations).where(eq(organizations.id, a.organizationId));
-  const text = `${org?.name ?? 'Your agent'}: your ${periodLabel(period)} statement is ready. Paid to you: ${formatMoney(st.totals.netToLandlord, org?.currency)}. View it: ${appUrl}/portal/${token}`;
+  const lang = langOf(o.language);
+  const text = payoutSms(lang, { agency: org?.name ?? 'Your agent', month: monthName(period, lang), net: money(st.totals.netToLandlord, org?.currency, lang), url: linkIn(`${appUrl}/portal/${token}`, lang) });
   const ok = await sendSms(o.phone, text);
   if (ok) {
     await withTenant(a.organizationId, (tx) => recordAudit(tx, {

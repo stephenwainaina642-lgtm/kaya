@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { and, asc, eq, lt, ne, sql } from 'drizzle-orm';
-import { effectivePlan, periodLabel, planHasModule, type ReminderResult } from '@kaya/shared';
+import { effectivePlan, planHasModule, type ReminderResult } from '@kaya/shared';
+import { langOf, linkIn, monthName, money, reminderSms } from '../../lib/messages';
 import { withTenant } from '../../db/client';
 import { systemDb } from '../../db/system';
 import { clients, leases, organizations, properties, rentCharges } from '../../db/schema';
@@ -26,10 +27,9 @@ export async function sendRentReminders(a: Auth, now = new Date()): Promise<Remi
   const cutoff = new Date(now.getTime() - REMINDER_COOLDOWN_DAYS * 86_400_000);
   const [org] = await systemDb.select({ name: organizations.name, currency: organizations.currency }).from(organizations).where(eq(organizations.id, a.organizationId));
 
-  const kes = (n: number) => `${org?.currency ?? 'KES'} ${n.toLocaleString('en-US')}`;
   return withTenant(a.organizationId, async (tx) => {
     const rows = await tx.select({
-      leaseId: leases.id, token: leases.portalToken, reminded: leases.reminderSentAt, phone: clients.phone, tenantName: clients.fullName,
+      leaseId: leases.id, token: leases.portalToken, reminded: leases.reminderSentAt, phone: clients.phone, tenantName: clients.fullName, language: clients.language,
       propertyTitle: properties.title, period: rentCharges.period, amount: rentCharges.amount, paid: rentCharges.paidAmount,
     })
       .from(rentCharges)
@@ -52,8 +52,11 @@ export async function sendRentReminders(a: Auth, now = new Date()): Promise<Remi
         token = randomBytes(24).toString('base64url');
         await tx.update(leases).set({ portalToken: token }).where(eq(leases.id, leaseId));
       }
-      const months = charges.length === 1 ? periodLabel(first.period) : `${charges.length} months`;
-      const text = `Hello ${first.tenantName.split(' ')[0]}, your rent for ${first.propertyTitle} is overdue: ${kes(owed)} (${months}). See your balance: ${appUrl}/tenant/${token} - ${org?.name ?? 'Your agent'}`;
+      const lang = langOf(first.language);
+      const text = reminderSms(lang, {
+        name: first.tenantName.split(' ')[0]!, property: first.propertyTitle, owed: money(owed, org?.currency, lang), months: charges.length,
+        monthLabel: monthName(first.period, lang), url: linkIn(`${appUrl}/tenant/${token}`, lang), agency: org?.name ?? 'Your agent',
+      });
       if (!first.phone) { result.noPhone++; continue; }
       const ok = await sendSms(first.phone, text);
       if (ok) {

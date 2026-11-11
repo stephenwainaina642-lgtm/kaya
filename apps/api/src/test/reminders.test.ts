@@ -84,4 +84,22 @@ describe('rent reminders', () => {
     const agent = await createUser(t.org.id, { role: 'AGENT' });
     expect((await request(app).put('/api/rent/auto-reminders').set({ Authorization: `Bearer ${agent.token}` }).send({ enabled: false })).status).toBe(403);
   });
+
+  it('writes the reminder in the tenant\'s language and opens their link in it', async () => {
+    const t = await setupTenant('ORG_ADMIN', 'GROWTH');
+    const h = t.authHeader;
+    await lease(h, 'L1', 'Amina Said', '0722 333 444');
+    const client = (await request(app).get('/api/clients').set(h)).body.items[0];
+    expect((await request(app).get(`/api/clients/${client.id}`).set(h)).body.language).toBe('en');
+    expect((await request(app).patch(`/api/clients/${client.id}`).set(h).send({ language: 'xx' })).status).toBe(422);
+    const saved = await request(app).patch(`/api/clients/${client.id}`).set(h).send({ language: 'sw' });
+    expect(saved.body.language).toBe('sw');
+    await request(app).post('/api/rent/charges/generate').set(h).send({ period: '2026-02' });
+    testSmsOutbox.length = 0;
+    await request(app).post('/api/rent/reminders').set(h).send({});
+    expect(testSmsOutbox).toHaveLength(1);
+    expect(testSmsOutbox[0]!.text).toContain('Habari Amina');
+    expect(testSmsOutbox[0]!.text).toContain('imechelewa');
+    expect(testSmsOutbox[0]!.text).toMatch(/\/tenant\/[A-Za-z0-9_-]+\?lng=sw/);
+  });
 });

@@ -1,3 +1,4 @@
+import { LanguageField, type Lang } from '../components/LanguageField';
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '../lib/api';
@@ -11,10 +12,11 @@ export function NewOwnerForm({ onDone }: { onDone: () => void }) {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [language, setLanguage] = useState<Lang>('en');
   const [error, setError] = useState<string | null>(null);
 
   const create = useMutation({
-    mutationFn: () => api.post('/owners', { fullName: fullName || null, phone, email: email || null }),
+    mutationFn: () => api.post('/owners', { fullName: fullName || null, phone, email: email || null, language }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['owners'] });
       onDone();
@@ -33,6 +35,7 @@ export function NewOwnerForm({ onDone }: { onDone: () => void }) {
       <Field label="Email (optional)">
         <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
       </Field>
+      <LanguageField value={language} onChange={setLanguage} />
       {error && <p className="mb-3 text-sm text-danger">{error}</p>}
       <Button type="submit" disabled={create.isPending} className="w-full">
         {create.isPending ? 'Creating…' : 'Create owner'}

@@ -79,6 +79,8 @@ export interface OwnerListItem {
 }
 
 export interface OwnerDetail extends OwnerListItem {
+  /** The language texts, emails and portal links to this landlord are written in. */
+  language: 'en' | 'sw' | 'fr';
   whatsapp: string | null;
   agreementType: string | null;
   agreementStart: string | null;

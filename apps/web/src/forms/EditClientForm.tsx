@@ -1,3 +1,4 @@
+import { LanguageField, type Lang } from '../components/LanguageField';
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { LEAD_TYPES } from '@kaya/shared';
@@ -15,12 +16,13 @@ export function EditClientForm({ client, onDone }: { client: ClientDetail; onDon
   const [fullName, setFullName] = useState(client.fullName);
   const [phone, setPhone] = useState(client.phone);
   const [email, setEmail] = useState(client.email ?? '');
+  const [language, setLanguage] = useState<Lang>(client.language ?? 'en');
   const [leadType, setLeadType] = useState<string>(client.leadType);
   const [notes, setNotes] = useState(client.notes ?? '');
   const [error, setError] = useState<string | null>(null);
 
   const update = useMutation({
-    mutationFn: () => api.patch(`/clients/${client.id}`, { fullName, phone, email: email || null, leadType, notes: notes || null }),
+    mutationFn: () => api.patch(`/clients/${client.id}`, { fullName, phone, email: email || null, language, leadType, notes: notes || null }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['clients'] });
       qc.invalidateQueries({ queryKey: ['client', client.id] });
@@ -41,6 +43,7 @@ export function EditClientForm({ client, onDone }: { client: ClientDetail; onDon
       <Field label="Email (optional)">
         <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
       </Field>
+      <LanguageField value={language} onChange={setLanguage} />
       <Field label="Type">
         <Select value={leadType} onChange={(e) => setLeadType(e.target.value)}>
           {LEAD_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}

@@ -1,3 +1,7 @@
+/** Languages Kaya can write to tenants and landlords in (texts, emails, portal links). */
+export const LANGUAGES = ['en', 'sw', 'fr'] as const;
+export type Language = (typeof LANGUAGES)[number];
+
 export const ROLES = ['ORG_ADMIN', 'MANAGER', 'AGENT', 'VIEWER', 'CARETAKER'] as const;
 export type Role = (typeof ROLES)[number];
 

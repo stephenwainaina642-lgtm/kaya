@@ -201,6 +201,14 @@ async function main() {
       SELECT 1 FROM information_schema.columns WHERE table_name = 'properties' AND column_name = 'advertised'
     )
     UNION ALL
+    SELECT 'owners.language' WHERE to_regclass('owners') IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM information_schema.columns WHERE table_name = 'owners' AND column_name = 'language'
+    )
+    UNION ALL
+    SELECT 'clients.language' WHERE to_regclass('clients') IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM information_schema.columns WHERE table_name = 'clients' AND column_name = 'language'
+    )
+    UNION ALL
     SELECT 'organizations.auto_reminders' WHERE NOT EXISTS (
       SELECT 1 FROM information_schema.columns WHERE table_name = 'organizations' AND column_name = 'auto_reminders'
     )
@@ -387,6 +395,12 @@ async function applyKnownFixups(c) {
         IF to_regclass('property_images') IS NOT NULL THEN
           ALTER TABLE property_images ADD COLUMN IF NOT EXISTS storage_key text;
           ALTER TABLE property_images ADD COLUMN IF NOT EXISTS mime text;
+        END IF;
+        IF to_regclass('owners') IS NOT NULL THEN
+          ALTER TABLE owners ADD COLUMN IF NOT EXISTS language text NOT NULL DEFAULT 'en';
+        END IF;
+        IF to_regclass('clients') IS NOT NULL THEN
+          ALTER TABLE clients ADD COLUMN IF NOT EXISTS language text NOT NULL DEFAULT 'en';
         END IF;
         IF to_regclass('properties') IS NOT NULL THEN
           ALTER TABLE properties ADD COLUMN IF NOT EXISTS building text;

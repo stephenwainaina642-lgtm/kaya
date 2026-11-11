@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { eq, and, desc, ilike, or, sql as dsql } from 'drizzle-orm';
-import { CLIENT_STATUSES, LEAD_TYPES } from '@kaya/shared';
+import { CLIENT_STATUSES, LANGUAGES, LEAD_TYPES } from '@kaya/shared';
 import type { ClientListItem, ClientDetail, Page } from '@kaya/shared';
 import { withTenant } from '../../db/client';
 import { clients, users } from '../../db/schema';
@@ -19,6 +19,7 @@ export const clientCreate = z.object({
   phone: z.string().trim().min(5).max(30).regex(/^\+?[0-9 ()-]+$/, 'Phone numbers can only contain digits'),
   whatsapp: z.string().trim().max(30).nullable().optional(),
   email: z.string().email().nullable().optional(),
+  language: z.enum(LANGUAGES).optional(),
   leadType: z.enum(LEAD_TYPES).default('BUYER'),
   tags: tagsField,
   notes: z.string().trim().max(2000).nullable().optional(),
@@ -91,6 +92,7 @@ async function hydrateClient(tx: Parameters<Parameters<typeof withTenant>[1]>[0]
   const reqs = await getRequirements(tx, { clientId: id });
   return {
     ...mapClient(row.client, row.agentName),
+    language: row.client.language as ClientDetail['language'],
     whatsapp: row.client.whatsapp,
     tags: row.client.tags,
     notes: row.client.notes,
@@ -117,6 +119,7 @@ export async function createClient(a: Auth, body: unknown): Promise<ClientDetail
       phone: input.phone,
       whatsapp: input.whatsapp ?? null,
       email: input.email ?? null,
+      language: input.language ?? 'en',
       leadType: input.leadType,
       tags: input.tags,
       notes: input.notes ?? null,

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { eq, and, desc, ilike, or, sql as dsql } from 'drizzle-orm';
-import { COMMISSION_ARRANGEMENTS, COMM_CHANNELS } from '@kaya/shared';
+import { COMMISSION_ARRANGEMENTS, COMM_CHANNELS, LANGUAGES } from '@kaya/shared';
 import type { OwnerListItem, OwnerDetail, Page } from '@kaya/shared';
 import { withTenant, type Tx } from '../../db/client';
 import { owners, properties, activities, communications } from '../../db/schema';
@@ -13,6 +13,7 @@ export const ownerCreate = z.object({
   companyName: z.string().trim().max(200).nullable().optional(),
   phone: z.string().trim().min(5).max(30).regex(/^\+?[0-9 ()-]+$/, 'Phone numbers can only contain digits'),
   email: z.string().email().nullable().optional(),
+  language: z.enum(LANGUAGES).optional(),
   whatsapp: z.string().trim().max(30).nullable().optional(),
   agreementType: z.string().trim().max(100).nullable().optional(),
   agreementStart: z.string().trim().max(40).nullable().optional(),
@@ -72,6 +73,7 @@ async function hydrate(tx: Tx, organizationId: string, id: string): Promise<Owne
   if (!row) throw notFound('Owner');
   return {
     ...mapOwner(row, await propertyCountFor(tx, id)),
+    language: row.language as OwnerDetail['language'],
     whatsapp: row.whatsapp,
     agreementType: row.agreementType,
     agreementStart: row.agreementStart,

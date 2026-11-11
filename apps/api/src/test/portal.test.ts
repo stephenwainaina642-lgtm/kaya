@@ -77,6 +77,23 @@ describe('landlord portal', () => {
     expect(view.portfolio.owedByTenants).toBe(80_000);
   });
 
+  it('sends a French landlord their payout text and statement email in French, with a French link', async () => {
+    const t = await setupTenant('ORG_ADMIN', 'GROWTH');
+    const h = t.authHeader;
+    const { owner } = await seed(h);
+    await request(app).post('/api/rent/charges/generate').set(h).send({ period: '2026-03' });
+    const charge = (await request(app).get('/api/rent/charges').set(h).query({ period: '2026-03' })).body[0];
+    await request(app).post(`/api/rent/charges/${charge.id}/payments`).set(h).send({ amount: 50_000, method: 'CASH' });
+    expect((await request(app).patch(`/api/owners/${owner.id}`).set(h).send({ language: 'fr', email: 'grace@example.com' })).body.language).toBe('fr');
+    testOutbox.length = 0;
+    testSmsOutbox.length = 0;
+    await request(app).post('/api/rent/statements/email-all').set(h).send({ period: '2026-03' });
+    expect(testOutbox[0]!.subject).toContain('Votre relevé de loyers de mars 2026');
+    expect(testOutbox[0]!.text).toContain('Versé à vous');
+    expect(testSmsOutbox[0]!.text).toContain('votre relevé de mars 2026 est prêt');
+    expect(testSmsOutbox[0]!.text).toMatch(/\/portal\/[A-Za-z0-9_-]+\?lng=fr/);
+  });
+
   it('refuses guesses, other plans and agents', async () => {
     const t = await setupTenant('ORG_ADMIN', 'GROWTH');
     const h = t.authHeader;

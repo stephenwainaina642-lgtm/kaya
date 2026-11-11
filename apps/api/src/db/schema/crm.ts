@@ -39,6 +39,7 @@ export const clients = pgTable('clients', {
   ...tenantColumns(),
   fullName: text('full_name').notNull(),
   phone: text('phone').notNull(),
+  language: text('language').notNull().default('en'),
   whatsapp: text('whatsapp'),
   email: text('email'),
   status: clientStatusEnum('status').notNull().default('ACTIVE'),

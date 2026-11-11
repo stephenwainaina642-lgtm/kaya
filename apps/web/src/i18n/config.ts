@@ -34,7 +34,8 @@ i18n
     fallbackLng: 'en',
     supportedLngs: ['en', 'fr', 'sw'],
     interpolation: { escapeValue: false },
-    detection: { order: ['localStorage', 'navigator'], caches: ['localStorage'] },
+    // A link with ?lng=sw (how texts and emails open portals) wins, then what the visitor chose before.
+    detection: { order: ['querystring', 'localStorage', 'navigator'], lookupQuerystring: 'lng', caches: ['localStorage'] },
   });
 
 export default i18n;

@@ -16,6 +16,7 @@ export const owners = pgTable('owners', {
   fullName: text('full_name'),
   companyName: text('company_name'),
   phone: text('phone').notNull(),
+  language: text('language').notNull().default('en'),
   email: text('email'),
   whatsapp: text('whatsapp'),
   agreementType: text('agreement_type'),
