@@ -14,7 +14,7 @@ import { PairedBars, Tile } from '../../components/portal/charts';
 import { summariseTenant } from '../../lib/tenantSummary';
 import { printTenantStatement } from '../../lib/tenantStatement';
 import { Banknote, CheckCircle2, FileText, Landmark, Printer, Smartphone } from 'lucide-react';
-import { localDay, localPeriod } from '../../lib/localDate';
+import { localDay, localMonthShort, localPeriod } from '../../lib/localDate';
 
 function PayNow({ token, owing, currency }: { token: string; owing: number; currency: string }) {
   const { t } = useTranslation();
@@ -172,7 +172,7 @@ export function PublicTenantPortal() {
     const d = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() - (5 - i), 1));
     const period = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
     const r = rowBy.get(period);
-    return { label: localPeriod(period, lang).split(' ')[0]!.slice(0, 3), a: r?.charged ?? 0, b: r?.paid ?? 0 };
+    return { label: localMonthShort(period, lang), a: r?.charged ?? 0, b: r?.paid ?? 0 };
   });
   const dateFmt = (d: Date) => d.toLocaleDateString(lang === 'en' ? 'en-KE' : lang, { day: 'numeric', month: 'long', timeZone: 'UTC' });
   const behindText = sum.monthsBehind === 1 ? t('tenant.behindOne') : t('tenant.behind', { count: sum.monthsBehind });
