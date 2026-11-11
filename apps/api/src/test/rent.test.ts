@@ -81,6 +81,15 @@ describe('rent management', () => {
     expect(after.paidAmount).toBe(30_000);
   });
 
+  it('marks a property let when a lease starts and available again when it ends', async () => {
+    const t = await setupTenant('ORG_ADMIN', 'GROWTH');
+    const { property, lease } = await seed(t.authHeader);
+    const status = async () => (await request(app).get(`/api/properties/${property.id}`).set(t.authHeader)).body.status;
+    expect(await status()).toBe('LET');
+    await request(app).post(`/api/rent/leases/${lease.body.id}/end`).set(t.authHeader).send({});
+    expect(await status()).toBe('AVAILABLE');
+  });
+
   it('skips ended leases and leases not yet started when generating rent', async () => {
     const t = await setupTenant('ORG_ADMIN', 'GROWTH');
     const { lease } = await seed(t.authHeader);

@@ -88,7 +88,7 @@ export async function createLease(a: Auth, body: unknown): Promise<LeaseItem> {
   const input = parse(leaseCreate, body);
   return withTenant(a.organizationId, async (tx) => {
     // Locking the property row serialises concurrent attempts to lease it.
-    const [prop] = await tx.select({ id: properties.id }).from(properties).where(eq(properties.id, input.propertyId)).for('update');
+    const [prop] = await tx.select({ id: properties.id, status: properties.status }).from(properties).where(eq(properties.id, input.propertyId)).for('update');
     if (!prop) throw notFound('Property');
     const [tenant] = await tx.select({ id: clients.id }).from(clients).where(eq(clients.id, input.tenantId));
     if (!tenant) throw notFound('Tenant');
@@ -99,6 +99,10 @@ export async function createLease(a: Auth, body: unknown): Promise<LeaseItem> {
     const [row] = await tx.insert(leases).values({
       organizationId: a.organizationId, ...input, endDate: input.endDate ?? null,
     }).returning({ id: leases.id });
+    // A let unit stops showing as available. Sold or withdrawn properties keep their status.
+    if (prop.status === 'AVAILABLE' || prop.status === 'UNDER_OFFER') {
+      await tx.update(properties).set({ status: 'LET' }).where(eq(properties.id, input.propertyId));
+    }
     await recordAudit(tx, {
       organizationId: a.organizationId, actorId: a.userId, action: 'CREATE', entityType: 'lease', entityId: row!.id,
       summary: `Created lease at ${input.rentAmount.toLocaleString('en-US')}/month`,
@@ -116,6 +120,8 @@ export async function endLease(a: Auth, id: string, endDate?: string): Promise<L
     if (!lease) throw notFound('Lease');
     if (lease.status === 'ENDED') throw conflict('This lease has already ended.', 'LEASE_ENDED');
     await tx.update(leases).set({ status: 'ENDED', endDate: end }).where(eq(leases.id, id));
+    // The unit is free again, unless someone already changed its status by hand.
+    await tx.update(properties).set({ status: 'AVAILABLE' }).where(and(eq(properties.id, lease.propertyId), eq(properties.status, 'LET')));
     await recordAudit(tx, {
       organizationId: a.organizationId, actorId: a.userId, action: 'UPDATE', entityType: 'lease', entityId: id, summary: 'Ended lease',
     });

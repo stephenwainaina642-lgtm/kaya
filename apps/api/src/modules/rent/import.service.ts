@@ -119,7 +119,11 @@ export async function importLeases(a: Auth, body: unknown): Promise<LeaseImportR
       });
     }
 
-    if (toInsert.length) await tx.insert(leases).values(toInsert);
+    if (toInsert.length) {
+      await tx.insert(leases).values(toInsert);
+      await tx.update(properties).set({ status: 'LET' })
+        .where(and(inArray(properties.id, toInsert.map((l) => l.propertyId)), inArray(properties.status, ['AVAILABLE', 'UNDER_OFFER'])));
+    }
     result.created = toInsert.length;
     await recordAudit(tx, {
       organizationId: a.organizationId, actorId: a.userId, action: 'CREATE', entityType: 'lease', entityId: a.organizationId,
