@@ -42,6 +42,7 @@ export interface RentChargeItem {
   leaseId: string;
   propertyTitle: string;
   tenantName: string;
+  tenantPhone?: string | null;
   period: string;
   dueDate: string;
   amount: number;
@@ -451,3 +452,28 @@ export interface PortfolioHealth {
   components: HealthComponent[];
   actions: HealthAction[];
 }
+
+export type ChecklistPhase = 'IN' | 'OUT';
+export interface LeaseChecklistItem {
+  id: string;
+  phase: ChecklistPhase;
+  label: string;
+  done: boolean;
+  doneAt: string | null;
+}
+
+/** What most agents tick through at hand-over and at move-out. Offered when a lease has no checklist yet. */
+export const DEFAULT_CHECKLIST: { phase: ChecklistPhase; label: string }[] = [
+  { phase: 'IN', label: 'Tenancy agreement signed' },
+  { phase: 'IN', label: 'Deposit and first rent received' },
+  { phase: 'IN', label: 'ID copy and next-of-kin collected' },
+  { phase: 'IN', label: 'Keys handed over' },
+  { phase: 'IN', label: 'Meter readings recorded (water, electricity)' },
+  { phase: 'IN', label: 'Condition photos taken' },
+  { phase: 'OUT', label: 'Notice received in writing' },
+  { phase: 'OUT', label: 'Move-out inspection done' },
+  { phase: 'OUT', label: 'Final meter readings recorded' },
+  { phase: 'OUT', label: 'Keys returned' },
+  { phase: 'OUT', label: 'Damages and arrears assessed' },
+  { phase: 'OUT', label: 'Deposit settled' },
+];

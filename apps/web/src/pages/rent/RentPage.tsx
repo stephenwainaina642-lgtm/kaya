@@ -29,7 +29,10 @@ import { SettleDepositForm } from '../../forms/SettleDepositForm';
 import { RenewLeaseForm } from '../../forms/RenewLeaseForm';
 import { RecordRentPaymentForm } from '../../forms/RecordRentPaymentForm';
 import { money as kes } from '../../lib/currency';
+import { LeaseChecklist } from '../../forms/LeaseChecklist';
+import { BatchIncreaseForm } from '../../forms/BatchIncreaseForm';
 import { downloadCsv } from '../../lib/csvExport';
+import { ContactActions } from '../../components/ContactActions';
 const thisMonth = () => new Date().toISOString().slice(0, 7);
 const TONE = { UNPAID: 'danger', PARTIAL: 'warn', PAID: 'ok' } as const;
 type Tab = 'roll' | 'leases' | 'arrears' | 'vacancies' | 'statements';
@@ -190,7 +193,7 @@ function RentRoll() {
               {charges.data.map((c) => (
                 <tr key={c.id} className="border-b border-line last:border-0">
                   <td className="px-4 py-3 font-medium text-ink">{c.propertyTitle}</td>
-                  <td className="px-4 py-3">{c.tenantName}</td>
+                  <td className="px-4 py-3"><div className="flex items-center gap-2">{c.tenantName}{c.tenantPhone && <ContactActions phone={c.tenantPhone} name={c.tenantName} size={24} />}</div></td>
                   <td className="px-4 py-3">{c.dueDate}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-right">
                     {kes(c.amount)}
@@ -309,6 +312,8 @@ function Leases() {
   const [settling, setSettling] = useState<LeaseItem | null>(null);
   const [lettering, setLettering] = useState<LeaseItem | null>(null);
   const [linking, setLinking] = useState<LeaseItem | null>(null);
+  const [batch, setBatch] = useState(false);
+  const [checking, setChecking] = useState<LeaseItem | null>(null);
   const { user } = useAuth();
   const openStatement = async (id: string) => {
     const st = await api.get<TenantStatement>(`/rent/leases/${id}/statement`);
@@ -324,7 +329,8 @@ function Leases() {
   const ending = data.filter((l) => endsIn(l)).sort((a, b) => (a.endDate ?? '').localeCompare(b.endDate ?? ''));
   return (
     <>
-    <div className="mb-3 flex justify-end">
+    <div className="mb-3 flex flex-wrap justify-end gap-2">
+      <Button variant="ghost" onClick={() => setBatch(true)}><FileText size={15} /> Rent increase letters</Button>
       <Button variant="ghost" onClick={() => downloadCsv('leases.csv',
         ['Property', 'Tenant', 'Landlord', 'Rent', 'Deposit', 'Due day', 'Start', 'End', 'Status'],
         data.map((l) => [l.propertyTitle, l.tenantName, l.ownerName, l.rentAmount, l.depositAmount, l.dueDay, l.startDate, l.endDate, l.status]))}>
@@ -378,6 +384,7 @@ function Leases() {
                     <Button variant="ghost" disabled={end.isPending} onClick={() => { if (window.confirm('End this lease? No more rent will be raised for it.')) end.mutate(l.id); }}>End lease</Button>
                   </>
                 )}
+                <Button variant="ghost" onClick={() => setChecking(l)}>Checklist</Button>
                 <Button variant="ghost" onClick={() => openStatement(l.id)}>Statement</Button>
                 {l.status === 'ENDED' && l.depositAmount > 0 && (l.depositSettledAt
                   ? <span className="whitespace-nowrap text-xs text-muted" title={l.depositNotes ?? undefined}>Deposit: {kes(l.depositAmount - l.depositDeduction)} refunded{l.depositDeduction > 0 ? `, ${kes(l.depositDeduction)} kept` : ''}</span>
@@ -390,6 +397,12 @@ function Leases() {
         </tbody>
       </table>
     </Card>
+    <Modal open={!!checking} onClose={() => setChecking(null)} title="Move-in and move-out checklist">
+      {checking && <LeaseChecklist lease={checking} />}
+    </Modal>
+    <Modal open={batch} onClose={() => setBatch(false)} title="Rent increase letters">
+      {batch && <BatchIncreaseForm leases={data} onDone={() => setBatch(false)} />}
+    </Modal>
     <Modal open={!!renewing} onClose={() => setRenewing(null)} title="Renew lease">
       {renewing && <RenewLeaseForm lease={renewing} onDone={() => setRenewing(null)} />}
     </Modal>

@@ -28,6 +28,8 @@ export const leases = pgTable('leases', {
   depositDeduction: integer('deposit_deduction').notNull().default(0),
   depositSettledAt: timestamp('deposit_settled_at', { withTimezone: true }),
   depositNotes: text('deposit_notes'),
+  // Move-in / move-out checklist the agent ticks through. Empty = not started (the app offers a default list).
+  checklist: jsonb('checklist').$type<{ id: string; phase: 'IN' | 'OUT'; label: string; done: boolean; doneAt: string | null }[]>().notNull().default([]),
   expiryAlertSentAt: timestamp('expiry_alert_sent_at', { withTimezone: true }),
   // Secret in the tenant's read-only link. Null = no link; clearing or replacing it revokes the old one.
   portalToken: text('portal_token'),

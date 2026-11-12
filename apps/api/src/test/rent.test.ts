@@ -292,6 +292,28 @@ describe('lease expiry alerts and renewal', () => {
     expect(ok.body.depositSettledAt).toBeTruthy();
     expect((await request(app).post(url).set(h).send({ deduction: 0 })).status).toBe(409); // already settled
   });
+  it('keeps a move-in and move-out checklist per lease, stamping when items are ticked', async () => {
+    const t = await setupTenant('ORG_ADMIN', 'GROWTH');
+    const h = t.authHeader;
+    const { lease } = await seed(h, 50_000);
+    const url = `/api/rent/leases/${lease.body.id}/checklist`;
+    const fresh = await request(app).get(url).set(h);
+    expect(fresh.status).toBe(200);
+    expect(fresh.body.length).toBeGreaterThan(5); // default list offered, nothing stored yet
+    const items = fresh.body.map((i: any, n: number) => ({ id: i.id, phase: i.phase, label: i.label, done: n === 0 }));
+    const saved = await request(app).put(url).set(h).send({ items });
+    expect(saved.status).toBe(200);
+    expect(saved.body[0].done).toBe(true);
+    expect(saved.body[0].doneAt).toBeTruthy();
+    expect(saved.body[1].doneAt).toBeNull();
+    const stamp = saved.body[0].doneAt;
+    const again = await request(app).put(url).set(h).send({ items });
+    expect(again.body[0].doneAt).toBe(stamp); // not re-stamped
+    expect((await request(app).get(url).set(h)).body[0].done).toBe(true);
+    expect((await request(app).put(url).set(h).send({ items: [{ id: 'x', phase: 'SIDEWAYS', label: 'x', done: false }] })).status).toBe(422);
+    const agent = await createUser(t.org.id, { role: 'AGENT' });
+    expect((await request(app).get(url).set({ Authorization: `Bearer ${agent.token}` })).status).toBe(403);
+  });
   it('adds water and garbage to a month without touching the landlord statement', async () => {
     const t = await setupTenant('ORG_ADMIN', 'GROWTH');
     const h = t.authHeader;

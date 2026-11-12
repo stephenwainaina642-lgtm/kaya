@@ -12,6 +12,7 @@ import { useAuth } from '../auth/AuthContext';
 import { Avatar } from './ui/Avatar';
 import { GuideAssistant } from './GuideAssistant';
 import { BrandMark } from './BrandMark';
+import { QuickAdd } from './QuickAdd';
 import { CommandPalette, type PalettePage } from './CommandPalette';
 
 type NavItem = { to: string; labelKey: string; icon: typeof LayoutDashboard; end?: boolean; module?: 'dealsPipeline' | 'rentManagement' | 'analytics' | 'automation' | 'auditLog'; permission?: Permission };
@@ -96,6 +97,7 @@ function SidebarContent({ onNavigate, onSearch }: { onNavigate?: () => void; onS
           <Search size={15} /> <span className="flex-1">Search</span>
           <kbd className="hidden rounded border border-line bg-white px-1.5 py-px text-[0.65rem] lg:block">Ctrl K</kbd>
         </button>
+        {user?.role !== 'CARETAKER' && <QuickAdd variant="sidebar" />}
       </div>
       <nav className="scrollbar-thin flex-1 overflow-y-auto px-3 pb-4">
         {NAV_GROUPS.map((g, gi) => {
@@ -201,6 +203,7 @@ export function AppLayout() {
           <BrandMark logoUrl={user?.logoUrl} name={user?.organizationName ?? 'Kaya'} brandColor={user?.brandColor} size={28} />
           <span className="min-w-0 flex-1 truncate text-base font-semibold text-ink">{user?.organizationName || 'Kaya'}</span>
           <button onClick={() => setSearching(true)} className="rounded-control p-2 text-ink hover:bg-sunk" aria-label="Search"><Search size={19} /></button>
+          {user?.role !== 'CARETAKER' && <QuickAdd variant="icon" />}
         </div>
         <main key={location.pathname} className="scrollbar-thin flex-1 overflow-y-auto">
           <Outlet />

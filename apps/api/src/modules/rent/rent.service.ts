@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { and, asc, eq, gte, inArray, isNull, lt, lte, ne, notInArray, sql as dsql } from 'drizzle-orm';
-import { RENT_PAYMENT_METHODS, effectivePlan, periodLabel, planHasModule } from '@kaya/shared';
+import { DEFAULT_CHECKLIST, RENT_PAYMENT_METHODS, effectivePlan, periodLabel, planHasModule } from '@kaya/shared';
 import type {
   ArrearsReport, ChargeStatus, RentSummary, TenantStatement, VacancyReport, GenerateRentResult, LeaseItem, OwnerStatement, RentChargeItem,
-  RentOverview, RentPaymentItem, StatementDeduction, StatementLine,
+  RentOverview, RentPaymentItem, StatementDeduction, StatementLine, LeaseChecklistItem,
 } from '@kaya/shared';
 import { withTenant, type Tx } from '../../db/client';
 import { systemDb } from '../../db/system';
@@ -74,6 +74,43 @@ function leaseSelect(tx: Tx) {
     .innerJoin(properties, eq(properties.id, leases.propertyId))
     .innerJoin(clients, eq(clients.id, leases.tenantId))
     .leftJoin(owners, eq(owners.id, properties.ownerId));
+}
+
+const checklistSchema = z.object({
+  items: z.array(z.object({
+    id: z.string().min(1).max(40),
+    phase: z.enum(['IN', 'OUT']),
+    label: z.string().trim().min(1).max(120),
+    done: z.boolean(),
+  })).max(60),
+});
+
+function defaultChecklist(): LeaseChecklistItem[] {
+  return DEFAULT_CHECKLIST.map((d, i) => ({ id: `d${i}`, phase: d.phase, label: d.label, done: false, doneAt: null }));
+}
+
+export async function getChecklist(a: Auth, leaseId: string): Promise<LeaseChecklistItem[]> {
+  parse(uuidField, leaseId);
+  return withTenant(a.organizationId, async (tx) => {
+    const [l] = await tx.select({ checklist: leases.checklist }).from(leases).where(eq(leases.id, leaseId));
+    if (!l) throw notFound('Lease');
+    return l.checklist.length ? l.checklist : defaultChecklist();
+  });
+}
+
+export async function saveChecklist(a: Auth, leaseId: string, body: unknown): Promise<LeaseChecklistItem[]> {
+  parse(uuidField, leaseId);
+  const { items } = parse(checklistSchema, body);
+  return withTenant(a.organizationId, async (tx) => {
+    const [l] = await tx.select({ checklist: leases.checklist }).from(leases).where(eq(leases.id, leaseId));
+    if (!l) throw notFound('Lease');
+    const before = new Map(l.checklist.map((i) => [i.id, i]));
+    const now = new Date().toISOString();
+    // Keep the original tick time; stamp newly ticked items; clear it when unticked.
+    const next = items.map((i) => ({ ...i, doneAt: i.done ? (before.get(i.id)?.done ? before.get(i.id)!.doneAt : now) : null }));
+    await tx.update(leases).set({ checklist: next }).where(eq(leases.id, leaseId));
+    return next;
+  });
 }
 
 export async function listLeases(a: Auth, status?: string): Promise<LeaseItem[]> {
@@ -256,7 +293,7 @@ export async function sweepRentCharges(now: Date = new Date()): Promise<{ organi
 
 function chargeSelect(tx: Tx) {
   return tx.select({
-    id: rentCharges.id, leaseId: rentCharges.leaseId, propertyTitle: properties.title, tenantName: clients.fullName,
+    id: rentCharges.id, leaseId: rentCharges.leaseId, propertyTitle: properties.title, tenantName: clients.fullName, tenantPhone: clients.phone,
     period: rentCharges.period, dueDate: rentCharges.dueDate, amount: rentCharges.amount,
     paidAmount: rentCharges.paidAmount, status: rentCharges.status, extras: rentCharges.extras,
   })

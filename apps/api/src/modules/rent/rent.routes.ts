@@ -10,7 +10,7 @@ import { requirePlanModule } from '../../middleware/plan';
 import { toCsv } from '../../lib/csv';
 import {
   listLeases, createLease, endLease, renewLease, generateCharges, listCharges, recordPayment, emailReceipt, listPayments,
-  getOverview, getArrears, getVacancies, getSummary, tenantStatement, addChargeExtra, removeChargeExtra, settleDeposit, ownerStatement,
+  getChecklist, saveChecklist, getOverview, getArrears, getVacancies, getSummary, tenantStatement, addChargeExtra, removeChargeExtra, settleDeposit, ownerStatement,
 } from './rent.service';
 
 import { listClaims, confirmClaim, rejectClaim } from './claims.service';
@@ -30,6 +30,8 @@ rentRouter.get('/health', requirePermission('rent:view'), wrap(async (req, res) 
 rentRouter.get('/overview', requirePermission('rent:view'), wrap(async (req, res) => { res.json(await getOverview(ctx(req), req.query)); }));
 rentRouter.get('/leases', requirePermission('rent:view'), wrap(async (req, res) => { res.json(await listLeases(ctx(req), req.query.status as string | undefined)); }));
 rentRouter.post('/leases', requirePermission('rent:create'), wrap(async (req, res) => { res.status(201).json(await createLease(ctx(req), req.body)); }));
+rentRouter.get('/leases/:id/checklist', requirePermission('rent:view'), wrap(async (req, res) => { res.json(await getChecklist(ctx(req), req.params.id)); }));
+rentRouter.put('/leases/:id/checklist', requirePermission('rent:edit'), wrap(async (req, res) => { res.json(await saveChecklist(ctx(req), req.params.id, req.body)); }));
 rentRouter.get('/leases/:id/portal-link', requirePermission('rent:view'), wrap(async (req, res) => { res.json(await getTenantLink(ctx(req), req.params.id)); }));
 rentRouter.post('/leases/:id/portal-link', requirePermission('rent:edit'), wrap(async (req, res) => { res.json(await createTenantLink(ctx(req), req.params.id)); }));
 rentRouter.delete('/leases/:id/portal-link', requirePermission('rent:edit'), wrap(async (req, res) => { await revokeTenantLink(ctx(req), req.params.id); res.status(204).end(); }));

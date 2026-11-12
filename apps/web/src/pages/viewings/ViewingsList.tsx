@@ -10,6 +10,7 @@ import { Button } from '../../components/ui/Button';
 import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Modal } from '../../components/ui/Modal';
+import { ContactActions } from '../../components/ContactActions';
 import { NewViewingForm } from '../../forms/NewViewingForm';
 
 const STATUS_TONE: Record<string, 'ok' | 'warn' | 'danger' | 'neutral' | 'accent'> = {
@@ -88,7 +89,7 @@ function ScheduledTab() {
           {data.items.map((v) => (
             <tr key={v.id} className="border-b border-line last:border-0 hover:bg-sunk">
               <td className="px-5 py-3 font-medium text-ink">{v.property.title}</td>
-              <td className="px-5 py-3 text-muted">{v.client?.name ?? v.lead?.name ?? '—'}</td>
+              <td className="px-5 py-3 text-muted"><div className="flex items-center gap-2">{v.client?.name ?? v.lead?.name ?? '—'}{(v.client ?? v.lead) && <ContactActions phone={(v.client ?? v.lead)!.phone} name={(v.client ?? v.lead)!.name} size={24} />}</div></td>
               <td className="px-5 py-3 text-muted">{v.agent.name}</td>
               <td className="px-5 py-3 text-muted">{new Date(v.scheduledAt).toLocaleString('en-KE', { dateStyle: 'medium', timeStyle: 'short' })}</td>
               <td className="px-5 py-3"><Badge tone={STATUS_TONE[v.status] ?? 'neutral'}>{v.status.replace(/_/g, ' ')}</Badge></td>

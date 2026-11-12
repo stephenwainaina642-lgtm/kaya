@@ -209,6 +209,10 @@ async function main() {
       SELECT 1 FROM information_schema.columns WHERE table_name = 'clients' AND column_name = 'language'
     )
     UNION ALL
+    SELECT 'leases.checklist' WHERE to_regclass('leases') IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM information_schema.columns WHERE table_name = 'leases' AND column_name = 'checklist'
+    )
+    UNION ALL
     SELECT 'organizations.auto_reminders' WHERE NOT EXISTS (
       SELECT 1 FROM information_schema.columns WHERE table_name = 'organizations' AND column_name = 'auto_reminders'
     )
@@ -329,6 +333,7 @@ async function applyKnownFixups(c) {
           ALTER TABLE leases ADD COLUMN IF NOT EXISTS deposit_deduction integer NOT NULL DEFAULT 0;
           ALTER TABLE leases ADD COLUMN IF NOT EXISTS deposit_settled_at timestamptz;
           ALTER TABLE leases ADD COLUMN IF NOT EXISTS deposit_notes text;
+          ALTER TABLE leases ADD COLUMN IF NOT EXISTS checklist jsonb NOT NULL DEFAULT '[]'::jsonb;
           CREATE TABLE IF NOT EXISTS maintenance_requests (
             id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
             organization_id uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
