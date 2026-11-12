@@ -39,7 +39,7 @@ export function OrganizationDetail() {
         subtitle={org.slug}
         actions={<Link to="/platform/organizations" className="flex items-center gap-1 text-sm text-muted hover:text-ink"><ArrowLeft size={16} /> Back</Link>}
       />
-      <div className="grid grid-cols-1 gap-6 p-8 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 p-4 sm:p-6 lg:p-8 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <Card className="p-5">
             <h2 className="mb-3 font-display text-lg font-semibold text-ink">Team ({org.users.length})</h2>

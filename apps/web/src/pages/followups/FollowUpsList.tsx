@@ -36,7 +36,7 @@ export function FollowUpsList() {
       <Modal open={showNew} onClose={() => setShowNew(false)} title="New follow-up">
         <NewFollowUpForm onDone={() => setShowNew(false)} />
       </Modal>
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         {isLoading ? (
           <Spinner />
         ) : !data || data.items.length === 0 ? (

@@ -34,7 +34,7 @@ export function DealsBoard() {
       <Modal open={showNew} onClose={() => setShowNew(false)} title="New deal" width="max-w-xl">
         <NewDealForm onDone={() => setShowNew(false)} />
       </Modal>
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         {isError ? (
           <Card>
             <EmptyState

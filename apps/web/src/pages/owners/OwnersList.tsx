@@ -7,6 +7,8 @@ import { api } from '../../lib/api';
 import { PageHeader } from '../../components/PageHeader';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { ContactActions } from '../../components/ContactActions';
+import { Avatar } from '../../components/ui/Avatar';
 import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Modal } from '../../components/ui/Modal';
@@ -26,7 +28,7 @@ export function OwnersList() {
       <Modal open={showNew} onClose={() => setShowNew(false)} title="New owner">
         <NewOwnerForm onDone={() => setShowNew(false)} />
       </Modal>
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         <div className="mb-4 flex max-w-sm items-center gap-2 rounded-control border border-line bg-white px-3">
           <Search size={16} className="text-faint" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search owners…" className="w-full bg-transparent py-2 text-sm outline-none" />
@@ -37,7 +39,20 @@ export function OwnersList() {
           ) : !data || data.items.length === 0 ? (
             <EmptyState title="No owners yet" />
           ) : (
-            <div className="overflow-x-auto"><table className="w-full text-sm">
+            <>
+            <ul className="divide-y divide-line sm:hidden">
+              {data.items.map((o) => (
+                <li key={o.id} className="flex items-center gap-3 p-4">
+                  <Avatar name={o.fullName ?? o.companyName ?? '?'} size={40} />
+                  <div className="min-w-0 flex-1">
+                    <Link to={`/owners/${o.id}`} className="block truncate font-medium text-ink">{o.fullName ?? o.companyName}</Link>
+                    <p className="truncate text-xs text-muted">{o.phone} · {o.propertyCount} {o.propertyCount === 1 ? 'property' : 'properties'}</p>
+                  </div>
+                  <ContactActions phone={o.phone} name={o.fullName ?? o.companyName ?? undefined} size={38} />
+                </li>
+              ))}
+            </ul>
+            <div className="hidden overflow-x-auto sm:block"><table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-faint">
                   <th className="px-5 py-3 font-medium">Name</th>
@@ -49,14 +64,18 @@ export function OwnersList() {
                 {data.items.map((o) => (
                   <tr key={o.id} className="border-b border-line last:border-0 hover:bg-sunk">
                     <td className="px-5 py-3">
-                      <Link to={`/owners/${o.id}`} className="font-medium text-ink hover:text-cypress-700">{o.fullName ?? o.companyName}</Link>
+                      <div className="flex items-center gap-3">
+                        <Avatar name={o.fullName ?? o.companyName ?? '?'} size={36} />
+                        <Link to={`/owners/${o.id}`} className="font-medium text-ink hover:text-accent">{o.fullName ?? o.companyName}</Link>
+                      </div>
                     </td>
-                    <td className="px-5 py-3 text-muted">{o.phone}</td>
+                    <td className="px-5 py-3"><div className="flex items-center gap-2"><span className="text-muted">{o.phone}</span><ContactActions phone={o.phone} name={o.fullName ?? o.companyName ?? undefined} size={26} /></div></td>
                     <td className="px-5 py-3 text-muted">{o.propertyCount}</td>
                   </tr>
                 ))}
               </tbody>
             </table></div>
+            </>
           )}
         </Card>
       </div>

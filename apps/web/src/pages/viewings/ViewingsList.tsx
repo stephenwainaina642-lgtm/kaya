@@ -39,7 +39,7 @@ export function ViewingsList() {
       <Modal open={showNew} onClose={() => setShowNew(false)} title="New viewing">
         <NewViewingForm onDone={() => setShowNew(false)} />
       </Modal>
-      <div className="px-8 pt-6">
+      <div className="px-4 sm:px-6 lg:px-8 pt-6">
         <div className="mb-6 flex gap-1 border-b border-line">
           <button
             onClick={() => setTab('scheduled')}
@@ -56,7 +56,7 @@ export function ViewingsList() {
           </button>
         </div>
       </div>
-      <div className="px-8 pb-8">
+      <div className="px-4 sm:px-6 lg:px-8 pb-8">
         {tab === 'scheduled' ? <ScheduledTab /> : <RequestsTab />}
       </div>
     </>

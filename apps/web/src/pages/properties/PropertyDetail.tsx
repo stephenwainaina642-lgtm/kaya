@@ -53,7 +53,7 @@ export function PropertyDetail() {
       <Modal open={showPhotos} onClose={() => setShowPhotos(false)} title="Add photos">
         <PhotoUploader endpoint={`/properties/${p.id}/photos`} onDone={() => { setShowPhotos(false); qc.invalidateQueries({ queryKey: ['property', p.id] }); qc.invalidateQueries({ queryKey: ['properties'] }); }} />
       </Modal>
-      <div className="grid grid-cols-1 gap-6 p-8 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 p-4 sm:p-6 lg:p-8 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <Card className="overflow-hidden">
             <div className="flex h-72 items-center justify-center bg-ground text-faint">

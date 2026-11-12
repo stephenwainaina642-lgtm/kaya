@@ -8,6 +8,8 @@ import { PageHeader } from '../../components/PageHeader';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
+import { ContactActions } from '../../components/ContactActions';
+import { Avatar } from '../../components/ui/Avatar';
 import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Modal } from '../../components/ui/Modal';
@@ -35,7 +37,7 @@ export function ClientsList() {
       <Modal open={showNew} onClose={() => setShowNew(false)} title="New client">
         <NewClientForm onDone={() => setShowNew(false)} />
       </Modal>
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         <div className="mb-4 flex max-w-sm items-center gap-2 rounded-control border border-line bg-white px-3">
           <Search size={16} className="text-faint" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search clients…" className="w-full bg-transparent py-2 text-sm outline-none" />
@@ -46,7 +48,21 @@ export function ClientsList() {
           ) : !data || data.items.length === 0 ? (
             <EmptyState title="No clients yet" body="Qualify a lead to create your first client." />
           ) : (
-            <div className="overflow-x-auto"><table className="w-full text-sm">
+            <>
+            <ul className="divide-y divide-line sm:hidden">
+              {data.items.map((c) => (
+                <li key={c.id} className="flex items-center gap-3 p-4">
+                  <Avatar name={c.fullName} size={40} />
+                  <div className="min-w-0 flex-1">
+                    <Link to={`/clients/${c.id}`} className="block truncate font-medium text-ink">{c.fullName}</Link>
+                    <p className="truncate text-xs text-muted">{c.phone}</p>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5"><Badge tone={STATUS_TONE[c.status] ?? 'neutral'}>{c.status}</Badge><Badge tone="accent">{c.leadType}</Badge></div>
+                  </div>
+                  <ContactActions phone={c.phone} name={c.fullName} size={38} />
+                </li>
+              ))}
+            </ul>
+            <div className="hidden overflow-x-auto sm:block"><table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-faint">
                   <th className="px-5 py-3 font-medium">Name</th>
@@ -60,10 +76,15 @@ export function ClientsList() {
                 {data.items.map((c) => (
                   <tr key={c.id} className="border-b border-line last:border-0 hover:bg-sunk">
                     <td className="px-5 py-3">
-                      <Link to={`/clients/${c.id}`} className="font-medium text-ink hover:text-cypress-700">{c.fullName}</Link>
-                      <p className="text-xs text-muted">{c.phone}</p>
+                      <div className="flex items-center gap-3">
+                        <Avatar name={c.fullName} size={36} />
+                        <div className="min-w-0">
+                          <Link to={`/clients/${c.id}`} className="font-medium text-ink hover:text-accent">{c.fullName}</Link>
+                          <div className="flex items-center gap-2"><span className="text-xs text-muted">{c.phone}</span><ContactActions phone={c.phone} name={c.fullName} size={24} /></div>
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-5 py-3 text-muted">{c.leadType}</td>
+                    <td className="px-5 py-3"><Badge tone="accent">{c.leadType}</Badge></td>
                     <td className="px-5 py-3"><Badge tone={STATUS_TONE[c.status] ?? 'neutral'}>{c.status}</Badge></td>
                     <td className="px-5 py-3 text-muted">{c.assignedAgent?.name ?? '—'}</td>
                     <td className="px-5 py-3 text-muted">{c.lastContactedAt ? new Date(c.lastContactedAt).toLocaleDateString('en-KE') : '—'}</td>
@@ -71,6 +92,7 @@ export function ClientsList() {
                 ))}
               </tbody>
             </table></div>
+            </>
           )}
         </Card>
       </div>

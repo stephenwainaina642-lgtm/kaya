@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-4 px-8 pb-2 pt-9">
+    <div className="flex flex-wrap items-end justify-between gap-4 px-4 sm:px-6 lg:px-8 pb-2 pt-5 sm:pt-9">
       <div className="min-w-0">
         <h1 className="text-display text-ink">{title}</h1>
         {subtitle && <p className="mt-1.5 max-w-xl text-[0.9375rem] text-muted">{subtitle}</p>}

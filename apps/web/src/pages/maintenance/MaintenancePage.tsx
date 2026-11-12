@@ -43,7 +43,7 @@ export function MaintenancePage() {
       <Modal open={!!editing} onClose={() => setEditing(null)} title="Repair details">
         {editing && <MaintenanceForm item={editing} onDone={() => setEditing(null)} />}
       </Modal>
-      <div className="px-8 pt-6">
+      <div className="px-4 sm:px-6 lg:px-8 pt-6">
         <div className="mb-6 flex gap-1 border-b border-line">
           {TABS.map(([key, label]) => (
             <button
@@ -56,7 +56,7 @@ export function MaintenancePage() {
           ))}
         </div>
       </div>
-      <div className="px-8 pb-8">
+      <div className="px-4 sm:px-6 lg:px-8 pb-8">
         {isLoading ? <Spinner /> : !shown.length ? (
           <EmptyState
             icon={<Wrench size={22} />}

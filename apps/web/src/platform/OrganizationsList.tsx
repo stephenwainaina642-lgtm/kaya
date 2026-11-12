@@ -36,7 +36,7 @@ export function OrganizationsList() {
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Onboard a new agency">
         <CreateOrganizationForm onDone={() => setShowCreate(false)} />
       </Modal>
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         <div className="mb-4 max-w-xs">
           <Input placeholder="Search by name…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>

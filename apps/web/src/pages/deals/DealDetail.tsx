@@ -44,7 +44,7 @@ export function DealDetail() {
         subtitle={deal.dealNumber}
         actions={<Link to="/deals" className="flex items-center gap-1 text-sm text-muted hover:text-ink"><ArrowLeft size={16} /> Back</Link>}
       />
-      <div className="grid grid-cols-1 gap-6 p-8 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 p-4 sm:p-6 lg:p-8 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <Card className="p-5">
             <div className="mb-3 flex items-center justify-between">

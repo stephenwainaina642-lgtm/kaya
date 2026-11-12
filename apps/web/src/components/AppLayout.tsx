@@ -1,15 +1,18 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, Users, UserCircle, Building2, Landmark, CalendarClock, ListChecks,
-  Handshake, Wallet, Calendar, MessageSquare, FileText, BarChart3, UsersRound, Settings, LogOut, Menu, X, ShieldCheck, LineChart, Workflow, KeyRound, Wrench, Hotel,
+  Handshake, Wallet, Calendar, MessageSquare, FileText, BarChart3, UsersRound, Settings, LogOut, Menu, X, ShieldCheck, LineChart, Workflow, KeyRound, Wrench, Hotel, Search,
 } from 'lucide-react';
-import { can, planHasModule, type Permission } from '@kaya/shared';
+import { can, planHasModule, type DashboardData, type Permission } from '@kaya/shared';
+import { api } from '../lib/api';
 import { useAuth } from '../auth/AuthContext';
 import { Avatar } from './ui/Avatar';
 import { GuideAssistant } from './GuideAssistant';
 import { BrandMark } from './BrandMark';
+import { CommandPalette, type PalettePage } from './CommandPalette';
 
 type NavItem = { to: string; labelKey: string; icon: typeof LayoutDashboard; end?: boolean; module?: 'dealsPipeline' | 'rentManagement' | 'analytics' | 'automation' | 'auditLog'; permission?: Permission };
 
@@ -54,11 +57,33 @@ const NAV_GROUPS: { titleKey?: string; title?: string; items: NavItem[] }[] = [
   },
 ];
 
-function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
-  const { user, logout } = useAuth();
-  const { t } = useTranslation();
+/** The screens this person can see, flattened, so the same rules drive the sidebar and the search palette. */
+function useVisibleItems() {
+  const { user } = useAuth();
   const visible = (item: NavItem) =>
     (!item.module || !user || planHasModule(user.plan, item.module)) && (item.permission ? !user || can(user.role, item.permission) : user?.role !== 'CARETAKER');
+  return { visible };
+}
+
+/** Live numbers beside Leads, Follow-ups and Tasks, from the dashboard data that is already loaded. */
+function useNavCounts(): Record<string, { n: number; tone: 'accent' | 'danger' } | undefined> {
+  const { user } = useAuth();
+  const allowed = !!user && can(user.role, 'dashboard:view');
+  const { data } = useQuery({ queryKey: ['dashboard'], queryFn: () => api.get<DashboardData>('/dashboard'), enabled: allowed, staleTime: 60_000 });
+  if (!data) return {};
+  const count = (kind: string) => data.attention.filter((a) => a.kind === kind).length;
+  const out: Record<string, { n: number; tone: 'accent' | 'danger' } | undefined> = {};
+  if (data.kpis.activeLeads > 0) out['/leads'] = { n: data.kpis.activeLeads, tone: 'accent' };
+  if (count('OVERDUE_FOLLOW_UP') > 0) out['/follow-ups'] = { n: count('OVERDUE_FOLLOW_UP'), tone: 'danger' };
+  if (count('OVERDUE_TASK') > 0) out['/tasks'] = { n: count('OVERDUE_TASK'), tone: 'danger' };
+  return out;
+}
+
+function SidebarContent({ onNavigate, onSearch }: { onNavigate?: () => void; onSearch: () => void }) {
+  const { user, logout } = useAuth();
+  const { t } = useTranslation();
+  const { visible } = useVisibleItems();
+  const counts = useNavCounts();
   return (
     <>
       <div className="px-5 pb-4 pt-5">
@@ -66,6 +91,11 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           <BrandMark logoUrl={user?.logoUrl} name={user?.organizationName ?? 'Kaya'} brandColor={user?.brandColor} size={32} />
           <span className="truncate text-[0.95rem] font-semibold text-ink">{user?.organizationName || 'Kaya'}</span>
         </div>
+        <button type="button" onClick={() => { onSearch(); onNavigate?.(); }}
+          className="mt-4 flex w-full items-center gap-2 rounded-control border border-line bg-sunk/60 px-3 py-2 text-left text-sm text-faint transition hover:border-ink/30 hover:bg-white">
+          <Search size={15} /> <span className="flex-1">Search</span>
+          <kbd className="hidden rounded border border-line bg-white px-1.5 py-px text-[0.65rem] lg:block">Ctrl K</kbd>
+        </button>
       </div>
       <nav className="scrollbar-thin flex-1 overflow-y-auto px-3 pb-4">
         {NAV_GROUPS.map((g, gi) => {
@@ -73,7 +103,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           if (!items.length) return null;
           return (
             <div key={gi} className={gi === 0 ? '' : 'mt-6'}>
-              {g.title && <p className="mb-1 px-3 text-xs font-medium text-faint">{t(g.titleKey!, g.title)}</p>}
+              {g.title && <p className="mb-1.5 px-3 text-[0.68rem] font-medium uppercase tracking-[0.08em] text-faint">{t(g.titleKey!, g.title)}</p>}
               {items.map(({ to, labelKey, icon: Icon, end }) => (
                 <NavLink
                   key={to}
@@ -82,15 +112,21 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                   data-nav={to}
                   onClick={onNavigate}
                   className={({ isActive }) =>
-                    `group relative mb-px flex items-center focus-visible:outline-offset-[-2px] gap-3 rounded-control py-[7px] pl-3 pr-3 text-[0.875rem] transition-colors ${
-                      isActive ? 'bg-sunk font-medium text-ink' : 'text-muted hover:bg-sunk hover:text-ink'
+                    `group relative mb-0.5 flex items-center focus-visible:outline-offset-[-2px] gap-3 rounded-control py-2 pl-3 pr-3 text-[0.875rem] transition-colors ${
+                      isActive ? 'bg-accent-soft font-medium text-accent-deep' : 'text-muted hover:bg-sunk hover:text-ink'
                     }`
                   }
                 >
                   {({ isActive }) => (
                     <>
-                                            <Icon size={16} strokeWidth={1.75} className={isActive ? 'text-ink' : 'text-faint group-hover:text-ink'} />
-                      {t(labelKey)}
+                      {isActive && <span className="absolute -left-3 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-accent" aria-hidden />}
+                      <Icon size={16} strokeWidth={1.75} className={isActive ? 'text-accent' : 'text-faint group-hover:text-ink'} />
+                      <span className="flex-1">{t(labelKey)}</span>
+                      {counts[to] && (
+                        <span className={`min-w-[1.35rem] rounded-full px-1.5 py-px text-center text-[0.68rem] font-semibold tabular-nums ${counts[to]!.tone === 'danger' ? 'bg-[#fbefed] text-danger' : isActive ? 'bg-white text-accent-deep' : 'bg-sunk text-muted'}`}>
+                          {counts[to]!.n}
+                        </span>
+                      )}
                     </>
                   )}
                 </NavLink>
@@ -100,7 +136,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         })}
       </nav>
       <div className="border-t border-line p-3">
-        <div className="flex items-center gap-2.5 rounded-control px-2 py-2">
+        <div className="flex items-center gap-2.5 rounded-control bg-sunk/60 px-2 py-2">
           <Avatar name={user?.name ?? '?'} size={32} />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-ink">{user?.name}</p>
@@ -117,15 +153,28 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
 export function AppLayout() {
   const [open, setOpen] = useState(false);
+  const [searching, setSearching] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
+  const { t } = useTranslation();
+  const { visible } = useVisibleItems();
+  const pages: PalettePage[] = NAV_GROUPS.flatMap((g) => g.items.filter(visible)).map((i) => ({ to: i.to, label: t(i.labelKey), icon: i.icon }));
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setSearching((s) => !s); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   return (
     <div className="flex h-screen bg-ground">
       <GuideAssistant />
+      <CommandPalette open={searching} onClose={() => setSearching(false)} pages={pages} />
       {/* Desktop sidebar */}
       <aside className="hidden w-[15.5rem] shrink-0 flex-col border-r border-line bg-white lg:flex">
-        <SidebarContent />
+        <SidebarContent onSearch={() => setSearching(true)} />
       </aside>
 
       {/* Mobile drawer */}
@@ -139,7 +188,7 @@ export function AppLayout() {
             >
               <X size={18} />
             </button>
-            <SidebarContent onNavigate={() => setOpen(false)} />
+            <SidebarContent onNavigate={() => setOpen(false)} onSearch={() => setSearching(true)} />
           </aside>
         </div>
       )}
@@ -150,7 +199,8 @@ export function AppLayout() {
             <Menu size={20} />
           </button>
           <BrandMark logoUrl={user?.logoUrl} name={user?.organizationName ?? 'Kaya'} brandColor={user?.brandColor} size={28} />
-          <span className="truncate text-base font-semibold text-ink">{user?.organizationName || 'Kaya'}</span>
+          <span className="min-w-0 flex-1 truncate text-base font-semibold text-ink">{user?.organizationName || 'Kaya'}</span>
+          <button onClick={() => setSearching(true)} className="rounded-control p-2 text-ink hover:bg-sunk" aria-label="Search"><Search size={19} /></button>
         </div>
         <main key={location.pathname} className="scrollbar-thin flex-1 overflow-y-auto">
           <Outlet />

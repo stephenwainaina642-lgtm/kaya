@@ -93,7 +93,7 @@ export function GuideAssistant() {
             </div>
           )}
           <button type="button" onClick={openPanel} aria-label="Open the Kaya guide"
-            className="flex items-center gap-2 rounded-full bg-ink px-4 py-3 text-sm font-medium text-white shadow-lift transition-transform hover:-translate-y-0.5">
+            className="flex items-center gap-2 rounded-full bg-accent px-4 py-3 text-sm font-medium text-white shadow-lift ring-4 ring-accent/15 transition hover:-translate-y-0.5 hover:bg-accent-deep">
             <Sparkles size={16} /> Guide
           </button>
         </div>
@@ -110,7 +110,7 @@ export function GuideAssistant() {
           {current ? (
             <div className="flex flex-1 flex-col p-5">
               <p className="text-xs text-faint">Step {tour! + 1} of {areas.length}</p>
-              <div className="mt-2 h-1 overflow-hidden rounded-full bg-sunk"><div className="h-full rounded-full bg-ink transition-all" style={{ width: `${((tour! + 1) / areas.length) * 100}%` }} /></div>
+              <div className="mt-2 h-1 overflow-hidden rounded-full bg-sunk"><div className="h-full rounded-full bg-accent transition-all" style={{ width: `${((tour! + 1) / areas.length) * 100}%` }} /></div>
               <h2 className="mt-4 text-lg font-semibold text-ink">{current.title}</h2>
               <p className="mt-1 text-sm leading-relaxed text-muted">{current.summary}</p>
               <p className="mt-3 rounded-control bg-sunk px-3 py-2 text-sm text-ink"><span className="font-medium">Try this:</span> {current.tryThis}</p>
@@ -120,9 +120,9 @@ export function GuideAssistant() {
                   <button type="button" disabled={tour === 0} onClick={() => goTo(tour! - 1)} aria-label="Previous"
                     className="rounded-control border border-line p-2 text-ink hover:bg-sunk disabled:opacity-40"><ArrowLeft size={15} /></button>
                   {tour! < areas.length - 1 ? (
-                    <button type="button" onClick={() => goTo(tour! + 1)} className="flex items-center gap-1.5 rounded-control bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-black">Next <ArrowRight size={14} /></button>
+                    <button type="button" onClick={() => goTo(tour! + 1)} className="flex items-center gap-1.5 rounded-control bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-deep">Next <ArrowRight size={14} /></button>
                   ) : (
-                    <button type="button" onClick={endTour} className="rounded-control bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-black">Finish</button>
+                    <button type="button" onClick={endTour} className="rounded-control bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-deep">Finish</button>
                   )}
                 </div>
               </div>
@@ -142,7 +142,7 @@ export function GuideAssistant() {
                   </div>
                 )}
                 {turns.map((t, i) => t.from === 'me' ? (
-                  <p key={i} className="ml-8 rounded-panel bg-ink px-3 py-2 text-sm text-white">{t.text}</p>
+                  <p key={i} className="ml-8 rounded-panel bg-accent px-3 py-2 text-sm text-white">{t.text}</p>
                 ) : t.from === 'error' ? (
                   <p key={i} className="rounded-panel bg-[#fbeeee] px-3 py-2 text-sm text-danger" role="alert">{t.text}</p>
                 ) : (
@@ -166,7 +166,7 @@ export function GuideAssistant() {
               <form className="flex items-center gap-2 border-t border-line p-3" onSubmit={(e) => { e.preventDefault(); submit(q); }}>
                 <input ref={input} value={q} onChange={(e) => setQ(e.target.value)} maxLength={300} placeholder="Ask how to do something…" aria-label="Ask the Kaya guide"
                   className="min-w-0 flex-1 rounded-control border border-line px-3 py-2 text-sm text-ink" />
-                <button type="submit" aria-label="Send" disabled={q.trim().length < 2 || ask.isPending} className="rounded-control bg-ink p-2.5 text-white hover:bg-black disabled:opacity-40"><Send size={15} /></button>
+                <button type="submit" aria-label="Send" disabled={q.trim().length < 2 || ask.isPending} className="rounded-control bg-accent p-2.5 text-white hover:bg-accent-deep disabled:opacity-40"><Send size={15} /></button>
               </form>
             </>
           )}

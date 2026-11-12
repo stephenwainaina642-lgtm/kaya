@@ -44,7 +44,7 @@ export function BuildingsList() {
       <Modal open={showNew} onClose={() => setShowNew(false)} title="New building" width="max-w-xl">
         <NewBuildingForm onDone={(name) => { setShowNew(false); nav(`/buildings/${encodeURIComponent(name)}`); }} />
       </Modal>
-      <div className="space-y-6 p-8">
+      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
         {isLoading ? <Spinner /> : !data?.length ? (
           <div className="flex flex-col items-center">
             <EmptyState

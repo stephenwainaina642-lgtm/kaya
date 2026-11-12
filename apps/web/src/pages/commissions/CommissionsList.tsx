@@ -73,7 +73,7 @@ export function CommissionsList() {
   return (
     <>
       <PageHeader title="Commissions" />
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         {data && (
           <div className="mb-6 grid grid-cols-2 gap-4">
             <Card className="p-4"><p className="text-xs text-muted">Outstanding</p><p className="font-display text-xl font-semibold text-ink">{formatMoney(data.totalOutstanding, currency, { compact: true })}</p></Card>

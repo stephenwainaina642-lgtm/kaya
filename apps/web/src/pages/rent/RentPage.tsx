@@ -61,7 +61,7 @@ export function RentPage() {
       <Modal open={showLease} onClose={() => setShowLease(false)} title="New lease">
         <NewLeaseForm onDone={() => setShowLease(false)} />
       </Modal>
-      <div className="px-8 pt-6">
+      <div className="px-4 sm:px-6 lg:px-8 pt-6">
         <div className="mb-6 flex gap-1 overflow-x-auto border-b border-line">
           {TABS.map(([key, label]) => (
             <button
@@ -74,7 +74,7 @@ export function RentPage() {
           ))}
         </div>
       </div>
-      <div className="px-8 pb-8">
+      <div className="px-4 sm:px-6 lg:px-8 pb-6 sm:pb-8">
         <ClaimsInbox />
         {tab === 'roll' && <RentRoll />}
         {tab === 'leases' && <Leases />}

@@ -25,7 +25,7 @@ export function AnalyticsPage() {
   return (
     <>
       <PageHeader title="Analytics" subtitle="Funnel, leaderboard, forecast and lead-source ROI" />
-      <div className="space-y-6 p-8">
+      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
         {isError ? (
           <Card>
             <EmptyState

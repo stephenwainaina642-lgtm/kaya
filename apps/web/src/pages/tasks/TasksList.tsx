@@ -36,7 +36,7 @@ export function TasksList() {
       <Modal open={showNew} onClose={() => setShowNew(false)} title="New task">
         <NewTaskForm onDone={() => setShowNew(false)} />
       </Modal>
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         {isLoading ? (
           <Spinner />
         ) : !data || data.items.length === 0 ? (

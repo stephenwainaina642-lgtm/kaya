@@ -37,7 +37,7 @@ export function PropertiesList() {
       <Modal open={showNew} onClose={() => setShowNew(false)} title="New property" width="max-w-xl">
         <NewPropertyForm onDone={() => setShowNew(false)} />
       </Modal>
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         <div className="mb-4 flex max-w-sm items-center gap-2 rounded-control border border-line bg-white px-3">
           <Search size={16} className="text-faint" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search properties…" className="w-full bg-transparent py-2 text-sm outline-none" />

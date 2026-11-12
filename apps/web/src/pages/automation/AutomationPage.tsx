@@ -23,7 +23,7 @@ export function AutomationPage() {
   return (
     <>
       <PageHeader title="Automation" subtitle="Auto-assign new leads and run drip follow-up sequences" />
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         <div className="mb-6 flex gap-1 border-b border-line">
           {([['rules', 'Auto-assignment rules'], ['sequences', 'Drip sequences'], ['enrollments', 'Enrollments']] as const).map(([key, label]) => (
             <button

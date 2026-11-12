@@ -39,7 +39,7 @@ export function DocumentsList() {
           ) : undefined
         }
       />
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         {isLoading ? (
           <Spinner />
         ) : !data || data.items.length === 0 ? (

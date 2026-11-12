@@ -36,7 +36,7 @@ export function TeamPage() {
       <Modal open={showInvite} onClose={() => setShowInvite(false)} title="Add team member">
         <InviteMemberForm onDone={() => setShowInvite(false)} />
       </Modal>
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         {isLoading || !data ? (
           <Spinner />
         ) : (

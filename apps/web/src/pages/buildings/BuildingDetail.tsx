@@ -86,7 +86,7 @@ export function BuildingDetail() {
           </>
         )}
       </Modal>
-      <div className="space-y-6 p-8">
+      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
         <div className="grid grid-cols-2 gap-px overflow-hidden rounded-panel border border-line bg-line lg:grid-cols-4">
           {[
             ['Occupancy', `${b.occupancyPct}%`, `${b.occupied} of ${b.units} units`],

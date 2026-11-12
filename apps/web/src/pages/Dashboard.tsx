@@ -30,8 +30,8 @@ function HealthCard() {
   const C = 2 * Math.PI * R;
   const tone = data.score >= 85 ? 'text-ok' : data.score >= 70 ? 'text-ink' : data.score >= 50 ? 'text-warn' : 'text-danger';
   return (
-    <Card className="p-6">
-      <div className="flex flex-wrap items-center gap-8">
+    <Card className="p-4 sm:p-6">
+      <div className="flex flex-wrap items-center gap-5 sm:gap-8">
         <div className="flex items-center gap-5">
           <div className="relative h-[108px] w-[108px] shrink-0" role="img" aria-label={`Portfolio health ${data.score} out of 100, ${data.label}`}>
             <svg viewBox="0 0 108 108" className="-rotate-90">
@@ -91,26 +91,25 @@ function RentCard() {
   ];
   return (
     <Card className="overflow-hidden">
-      <div className="flex flex-wrap items-end justify-between gap-4 px-6 pb-5 pt-6">
-        <div>
+      <div className="flex flex-wrap items-end justify-between gap-3 px-4 pb-4 pt-5 sm:gap-4 sm:px-6 sm:pb-5 sm:pt-6">
+        <div className="min-w-0">
           <p className="text-sm text-muted">Rent collected in {periodLabel(data.period)}</p>
-          <p className="mt-1 text-[2.25rem] font-semibold leading-none tracking-[-0.02em] text-ink">
-            {kes(data.collected)} <span className="text-lg font-normal text-faint">of {kes(data.expected)}</span>
-          </p>
+          <p className="mt-1 text-[1.75rem] font-semibold leading-none tracking-[-0.02em] text-ink sm:text-[2.25rem]">{kes(data.collected)}</p>
+          <p className="mt-1.5 text-sm text-faint">of {kes(data.expected)} expected</p>
         </div>
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-4 sm:gap-5">
           <p className="text-right"><span className="block text-2xl font-semibold leading-none text-ink">{pct}%</span><span className="text-xs text-muted">collected</span></p>
-          <Link to="/rent" className="text-sm font-medium text-cypress-700 hover:text-ink">Open rent roll</Link>
+          <Link to="/rent" className="text-sm font-medium text-accent hover:underline">Rent roll</Link>
         </div>
       </div>
-      <div className="mx-6 h-[3px] overflow-hidden rounded-full bg-sunk" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Rent collected">
+      <div className="mx-4 h-1.5 sm:mx-6 overflow-hidden rounded-full bg-sunk" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Rent collected">
         <div className="fill-in h-full rounded-full bg-ink" style={{ width: `${Math.min(100, pct)}%` }} />
       </div>
-      <div className="mt-6 grid grid-cols-2 divide-x divide-line border-t border-line lg:grid-cols-4">
-        {tiles.map((t) => (
-          <Link key={t.label} to={t.to} className="px-6 py-4 transition-colors hover:bg-sunk">
+      <div className="mt-5 grid grid-cols-2 border-t border-line sm:mt-6 lg:grid-cols-4 lg:divide-x lg:divide-line">
+        {tiles.map((t, i) => (
+          <Link key={t.label} to={t.to} className={`px-4 py-3.5 transition-colors hover:bg-sunk sm:px-6 sm:py-4 ${i % 2 === 0 ? 'border-r border-line lg:border-r-0' : ''} ${i < 2 ? 'border-b border-line lg:border-b-0' : ''}`}>
             <p className="text-[0.8125rem] text-muted">{t.label}</p>
-            <p className={`mt-1 text-xl font-semibold leading-tight ${t.tone === 'danger' ? 'text-danger' : 'text-ink'}`}>{t.value}</p>
+            <p className={`mt-1 text-lg font-semibold leading-tight sm:text-xl ${t.tone === 'danger' ? 'text-danger' : 'text-ink'}`}>{t.value}</p>
             <p className="mt-0.5 text-xs text-muted">{t.note}</p>
           </Link>
         ))}
@@ -121,10 +120,10 @@ function RentCard() {
 
 function SecondaryStat({ label, value, icon: Icon }: { label: string; value: string; icon: typeof Users }) {
   return (
-    <div className="flex flex-1 flex-col justify-center px-6 py-5">
-      <Icon size={16} strokeWidth={1.75} className="mb-3 text-faint" />
-      <p className="text-[2rem] font-semibold leading-none tracking-[-0.02em] text-ink">{value}</p>
-      <p className="mt-1.5 text-sm text-muted">{label}</p>
+    <div className="flex flex-1 flex-col justify-center px-3 py-4 sm:px-6 sm:py-5">
+      <Icon size={16} strokeWidth={1.75} className="mb-2 text-faint sm:mb-3" />
+      <p className="text-[1.6rem] font-semibold sm:text-[2rem] leading-none tracking-[-0.02em] text-ink">{value}</p>
+      <p className="mt-1.5 text-xs leading-tight text-muted sm:text-sm">{label}</p>
     </div>
   );
 }
@@ -160,14 +159,14 @@ export function Dashboard() {
         title={`${greeting()}, ${(user?.name ?? '').split(' ')[0] || 'there'}`}
         subtitle={`${new Date().toLocaleDateString('en-KE', { weekday: 'long', day: 'numeric', month: 'long' })}. Here is where ${user?.organizationName ?? 'your agency'} stands today.`}
       />
-      <div className="space-y-6 p-8">
-        <OnboardingChecklist />
+      <div className="space-y-4 p-4 sm:space-y-6 sm:p-6 lg:p-8">
+        <div className="hidden lg:block"><OnboardingChecklist /></div>
         <HealthCard />
         <RentCard />
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <Card className="p-6 lg:col-span-1">
+          <Card className="p-4 sm:p-6 lg:col-span-1">
             <p className="text-sm text-muted">Pipeline value</p>
-            <p className="mt-2 text-[2.5rem] font-semibold leading-none tracking-[-0.02em] text-ink">{formatMoney(kpis.pipelineValue, currency, { compact: true })}</p>
+            <p className="mt-2 text-[2rem] sm:text-[2.5rem] font-semibold leading-none tracking-[-0.02em] text-ink">{formatMoney(kpis.pipelineValue, currency, { compact: true })}</p>
           </Card>
           <Card className="flex divide-x divide-line p-0 lg:col-span-2">
             <SecondaryStat label="Active leads" value={String(kpis.activeLeads)} icon={Users} />
@@ -177,7 +176,7 @@ export function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <Card className="p-5 lg:col-span-2">
+          <Card className="p-4 sm:p-5 lg:col-span-2">
             <h2 className="mb-4 text-base font-semibold text-ink">Needs attention</h2>
             {attention.length === 0 ? (
               <EmptyState title="All caught up" body="Nothing urgent needs your attention right now." />
@@ -186,12 +185,12 @@ export function Dashboard() {
                 {attention.map((item) => (
                   <li key={item.id} className={`flex items-center gap-3 border-l-2 py-3 pl-3 ${ATTENTION_ACCENT[item.kind]}`}>
                     <div className="min-w-0 flex-1">
-                      <Link to={item.link} className="block truncate text-sm font-medium text-ink hover:text-cypress-700">
+                      <Link to={item.link} className="line-clamp-2 text-sm font-medium text-ink hover:text-accent sm:line-clamp-1">
                         {item.title}
                       </Link>
-                      {item.subtitle && <p className="truncate text-xs text-muted">{item.subtitle}</p>}
+                      {item.subtitle && <p className="line-clamp-1 text-xs text-muted">{item.subtitle}</p>}
                     </div>
-                    <span className="shrink-0"><Badge>{item.kind.replace(/_/g, ' ').toLowerCase()}</Badge></span>
+                    <span className="hidden shrink-0 sm:block"><Badge>{item.kind.replace(/_/g, ' ').toLowerCase()}</Badge></span>
                   </li>
                 ))}
               </ul>
@@ -221,6 +220,9 @@ export function Dashboard() {
         </div>
 
         <NextActionsWidget />
+
+        {/* On a phone the real numbers come first; the setup checklist follows them. */}
+        <div className="lg:hidden"><OnboardingChecklist /></div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <Card className="p-5">
