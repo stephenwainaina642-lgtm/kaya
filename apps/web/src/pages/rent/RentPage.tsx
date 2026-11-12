@@ -29,6 +29,7 @@ import { SettleDepositForm } from '../../forms/SettleDepositForm';
 import { RenewLeaseForm } from '../../forms/RenewLeaseForm';
 import { RecordRentPaymentForm } from '../../forms/RecordRentPaymentForm';
 import { money as kes } from '../../lib/currency';
+import { downloadCsv } from '../../lib/csvExport';
 const thisMonth = () => new Date().toISOString().slice(0, 7);
 const TONE = { UNPAID: 'danger', PARTIAL: 'warn', PAID: 'ok' } as const;
 type Tab = 'roll' | 'leases' | 'arrears' | 'vacancies' | 'statements';
@@ -156,6 +157,13 @@ function RentRoll() {
         <Button variant="secondary" onClick={() => generate.mutate()} disabled={generate.isPending}>
           <RefreshCw size={15} /> {generate.isPending ? 'Raising…' : 'Raise rent for this month'}
         </Button>
+        {charges.data && charges.data.length > 0 && (
+          <Button variant="ghost" onClick={() => downloadCsv(`rent-roll-${period}.csv`,
+            ['Property', 'Tenant', 'Due', 'Rent', 'Paid', 'Balance', 'Status'],
+            charges.data!.map((c) => [c.propertyTitle, c.tenantName, c.dueDate, c.amount, c.paidAmount, c.balance, c.status]))}>
+            <Download size={15} /> Export CSV
+          </Button>
+        )}
         {note && <span className="text-sm text-muted">{note}</span>}
       </div>
       <p className="-mt-2 text-xs text-muted">
@@ -313,8 +321,33 @@ function Leases() {
   });
   if (isLoading) return <Spinner />;
   if (!data?.length) return <EmptyState icon={<KeyRound size={22} />} title="No leases yet" body="Add a lease to start raising monthly rent." />;
+  const ending = data.filter((l) => endsIn(l)).sort((a, b) => (a.endDate ?? '').localeCompare(b.endDate ?? ''));
   return (
     <>
+    <div className="mb-3 flex justify-end">
+      <Button variant="ghost" onClick={() => downloadCsv('leases.csv',
+        ['Property', 'Tenant', 'Landlord', 'Rent', 'Deposit', 'Due day', 'Start', 'End', 'Status'],
+        data.map((l) => [l.propertyTitle, l.tenantName, l.ownerName, l.rentAmount, l.depositAmount, l.dueDay, l.startDate, l.endDate, l.status]))}>
+        <Download size={15} /> Export CSV
+      </Button>
+    </div>
+    {ending.length > 0 && (
+      <Card className="mb-4 border-warn/40 p-4">
+        <p className="mb-2 text-sm font-medium text-ink">{ending.length} lease{ending.length === 1 ? '' : 's'} ending soon or overdue</p>
+        <ul className="divide-y divide-line">
+          {ending.map((l) => {
+            const e = endsIn(l)!;
+            return (
+              <li key={l.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 text-sm">
+                <span className="min-w-0 flex-1"><span className="font-medium text-ink">{l.propertyTitle}</span> <span className="text-muted">· {l.tenantName} · {l.endDate}</span></span>
+                <Badge tone={e.tone}>{e.label}</Badge>
+                <Button variant="secondary" onClick={() => setRenewing(l)}>Renew</Button>
+              </li>
+            );
+          })}
+        </ul>
+      </Card>
+    )}
     <Card className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead><tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
