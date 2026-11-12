@@ -52,6 +52,16 @@ describe('estates, network and public listings', () => {
     const detail = (await request(app).get('/api/properties/buildings/Nyali%20Heights').set(h)).body;
     expect(detail.unitList).toHaveLength(12);
     expect(detail.unitList.find((u: { unitNumber: string }) => u.unitNumber === '102')).toMatchObject({ status: 'LET', tenantName: 'Tenant Tom' });
+    expect(detail.unitList.find((u: { unitNumber: string }) => u.unitNumber === '102').openIssues).toBe(0);
+
+    // A repair raised against the unit is flagged on that unit, and clears once it is done.
+    const issue = (await request(app).post('/api/maintenance').set(h).send({ propertyId: unit.id, title: 'Bathroom tap leaking', category: 'PLUMBING', priority: 'HIGH' })).body;
+    const flagged = (await request(app).get('/api/properties/buildings/Nyali%20Heights').set(h)).body.unitList;
+    expect(flagged.find((u: { unitNumber: string }) => u.unitNumber === '102').openIssues).toBe(1);
+    expect(flagged.find((u: { unitNumber: string }) => u.unitNumber === '101').openIssues).toBe(0);
+    await request(app).patch(`/api/maintenance/${issue.id}`).set(h).send({ status: 'DONE' });
+    const cleared = (await request(app).get('/api/properties/buildings/Nyali%20Heights').set(h)).body.unitList;
+    expect(cleared.find((u: { unitNumber: string }) => u.unitNumber === '102').openIssues).toBe(0);
     expect((await request(app).get('/api/properties/buildings/Nope').set(h)).status).toBe(404);
   });
 

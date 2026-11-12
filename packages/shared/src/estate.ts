@@ -48,6 +48,8 @@ export interface BuildingUnit {
   status: PropertyStatus;
   tenantName: string | null;
   arrears: number;
+  /** Repairs still open or in progress on this unit. */
+  openIssues: number;
   advertised: boolean;
 }
 

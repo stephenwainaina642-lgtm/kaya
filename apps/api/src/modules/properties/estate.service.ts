@@ -5,7 +5,7 @@ import type { BuildingSummary, BuildingDetail, PropertyNetwork, NetworkContact, 
 import { withTenant } from '../../db/client';
 import { systemDb } from '../../db/system';
 import {
-  properties, owners, users, leases, rentCharges, clients, leads, viewings, deals, organizations,
+  properties, owners, users, leases, rentCharges, clients, leads, viewings, deals, organizations, maintenanceRequests,
 } from '../../db/schema';
 import { conflict, invalid, notFound } from '../../lib/errors';
 import { parse } from '../../lib/validate';
@@ -162,11 +162,19 @@ export async function getBuilding(a: Auth, name: string): Promise<BuildingDetail
   if (rows.props.length === 0) throw notFound('Building');
   const tenant = new Map(rows.active.map((l) => [l.propertyId, l.tenantName] as const));
   const owed = new Map(rows.arrears.map((r) => [r.propertyId, r.owed] as const));
+  const ids = rows.props.map((r) => r.p.id);
+  const issueRows = ids.length
+    ? await withTenant(a.organizationId, (tx) => tx.select({ propertyId: maintenanceRequests.propertyId, n: dsql<number>`count(*)::int` })
+        .from(maintenanceRequests)
+        .where(and(inArray(maintenanceRequests.propertyId, ids), inArray(maintenanceRequests.status, ['OPEN', 'IN_PROGRESS'])))
+        .groupBy(maintenanceRequests.propertyId))
+    : [];
+  const issues = new Map(issueRows.map((r) => [r.propertyId, r.n] as const));
   const unitList = rows.props
     .map((r) => ({
       id: r.p.id, unitNumber: r.p.unitNumber, title: r.p.title, bedrooms: r.p.bedrooms, price: r.p.price,
       status: tenant.has(r.p.id) ? ('LET' as const) : r.p.status,
-      tenantName: tenant.get(r.p.id) ?? null, arrears: owed.get(r.p.id) ?? 0, advertised: r.p.advertised,
+      tenantName: tenant.get(r.p.id) ?? null, arrears: owed.get(r.p.id) ?? 0, openIssues: issues.get(r.p.id) ?? 0, advertised: r.p.advertised,
     }))
     .sort((x, y) => (x.unitNumber ?? '').localeCompare(y.unitNumber ?? '', undefined, { numeric: true }));
   return { ...summarise(name, rows), unitList };

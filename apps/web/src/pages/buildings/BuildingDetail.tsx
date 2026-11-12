@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Megaphone, ImagePlus } from 'lucide-react';
+import { ArrowLeft, Megaphone, ImagePlus, Wrench } from 'lucide-react';
 import type { BuildingDetail as BuildingDetailT } from '@kaya/shared';
 import { formatMoney } from '@kaya/shared';
 import { api } from '../../lib/api';
@@ -109,6 +109,7 @@ export function BuildingDetail() {
               <span className="flex items-center gap-1.5"><i className="h-3 w-3 rounded-sm border border-[#cfe3d8] bg-[#edf5f0]" /> Vacant</span>
               <span className="flex items-center gap-1.5"><i className="h-3 w-3 rounded-sm border border-line bg-sunk" /> Other</span>
               <span className="flex items-center gap-1.5"><i className="h-3 w-3 rounded-sm ring-2 ring-danger" /> In arrears</span>
+              <span className="flex items-center gap-1.5"><i className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-danger text-white"><Wrench size={8} /></i> Open repair</span>
             </div>
           </div>
           <div className="mb-5"><OccupancyBar {...b} /></div>
@@ -121,11 +122,12 @@ export function BuildingDetail() {
                     <Link
                       key={u.id}
                       to={`/properties/${u.id}`}
-                      title={`${u.title}${u.tenantName ? ` — ${u.tenantName}` : ''}${u.arrears ? ` — owes ${formatMoney(u.arrears, b.currency)}` : ''}`}
+                      title={`${u.title}${u.tenantName ? ` — ${u.tenantName}` : ''}${u.arrears ? ` — owes ${formatMoney(u.arrears, b.currency)}` : ''}${u.openIssues ? ` — ${u.openIssues} open repair${u.openIssues === 1 ? '' : 's'}` : ''}`}
                       className={`relative flex h-14 w-20 flex-col items-center justify-center rounded-control border text-xs font-medium tabular-nums transition-transform hover:-translate-y-0.5 ${TILE[u.status] ?? 'border-line bg-sunk text-muted'} ${u.arrears > 0 ? 'ring-2 ring-danger ring-offset-1' : ''}`}
                     >
                       <span className="text-sm font-semibold">{u.unitNumber}</span>
                       <span className="max-w-full truncate px-1 text-[0.65rem] opacity-80">{u.tenantName ? u.tenantName.split(' ')[0] : formatMoney(u.price, b.currency, { compact: true })}</span>
+                      {u.openIssues > 0 && <span aria-label={`${u.openIssues} open repairs`} className="absolute -right-1.5 -top-1.5 flex h-5 min-w-[1.25rem] items-center justify-center gap-0.5 rounded-full bg-danger px-1 text-[0.6rem] font-semibold text-white shadow-card"><Wrench size={9} />{u.openIssues}</span>}
                       {u.advertised && u.status === 'AVAILABLE' && <Megaphone size={10} className="absolute right-1 top-1 opacity-70" aria-label="Advertised" />}
                     </Link>
                   ))}

@@ -8,11 +8,11 @@ import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
 import { currencyCode } from '../lib/currency';
 
-export function NewLeaseForm({ onDone }: { onDone: () => void }) {
+export function NewLeaseForm({ onDone, propertyId: fixedProperty, suggestedRent }: { onDone: () => void; propertyId?: string; suggestedRent?: number }) {
   const qc = useQueryClient();
-  const [propertyId, setPropertyId] = useState('');
+  const [propertyId, setPropertyId] = useState(fixedProperty ?? '');
   const [tenantId, setTenantId] = useState('');
-  const [rentAmount, setRentAmount] = useState('');
+  const [rentAmount, setRentAmount] = useState(suggestedRent ? String(suggestedRent) : '');
   const [depositAmount, setDepositAmount] = useState('');
   const [dueDay, setDueDay] = useState('1');
   const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
@@ -44,6 +44,9 @@ export function NewLeaseForm({ onDone }: { onDone: () => void }) {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['rent'] });
+      qc.invalidateQueries({ queryKey: ['unit'] });
+      qc.invalidateQueries({ queryKey: ['buildings'] });
+      qc.invalidateQueries({ queryKey: ['property'] });
       onDone();
     },
     onError: (err) => setError(err instanceof ApiError ? err.message : 'Something went wrong'),
@@ -52,7 +55,7 @@ export function NewLeaseForm({ onDone }: { onDone: () => void }) {
   return (
     <form onSubmit={(e) => { e.preventDefault(); setError(null); create.mutate(); }}>
       <Field label="Property">
-        <Select value={propertyId} onChange={(e) => setPropertyId(e.target.value)} required>
+        <Select value={propertyId} disabled={!!fixedProperty} onChange={(e) => setPropertyId(e.target.value)} required>
           <option value="">Select…</option>
           {properties?.items.map((p) => <option key={p.id} value={p.id}>{p.title} — {p.location}</option>)}
         </Select>

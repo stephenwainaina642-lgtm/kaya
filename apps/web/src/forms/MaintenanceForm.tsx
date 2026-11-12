@@ -16,10 +16,10 @@ import { currencyCode } from '../lib/currency';
 const nice = (s: string) => s[0] + s.slice(1).toLowerCase().replace('_', ' ');
 const num = (v: string) => (v.trim() === '' ? null : Math.round(Number(v)));
 
-export function MaintenanceForm({ item, onDone }: { item?: MaintenanceItem; onDone: () => void }) {
+export function MaintenanceForm({ item, onDone, propertyId: presetProperty }: { item?: MaintenanceItem; onDone: () => void; propertyId?: string }) {
   const qc = useQueryClient();
   const editing = !!item;
-  const [propertyId, setPropertyId] = useState(item?.propertyId ?? '');
+  const [propertyId, setPropertyId] = useState(item?.propertyId ?? presetProperty ?? '');
   const [title, setTitle] = useState(item?.title ?? '');
   const [description, setDescription] = useState(item?.description ?? '');
   const [category, setCategory] = useState(item?.category ?? 'OTHER');
@@ -35,7 +35,7 @@ export function MaintenanceForm({ item, onDone }: { item?: MaintenanceItem; onDo
   const { data: properties } = useQuery({
     queryKey: ['properties-picker'],
     queryFn: () => api.get<Page<PropertyListItem>>('/properties', { pageSize: 100 }),
-    enabled: !editing,
+    enabled: !editing && !presetProperty,
   });
 
   const save = useMutation({
@@ -45,7 +45,7 @@ export function MaintenanceForm({ item, onDone }: { item?: MaintenanceItem; onDo
         ? api.patch(`/maintenance/${item!.id}`, { ...common, status, actualCost: num(actual), chargeToLandlord: charge })
         : api.post('/maintenance', { ...common, propertyId });
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['maintenance'] }); qc.invalidateQueries({ queryKey: ['rent'] }); onDone(); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['maintenance'] }); qc.invalidateQueries({ queryKey: ['rent'] }); qc.invalidateQueries({ queryKey: ['unit'] }); qc.invalidateQueries({ queryKey: ['buildings'] }); onDone(); },
     onError: (err) => setError(err instanceof ApiError ? err.message : 'Something went wrong'),
   });
 
@@ -53,7 +53,7 @@ export function MaintenanceForm({ item, onDone }: { item?: MaintenanceItem; onDo
     <form onSubmit={(e) => { e.preventDefault(); setError(null); save.mutate(); }}>
       {editing ? (
         <p className="mb-4 text-sm text-muted">{item!.propertyTitle}{item!.tenantName ? ` · reported by ${item!.tenantName}` : ''}</p>
-      ) : (
+      ) : presetProperty ? null : (
         <Field label="Property">
           <Select value={propertyId} onChange={(e) => setPropertyId(e.target.value)} required>
             <option value="">Select…</option>

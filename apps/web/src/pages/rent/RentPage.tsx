@@ -274,7 +274,7 @@ function endsIn(l: LeaseItem): { label: string; tone: 'danger' | 'warn' | 'neutr
   return null;
 }
 
-function TenantLink({ lease }: { lease: LeaseItem }) {
+export function TenantLink({ lease }: { lease: LeaseItem }) {
   const qc = useQueryClient();
   const [copied, setCopied] = useState(false);
   const key = ['rent', 'lease-link', lease.id];

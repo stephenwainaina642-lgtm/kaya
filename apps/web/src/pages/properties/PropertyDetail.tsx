@@ -14,6 +14,8 @@ import { PhotoUploader } from '../../components/PhotoUploader';
 import { PageHeader } from '../../components/PageHeader';
 import { PropertyPeople, AdvertiseCard } from '../../components/PropertyNetwork';
 import { ContactMatchesPanel } from '../../components/ContactMatchesPanel';
+import { UnitGraphic } from '../../components/UnitGraphic';
+import { UnitTenancy, useUnitData } from '../../components/UnitTenancy';
 import { EditPropertyForm } from '../../forms/EditPropertyForm';
 
 export function PropertyDetail() {
@@ -26,6 +28,7 @@ export function PropertyDetail() {
     queryFn: () => api.get<PropertyDetailT>(`/properties/${id}`),
   });
 
+  const { lease: tenancy, openIssues } = useUnitData(id ?? '');
   const removePhoto = useMutation({
     mutationFn: (imageId: string) => api.del(`/properties/${id}/images/${imageId}`),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['property', id] }); qc.invalidateQueries({ queryKey: ['properties'] }); },
@@ -56,14 +59,9 @@ export function PropertyDetail() {
       <div className="grid grid-cols-1 gap-6 p-4 sm:p-6 lg:p-8 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <Card className="overflow-hidden">
-            <div className="flex h-72 items-center justify-center bg-ground text-faint">
-              {p.images[0] ? (
-                <img src={p.images[0].url} alt={p.title} className="h-full w-full object-cover" />
-              ) : (
-                <span className="text-sm">No image</span>
-              )}
-            </div>
+            <UnitGraphic label={p.unitNumber ?? p.title} building={p.building} status={p.status} bedrooms={p.bedrooms} bathrooms={p.bathrooms} sizeSqm={p.sizeSqm} tenant={tenancy?.tenantName ?? null} issues={openIssues} />
             <div className="flex items-center gap-2 overflow-x-auto p-3">
+              {p.images.length === 0 && <span className="text-xs text-faint">Photos are optional. They only appear on public listings.</span>}
               {p.images.map((img) => (
                 <div key={img.id} className="group relative h-16 w-20 shrink-0">
                   <img src={img.url} className="h-full w-full rounded-control object-cover" alt="" />
@@ -73,10 +71,11 @@ export function PropertyDetail() {
               ))}
               <button type="button" onClick={() => setShowPhotos(true)}
                 className="flex h-16 w-20 shrink-0 flex-col items-center justify-center gap-1 rounded-control border border-dashed border-[#cfd5dd] text-xs text-muted hover:border-ink hover:text-ink">
-                <ImagePlus size={16} /> Add photos
+                <ImagePlus size={16} /> Listing photo
               </button>
             </div>
           </Card>
+          {p.listingType === 'RENT' || p.status === 'LET' || p.building ? <UnitTenancy propertyId={p.id} suggestedRent={p.listingType === 'RENT' ? p.price : 0} /> : null}
           <Card className="p-5">
             <h2 className="mb-3 font-display text-lg font-semibold text-ink">Description</h2>
             <p className="text-sm text-muted">{p.description ?? 'No description provided.'}</p>
