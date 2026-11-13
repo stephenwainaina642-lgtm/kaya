@@ -13,6 +13,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Modal } from '../../components/ui/Modal';
 import { ImportPropertiesForm } from '../../forms/ImportPropertiesForm';
+import { FloorPlan } from '../../components/FloorPlan';
 import { NewPropertyForm } from '../../forms/NewPropertyForm';
 
 const STATUS_TONE: Record<string, 'ok' | 'warn' | 'danger' | 'neutral'> = {
@@ -55,7 +56,7 @@ export function PropertiesList() {
                     {p.coverImageUrl ? (
                       <img src={p.coverImageUrl} alt={p.title} className="h-full w-full object-cover" />
                     ) : (
-                      <span className="text-xs">No image</span>
+                      <div className="w-full px-6 py-3"><FloorPlan bedrooms={p.bedrooms ?? 1} bathrooms={p.bathrooms ?? 1} issues={[]} unit="" /></div>
                     )}
                   </div>
                   <div className="p-4">

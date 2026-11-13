@@ -41,7 +41,7 @@ function PayNow({ token, owing, currency }: { token: string; owing: number; curr
   const s = status.data;
   if (reqId && s?.status === 'PAID') {
     return (
-      <div className="rounded-control bg-[#edf5f0] px-4 py-3 text-sm text-ok" role="status">
+      <div className="rounded-control bg-accent-soft px-4 py-3 text-sm text-accent-deep" role="status">
         <p className="font-medium">{t('tenant.received', { amount: money(s.amount) })}</p>
         {s.receipt && <p className="mt-0.5">{t('tenant.receivedCode', { code: s.receipt })}</p>}
       </div>

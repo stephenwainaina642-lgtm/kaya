@@ -48,8 +48,8 @@ ${body}
 }
 
 const STYLE = `
-  body{font-family:Georgia,'Times New Roman',serif;color:#1c2b24;max-width:640px;margin:56px auto;padding:0 28px;line-height:1.6;font-size:15px}
-  h1{font-size:22px;margin:0}.date{color:#5b6b63;font-size:13px;margin:4px 0 32px}h2{font-size:17px;margin:24px 0 12px}
+  body{font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#0f1419;max-width:640px;margin:56px auto;padding:0 28px;line-height:1.6;font-size:15px}
+  h1{font-size:22px;margin:0}.date{color:#5b6470;font-size:13px;margin:4px 0 32px}h2{font-size:17px;margin:24px 0 12px}
   .sign{margin-top:48px}section+section{page-break-before:always;margin-top:72px;border-top:1px dashed #ccc;padding-top:56px}@media print{body{margin:0}section+section{border:0;margin-top:0;padding-top:0}}`;
 
 function openPrint(title: string, sections: string[]): void {

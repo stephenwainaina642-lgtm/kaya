@@ -34,7 +34,7 @@ export default {
         sunk: '#f4f5f7',
         ground: '#f6f7f8',
         line: '#e4e6ea',
-        ok: '#15803d',
+        ok: '#1b3fa8',
         warn: '#b45309',
         danger: '#b42318',
       },

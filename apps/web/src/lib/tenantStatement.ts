@@ -13,12 +13,12 @@ export function printTenantStatement(agencyName: string, st: TenantStatement): v
 <td class="n">${esc(kes(r.balance))}</td></tr>`).join('');
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Statement - ${esc(st.tenantName)}</title>
 <style>
-  body{font-family:Georgia,'Times New Roman',serif;color:#1c2b24;max-width:720px;margin:40px auto;padding:0 24px}
-  h1{font-size:22px;margin:0}.sub{color:#5b6b63;font-size:13px;margin:4px 0 24px}
-  table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5b6b63;border-bottom:2px solid #1c2b24;padding:8px 0}
-  td{padding:9px 0;border-bottom:1px solid #dfe5e1;vertical-align:top}.n{text-align:right}th.n{text-align:right}small{color:#5b6b63}
-  tfoot td{font-weight:bold;border-top:2px solid #1c2b24;border-bottom:none}
-  .foot{margin-top:32px;font-size:12px;color:#5b6b63}@media print{body{margin:0}}
+  body{font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#0f1419;max-width:720px;margin:40px auto;padding:0 24px}
+  h1{font-size:22px;margin:0}.sub{color:#5b6470;font-size:13px;margin:4px 0 24px}
+  table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5b6470;border-bottom:2px solid #0f1419;padding:8px 0}
+  td{padding:9px 0;border-bottom:1px solid #e4e6ea;vertical-align:top}.n{text-align:right}th.n{text-align:right}small{color:#5b6470}
+  tfoot td{font-weight:bold;border-top:2px solid #0f1419;border-bottom:none}
+  .foot{margin-top:32px;font-size:12px;color:#5b6470}@media print{body{margin:0}}
 </style></head><body>
 <h1>${esc(agencyName)}</h1><p class="sub">Statement of account · ${esc(st.tenantName)} · ${esc(st.propertyTitle)} · ${esc(new Date().toLocaleDateString('en-KE', { day: 'numeric', month: 'long', year: 'numeric' }))}</p>
 <table><thead><tr><th>Month</th><th class="n">Charged</th><th class="n">Paid</th><th class="n">Balance</th></tr></thead>

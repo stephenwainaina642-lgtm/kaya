@@ -76,7 +76,7 @@ export function OrganizationDetail() {
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-panel bg-[#14201a] p-6 text-white">
+          <div className="rounded-panel bg-[#0f1419] p-6 text-white">
             <div className="flex items-center justify-between">
               {org.suspended ? <Badge tone="danger">Suspended</Badge> : <Badge tone="ok">Active</Badge>}
             </div>

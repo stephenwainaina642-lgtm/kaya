@@ -35,7 +35,7 @@ export const SignaturePad = forwardRef<SignaturePadHandle, { height?: number }>(
       ctx.lineWidth = 2;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
-      ctx.strokeStyle = '#1f2a24';
+      ctx.strokeStyle = '#0f1419';
     }
   }, [height]);
 

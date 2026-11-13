@@ -1,7 +1,7 @@
 /**
  * An agency's identity wherever Kaya shows a logo mark — the app sidebar,
  * and the public inquiry/shortlist pages a client opens with no login.
- * Falls back to a serif monogram in evergreen when the agency hasn't set a
+ * Falls back to a plain monogram in the primary ink when the agency hasn't set a
  * logo/brand colour, so branding is additive, never required.
  */
 export function BrandMark({

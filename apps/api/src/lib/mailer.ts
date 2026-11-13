@@ -51,7 +51,7 @@ export function passwordResetEmail(name: string, link: string, ttlMinutes: numbe
   const text = `Hi ${name},\n\nWe received a request to reset your Kaya password. Use this link within ${ttlMinutes} minutes:\n\n${link}\n\nIf you didn't ask for this, you can ignore this email — your password won't change.\n\n— Kaya`;
   const esc = (v: string) => v.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
   const html = `<div style="font-family:Inter,Arial,sans-serif;max-width:480px;margin:auto;color:#1c2420">
-<h2 style="font-family:Georgia,serif;margin:0 0 12px">Reset your password</h2>
+<h2 style="font-family:'IBM Plex Sans',Arial,sans-serif;margin:0 0 12px">Reset your password</h2>
 <p>Hi ${esc(name)},</p>
 <p>We received a request to reset your Kaya password. This link works for ${ttlMinutes} minutes.</p>
 <p style="margin:24px 0"><a href="${esc(link)}" style="background:#2f6b45;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">Choose a new password</a></p>
@@ -91,10 +91,10 @@ export function rentReceiptEmail(d: RentReceiptData): Omit<Mail, 'to'> {
   ];
   const text = `Hi ${d.tenantName},\n\n${d.agencyName} has received ${kes(d.amount)} (receipt ${d.receiptNo}).\n\n${rows.map(([k, v]) => `${k}: ${v}`).join('\n')}\n\nThank you.\n— ${d.agencyName}`;
   const html = `<div style="font-family:Inter,Arial,sans-serif;max-width:480px;margin:auto;color:#1c2420">
-<h2 style="font-family:Georgia,serif;margin:0 0 4px">${escHtml(d.agencyName)}</h2>
+<h2 style="font-family:'IBM Plex Sans',Arial,sans-serif;margin:0 0 4px">${escHtml(d.agencyName)}</h2>
 <p style="color:#5b6a61;font-size:13px;margin:0 0 20px">Rent receipt ${escHtml(d.receiptNo)}</p>
 <p>Hi ${escHtml(d.tenantName)}, we have received your payment of</p>
-<p style="font-family:Georgia,serif;font-size:30px;margin:4px 0 16px">${escHtml(kes(d.amount))}</p>
+<p style="font-family:'IBM Plex Sans',Arial,sans-serif;font-size:30px;margin:4px 0 16px">${escHtml(kes(d.amount))}</p>
 <table style="width:100%;border-collapse:collapse;font-size:14px">${rows.map(([k, v]) => `<tr><td style="padding:8px 0;border-bottom:1px solid #e3e8e5;color:#5b6a61">${escHtml(k)}</td><td style="padding:8px 0;border-bottom:1px solid #e3e8e5;text-align:right">${escHtml(v)}</td></tr>`).join('')}</table>
 <p style="color:#5b6a61;font-size:13px;margin-top:20px">Thank you.</p></div>`;
   return { subject, text, html };
@@ -130,13 +130,13 @@ export function ownerStatementEmail(d: OwnerStatementEmailData): Omit<Mail, 'to'
   const row = (k: string, v: string, bold = false) =>
     `<tr><td style="padding:8px 0;border-bottom:1px solid #e3e8e5;color:#5b6a61">${escHtml(k)}</td><td style="padding:8px 0;border-bottom:1px solid #e3e8e5;text-align:right;${bold ? 'font-weight:700' : ''}">${escHtml(v)}</td></tr>`;
   const html = `<div style="font-family:Inter,Arial,sans-serif;max-width:520px;margin:auto;color:#1c2420">
-<h2 style="font-family:Georgia,serif;margin:0 0 4px">${escHtml(d.agencyName)}</h2>
+<h2 style="font-family:'IBM Plex Sans',Arial,sans-serif;margin:0 0 4px">${escHtml(d.agencyName)}</h2>
 <p style="color:#5b6a61;font-size:13px;margin:0 0 20px">${escHtml(w.label)} · ${escHtml(d.periodLabel)}</p>
 <p>${escHtml(w.hi(d.ownerName))}, ${escHtml(w.intro(d.periodLabel))}</p>
 <table style="width:100%;border-collapse:collapse;font-size:14px">${summary.map(([k, v], i) => row(k, v, i === summary.length - 1)).join('')}</table>
 <p style="margin:20px 0 6px;font-size:13px;color:#5b6a61">${escHtml(w.byProperty)}</p>
 <table style="width:100%;border-collapse:collapse;font-size:13px">${d.lines.map((l) => row(`${l.property} (${l.tenant})`, `${kes(l.collected)} ${w.of} ${kes(l.rentDue)}`)).join('')}</table>
-${d.portalUrl ? `<p style="margin-top:24px"><a href="${escHtml(d.portalUrl)}" style="background:#2f5d4e;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;display:inline-block">${escHtml(w.seeAll)}</a></p><p style="font-size:12px;color:#5b6a61">${escHtml(w.private)}</p>` : ''}
+${d.portalUrl ? `<p style="margin-top:24px"><a href="${escHtml(d.portalUrl)}" style="background:#2451d6;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;display:inline-block">${escHtml(w.seeAll)}</a></p><p style="font-size:12px;color:#5b6a61">${escHtml(w.private)}</p>` : ''}
 </div>`;
   return { subject, text, html };
 }

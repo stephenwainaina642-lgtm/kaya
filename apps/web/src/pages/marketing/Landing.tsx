@@ -91,7 +91,7 @@ function HeroPicture() {
             ))}
           </div>
           <div className="mt-4 rounded-control border border-line p-3">
-            <div className="mb-2 flex items-center justify-between gap-2 text-xs"><span className="font-medium text-ink">Rent, last 8 months</span><span className="text-ok">88% this month</span></div>
+            <div className="mb-2 flex items-center justify-between gap-2 text-xs"><span className="font-medium text-ink">Rent, last 8 months</span><span className="text-accent-deep">88% this month</span></div>
             <div className="flex h-24 items-end gap-2">
               {bars.map((h, i) => <div key={i} className={`flex-1 rounded-t ${i === bars.length - 1 ? 'bg-accent' : 'bg-accent-soft'}`} style={{ height: `${h}%` }} />)}
             </div>

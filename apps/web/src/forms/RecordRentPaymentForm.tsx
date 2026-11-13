@@ -9,7 +9,7 @@ import { Button } from '../components/ui/Button';
 import { currencyCode } from '../lib/currency';
 import { money as kes } from '../lib/currency';
 
-export function RecordRentPaymentForm({ charge, onDone }: { charge: RentChargeItem; onDone: () => void }) {
+export function RecordRentPaymentForm({ charge, onDone }: { charge: Pick<RentChargeItem, 'id' | 'tenantName' | 'propertyTitle' | 'period' | 'balance'>; onDone: () => void }) {
   const qc = useQueryClient();
   const [amount, setAmount] = useState(String(charge.balance));
   const [method, setMethod] = useState<(typeof RENT_PAYMENT_METHODS)[number]>('MPESA');
@@ -21,7 +21,7 @@ export function RecordRentPaymentForm({ charge, onDone }: { charge: RentChargeIt
       api.post(`/rent/charges/${charge.id}/payments`, {
         amount: Math.round(Number(amount)), method, reference: reference.trim() || null,
       }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['rent'] }); onDone(); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['rent'] }); qc.invalidateQueries({ queryKey: ['unit'] }); qc.invalidateQueries({ queryKey: ['buildings'] }); onDone(); },
     onError: (err) => setError(err instanceof ApiError ? err.message : 'Something went wrong'),
   });
 

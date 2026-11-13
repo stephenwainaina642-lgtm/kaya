@@ -28,10 +28,10 @@ export function PlatformLogin() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#14201a] px-4">
+    <div className="flex min-h-screen items-center justify-center bg-[#0f1419] px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-control bg-white font-display text-xl font-semibold text-[#14201a]">
+          <div className="flex h-12 w-12 items-center justify-center rounded-control bg-white font-display text-xl font-semibold text-[#0f1419]">
             K
           </div>
           <h1 className="font-display text-2xl font-semibold text-white">Kaya Platform</h1>
@@ -49,7 +49,7 @@ export function PlatformLogin() {
             placeholder="Kaya!Demo2026"
             className="mb-4"
           />
-          {error && <p className="mb-4 text-sm text-[#ff9b8a]">{error}</p>}
+          {error && <p className="mb-4 text-sm text-[#ff8a78]">{error}</p>}
           <Button type="submit" disabled={busy} className="w-full">
             {busy ? 'Signing in…' : 'Sign in'}
           </Button>

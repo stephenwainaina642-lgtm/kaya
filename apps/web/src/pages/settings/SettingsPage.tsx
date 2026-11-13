@@ -101,7 +101,7 @@ function MpesaCollectionCard() {
       </p>
       {data.configured && !open ? (
         <div className="mt-3 space-y-3 text-sm">
-          <p className="rounded-control bg-[#edf5f0] px-3 py-2 text-ok">On: {data.accountType === 'TILL' ? 'Till' : 'Paybill'} {data.shortcode} ({data.mode === 'production' ? 'live' : 'sandbox'})</p>
+          <p className="rounded-control bg-accent-soft px-3 py-2 text-accent-deep">On: {data.accountType === 'TILL' ? 'Till' : 'Paybill'} {data.shortcode} ({data.mode === 'production' ? 'live' : 'sandbox'})</p>
           {data.callbackUrl && <p className="break-all text-xs text-muted">Callback URL: <span className="select-all text-ink">{data.callbackUrl}</span></p>}
           <div className="flex gap-3">
             <Button type="button" variant="secondary" onClick={() => { setF({ ...f, mode: data.mode, accountType: data.accountType, shortcode: data.shortcode ?? '' }); setOpen(true); }}>Change</Button>
@@ -162,7 +162,7 @@ function RepairLinkCard() {
 function BrandingCard() {
   const { user, updateUser } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [color, setColor] = useState(user?.brandColor ?? '#2F5D4E');
+  const [color, setColor] = useState(user?.brandColor ?? '#2451d6');
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 

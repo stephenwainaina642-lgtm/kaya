@@ -13,7 +13,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <>
       <div className="flex items-center gap-2 px-5 py-5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-control bg-white font-display text-sm font-semibold text-[#14201a]">
+        <div className="flex h-8 w-8 items-center justify-center rounded-control bg-white font-display text-sm font-semibold text-[#0f1419]">
           K
         </div>
         <div>
@@ -63,14 +63,14 @@ export function PlatformLayout() {
 
   return (
     <div className="flex h-screen bg-ground">
-      <aside className="hidden w-64 shrink-0 flex-col bg-[#14201a] lg:flex">
+      <aside className="hidden w-64 shrink-0 flex-col bg-[#0f1419] lg:flex">
         <SidebarContent />
       </aside>
 
       {open && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-ink/40" onClick={() => setOpen(false)} />
-          <aside className="absolute inset-y-0 left-0 flex w-72 flex-col bg-[#14201a] shadow-xl">
+          <aside className="absolute inset-y-0 left-0 flex w-72 flex-col bg-[#0f1419] shadow-xl">
             <button
               onClick={() => setOpen(false)}
               className="absolute right-3 top-4 rounded-control p-1.5 text-cypress-100/60 hover:bg-white/10 hover:text-white"
@@ -88,7 +88,7 @@ export function PlatformLayout() {
             <button onClick={() => setOpen(true)} className="rounded-control p-1.5 text-ink hover:bg-sunk">
               <Menu size={20} />
             </button>
-            <div className="flex h-7 w-7 items-center justify-center rounded-control bg-[#14201a] font-display text-xs font-semibold text-white">K</div>
+            <div className="flex h-7 w-7 items-center justify-center rounded-control bg-[#0f1419] font-display text-xs font-semibold text-white">K</div>
             <span className="font-display text-base font-semibold text-ink">Kaya Platform</span>
           </div>
           <button onClick={logout} className="rounded-control p-1.5 text-faint hover:bg-sunk hover:text-ink">

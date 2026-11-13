@@ -373,7 +373,7 @@ export async function tenantStatement(a: Auth, leaseId: string): Promise<TenantS
     const rows = charges.map((c) => {
       balance += c.amount - c.paidAmount;
       return {
-        period: c.period, dueDate: c.dueDate, charged: c.amount, extras: c.extras, paid: c.paidAmount, balance,
+        chargeId: c.id, period: c.period, dueDate: c.dueDate, charged: c.amount, extras: c.extras, paid: c.paidAmount, balance,
         payments: pays.filter((p) => p.chargeId === c.id).map((p) => ({
           id: p.id, amount: p.amount, method: p.method as RentPaymentItem['method'], reference: p.reference, paidAt: p.paidAt.toISOString(),
         })),

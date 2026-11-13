@@ -180,6 +180,8 @@ export interface VacancyReport {
 }
 
 export interface TenantStatementRow {
+  /** The month's rent charge, so a payment can be recorded against it. */
+  chargeId: string;
   period: string;
   dueDate: string;
   /** Rent plus any extras for the month. */

@@ -12,7 +12,7 @@ export function ContactActions({ phone, whatsapp, name, size = 32 }: { phone: st
     <span className="inline-flex shrink-0 items-center gap-1.5">
       <a href={whatsappLink(whatsapp ?? phone, first ? `Hi ${first}, ` : undefined)} target="_blank" rel="noreferrer" style={box}
         aria-label={`WhatsApp ${name ?? phone}`} title="WhatsApp"
-        className="flex items-center justify-center rounded-full bg-[#e7f8ee] text-[#128c4a] ring-1 ring-inset ring-[#c3ead2] transition hover:bg-[#d5f3e1]">
+        className="flex items-center justify-center rounded-full bg-sunk text-ink ring-1 ring-inset ring-line transition hover:bg-accent-soft hover:text-accent-deep hover:ring-[#d3defa]">
         <MessageCircle size={size * 0.5} />
       </a>
       <a href={`tel:${phone.replace(/[^\d+]/g, '')}`} style={box} aria-label={`Call ${name ?? phone}`} title="Call"

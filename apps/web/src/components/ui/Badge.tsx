@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 const TONES = {
   neutral: 'bg-sunk text-muted ring-line',
-  ok: 'bg-[#edf5f0] text-ok ring-[#cfe3d8]',
+  ok: 'bg-accent-soft text-accent-deep ring-[#d3defa]',
   warn: 'bg-[#fdf5e6] text-warn ring-[#f1dcae]',
   danger: 'bg-[#fbefed] text-danger ring-[#f0d3cf]',
   accent: 'bg-accent-soft text-accent-deep ring-[#d3defa]',

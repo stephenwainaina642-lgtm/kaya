@@ -19,7 +19,7 @@ export function OccupancyBar({ occupied, vacant, other, units }: { occupied: num
     <div className="flex h-2 overflow-hidden rounded-full bg-sunk" role="img" aria-label={`${occupied} occupied, ${vacant} vacant of ${units} units`}>
       <div className="bg-ink" style={{ width: `${pct(occupied)}%` }} />
       <div className="bg-[#cfd5dd]" style={{ width: `${pct(other)}%` }} />
-      <div className="bg-ok/40" style={{ width: `${pct(vacant)}%` }} />
+      <div className="bg-accent/25" style={{ width: `${pct(vacant)}%` }} />
     </div>
   );
 }

@@ -15,7 +15,7 @@ import { OccupancyBar } from './BuildingsList';
 
 const TILE: Record<string, string> = {
   LET: 'border-ink bg-ink text-white',
-  AVAILABLE: 'border-[#cfe3d8] bg-[#edf5f0] text-ok',
+  AVAILABLE: 'border-dashed border-accent/50 bg-white text-accent-deep',
 };
 
 export function BuildingDetail() {
@@ -106,7 +106,7 @@ export function BuildingDetail() {
             <h2 className="text-lg font-semibold text-ink">Units</h2>
             <div className="flex items-center gap-4 text-xs text-muted">
               <span className="flex items-center gap-1.5"><i className="h-3 w-3 rounded-sm bg-ink" /> Occupied</span>
-              <span className="flex items-center gap-1.5"><i className="h-3 w-3 rounded-sm border border-[#cfe3d8] bg-[#edf5f0]" /> Vacant</span>
+              <span className="flex items-center gap-1.5"><i className="h-3 w-3 rounded-sm border border-dashed border-accent/60 bg-white" /> Vacant</span>
               <span className="flex items-center gap-1.5"><i className="h-3 w-3 rounded-sm border border-line bg-sunk" /> Other</span>
               <span className="flex items-center gap-1.5"><i className="h-3 w-3 rounded-sm ring-2 ring-danger" /> In arrears</span>
               <span className="flex items-center gap-1.5"><i className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-danger text-white"><Wrench size={8} /></i> Open repair</span>
