@@ -19,7 +19,7 @@ const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 
 export const updateBrandingInput = z.object({
   // null clears it (back to Kaya's default palette); omit to leave unchanged.
-  brandColor: z.string().regex(HEX_COLOR, 'Must be a hex color like #2F5D4E').nullable().optional(),
+  brandColor: z.string().regex(HEX_COLOR, 'Must be a hex color like #2451D6').nullable().optional(),
   rentPaymentInfo: z.string().trim().max(600).nullable().optional(),
 });
 
